@@ -13,29 +13,54 @@ import os
 import numpy as np
 import scipy.io as sio
 
-# from sklearn.feature_selection import RFE
-# from nilearn import connectome
-
-# Input data.
+# Data sources.
 root_folder = \
   '/Users/kamilestankeviciute/Google Drive/Part II/Dissertation/brain-age-gnn'
-data_folder = os.path.join(root_folder, 'data')
+timeseries_data_folder = os.path.join(root_folder, 'data/TS')
 
 
-# Get timeseries arrays for list of subjects
-def get_timeseries(subject_list, atlas_name):
+def get_subject_ids(num_subjects=None):
   """
-      subject_list : list of short subject IDs in string format
-      atlas_name   : the atlas based on which the timeseries are generated e.g. aal, cc200
+    Gets the list of subject IDs for a spcecified number of subjects.
+    If the number of subjects is not specified, all IDs are returned.
+  
+  Args:
+    num_subjects: The number of subjects.
 
-  returns:
-      time_series  : list of timeseries arrays, each of shape (timepoints x regions)
+  Returns:
+    List of subject IDs.
   """
-  pass
+
+  subject_ids = [f[:-len("_ts_raw.txt")] \
+    for f in sorted(os.listdir(timeseries_data_folder))]
+
+  if num_subjects is not None:
+    subject_ids = subject_ids[:num_subjects]
+
+  return subject_ids
+
+def get_raw_timeseries(subject_ids):
+  """Gets raw timeseries arrays for the given list of subjects.
+
+  Args:
+    subject_ids: List of subject IDs.
+
+  Returns:
+    List of timeseries. Rows in timeseries correspond to brain regions, 
+    columns correspond to timeseries values.
+  """
+
+  timeseries = []
+  for subject_id in subject_ids:
+    fl = os.path.join(timeseries_data_folder, subject_id + '_ts_raw.txt')
+    print("Reading timeseries file %s" %fl)
+    timeseries.append(np.loadtxt(fl, delimiter=','))
+
+  return timeseries
 
 
 # Compute connectivity matrices
-def subject_connectivity(timeseries, subject, atlas_name, kind, save=True, save_path=data_folder):
+def subject_connectivity(timeseries, subject, atlas_name, kind, save=True, save_path=''):
   """
       timeseries   : timeseries table for subject (timepoints x regions)
       subject      : the subject ID
@@ -49,22 +74,6 @@ def subject_connectivity(timeseries, subject, atlas_name, kind, save=True, save_
   """
 
   pass
-
-
-# Get the list of subject IDs
-def get_ids(num_subjects=None):
-  """
-
-  return:
-      subject_IDs    : list of all subject IDs
-  """
-
-  subject_IDs = np.genfromtxt(os.path.join(data_folder, 'subject_IDs.txt'), dtype=str)
-
-  if num_subjects is not None:
-      subject_IDs = subject_IDs[:num_subjects]
-
-  return subject_IDs
 
 
 # Get phenotype values for a list of subjects
@@ -119,3 +128,9 @@ def create_affinity_graph_from_scores(scores, subject_list):
   #                     graph[j, k] += 1
 
   # return graph
+
+
+subject_ids = get_subject_ids(1)
+print(subject_ids)
+ts = get_raw_timeseries(subject_ids)
+print(ts)
