@@ -13,10 +13,13 @@ import os
 import numpy as np
 import scipy.io as sio
 
+from nilearn import connectome
+
 # Data sources.
 root_folder = \
   '/Users/kamilestankeviciute/Google Drive/Part II/Dissertation/brain-age-gnn'
 timeseries_data_folder = os.path.join(root_folder, 'data/TS')
+fcm_data_folder = os.path.join(root_folder, 'data/fcm')
 
 
 def get_subject_ids(num_subjects=None):
@@ -58,26 +61,53 @@ def get_raw_timeseries(subject_ids):
 
   return timeseries
 
-#TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)
-def get_functional_connectivity(timeseries, subject, kind, save=True, save_path=''):
+#TODO: include the argument for the kind of connectivity matrix (partial 
+# correlation, correlation, lasso,...)
+#TODO: save: Indicates whether to save the connectivity matrix to a file.
+#TODO: save_path: Indicates the path where to store the connectivity matrix.
+
+def get_functional_connectivity_parisots(timeseries):
   """Derive the correlation matrix for the parcellated timeseries data.
 
   Args:
     timeseries: The parcellated timeseries of shape (number ROI x timepoints).
-    subject: Subject ID.
-    save: Indicates whether to save the connectivity matrix to a file.
-    save_path: Indicates the path where to store the connectivity matrix.
+    subject_id: Subject ID.
 
   Returns:
     The flattened lower triangle of the correlation matrix for the parcellated
     timeseries data.
   """
+  # print("Estimating correlation matrix for subject %s" % (subject_id))
 
+  conn_measure = \
+    connectome.ConnectivityMeasure(kind='correlation', vectorize=True)
+  connectivity = conn_measure.fit_transform([np.transpose(timeseries)])[0]
+  
+  print(connectivity)
 
-  pass
+  return connectivity
+
+def get_functional_connectivity_alex(timeseries):
+  mean = timeseries.mean(1)
+  std = timeseries.std(1, ddof=timeseries.shape[1] - 1)
+  cov = np.dot(timeseries, timeseries.T) - (timeseries.shape[1] * np.dot(mean[:, np.newaxis], mean[np.newaxis, :]))
+  fcm = cov / np.dot(std[:, np.newaxis], std[np.newaxis, :])
+
+  mask = np.invert(np.tri(fcm.shape[0], k=-1, dtype=bool))
+  m = np.ma.masked_where(mask == 1, mask)
+  lower_tri_fcm = np.ma.masked_where(m, fcm)
+
+  flat_fcm = lower_tri_fcm.compressed()
+
+  assert flat_fcm.size == (fcm.shape[0] * (fcm.shape[0] - 1))*0.5
+  
+  print(flat_fcm)
+  return flat_fcm
 
 
 subject_ids = get_subject_ids(1)
 print(subject_ids)
 ts = get_raw_timeseries(subject_ids)
 print(ts)
+conn = get_functional_connectivity_parisots(ts[0])
+manual_conn = get_functional_connectivity_alex(ts[0])
