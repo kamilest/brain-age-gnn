@@ -25,8 +25,8 @@ fcm_data_folder = os.path.join(root_folder, 'data/fcm')
 
 def get_subject_ids(num_subjects=None):
   """
-    Gets the list of subject IDs for a spcecified number of subjects.
-    If the number of subjects is not specified, all IDs are returned.
+  Gets the list of subject IDs for a spcecified number of subjects.
+  If the number of subjects is not specified, all IDs are returned.
   
   Args:
     num_subjects: The number of subjects.
@@ -44,7 +44,8 @@ def get_subject_ids(num_subjects=None):
   return subject_ids
 
 def get_raw_timeseries(subject_ids):
-  """Gets raw timeseries arrays for the given list of subjects.
+  """
+  Gets raw timeseries arrays for the given list of subjects.
 
   Args:
     subject_ids: List of subject IDs.
@@ -68,7 +69,8 @@ def get_raw_timeseries(subject_ids):
 #TODO: save_path: Indicates the path where to store the connectivity matrix.
 
 def get_functional_connectivity(timeseries):
-  """Derive the correlation matrix for the parcellated timeseries data.
+  """
+  Derives the correlation matrix for the parcellated timeseries data.
 
   Args:
     timeseries: The parcellated timeseries of shape (number ROI x timepoints).
@@ -92,34 +94,38 @@ def get_functional_connectivity(timeseries):
   print(connectivity)
   return connectivity
 
-# Get phenotype values for a list of subjects
-def get_subject_score(subject_list, score):
-  # scores_dict = {}
+def get_structural_data(subject_list):
+  return None
 
-  # with open(phenotype) as csv_file:
-  #     reader = csv.DictReader(csv_file)
-  #     for row in reader:
-  #         if row['SUB_ID'] in subject_list:
-  #             scores_dict[row['SUB_ID']] = row[score]
+def get_similarity(subject_i, subject_j):
+  """
+  Returns the similarity score between two subjects.
 
-  # return scores_dict
+  Args:
+    subject_i: First subject.
+    subject_j: Second subject.
+
+  Returns:
+    Similarity score.
+  """
+
+  return np.random.rand()
+
+
+def construct_population_graph(subject_ids):
+  """
+  Constructs the adjacency list of the population graph based on the
+  similarity metric.
+  
+  Args:
+    subject_ids: List of subject IDs.
+
+  Returns:
+    An adjacency list of the population graph of the form 
+    {index: [neighbour_nodes]}
+  """
 
   pass
-
-
-# Construct the adjacency matrix of the population from phenotypic scores
-def create_affinity_graph_from_scores(scores, subject_list):
-  """
-      scores       : list of phenotypic information to be used to construct the affinity graph
-      subject_list : list of subject IDs
-
-  return:
-      graph        : adjacency matrix of the population graph (num_subjects x num_subjects)
-  """
-  pass
-
-  # num_nodes = len(subject_list)
-  # graph = np.zeros((num_nodes, num_nodes))
 
   # for l in scores:
   #     label_dict = get_subject_score(subject_list, l)
@@ -144,6 +150,7 @@ def create_affinity_graph_from_scores(scores, subject_list):
   #                     graph[j, k] += 1
 
   # return graph
+
 
 subject_ids = get_subject_ids(1)
 print(subject_ids)
