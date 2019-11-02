@@ -99,7 +99,7 @@ def get_structural_data(subject_list):
 
 def get_similarity(subject_i, subject_j):
   """
-  Returns the similarity score between two subjects.
+  Computes the similarity score between two subjects.
 
   Args:
     subject_i: First subject.
