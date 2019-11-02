@@ -14,6 +14,7 @@ import numpy as np
 import scipy.io as sio
 
 from nilearn import connectome
+from sklearn.covariance import EmpiricalCovariance
 
 # Data sources.
 root_folder = \
@@ -66,7 +67,7 @@ def get_raw_timeseries(subject_ids):
 #TODO: save: Indicates whether to save the connectivity matrix to a file.
 #TODO: save_path: Indicates the path where to store the connectivity matrix.
 
-def get_functional_connectivity_parisots(timeseries):
+def get_functional_connectivity(timeseries):
   """Derive the correlation matrix for the parcellated timeseries data.
 
   Args:
@@ -77,36 +78,17 @@ def get_functional_connectivity_parisots(timeseries):
     The flattened lower triangle of the correlation matrix for the parcellated
     timeseries data.
   """
-  
+  cov_estimator = \
+    EmpiricalCovariance(assume_centered=False, store_precision=False)
   conn_measure = \
-    connectome.ConnectivityMeasure(kind='correlation', vectorize=True, discard_diagonal=True)
+    connectome.ConnectivityMeasure(cov_estimator=cov_estimator, kind='correlation', vectorize=True, discard_diagonal=True)
   connectivity = conn_measure.fit_transform([np.transpose(timeseries)])[0]
   
   print(connectivity)
-
   return connectivity
-
-def get_functional_connectivity_alex(timeseries):
-  mean = timeseries.mean(1)
-  std = timeseries.std(1, ddof=timeseries.shape[1] - 1)
-  cov = np.dot(timeseries, timeseries.T) - (timeseries.shape[1] * np.dot(mean[:, np.newaxis], mean[np.newaxis, :]))
-  fcm = cov / np.dot(std[:, np.newaxis], std[np.newaxis, :])
-
-  mask = np.invert(np.tri(fcm.shape[0], k=-1, dtype=bool))
-  m = np.ma.masked_where(mask == 1, mask)
-  lower_tri_fcm = np.ma.masked_where(m, fcm)
-
-  flat_fcm = lower_tri_fcm.compressed()
-
-  assert flat_fcm.size == (fcm.shape[0] * (fcm.shape[0] - 1))*0.5
-  
-  print(flat_fcm)
-  return flat_fcm
-
 
 subject_ids = get_subject_ids(1)
 print(subject_ids)
 ts = get_raw_timeseries(subject_ids)
 print(ts)
-conn = get_functional_connectivity_parisots(ts[0])
-manual_conn = get_functional_connectivity_alex(ts[0])
+conn = get_functional_connectivity(ts[0])
