@@ -77,10 +77,9 @@ def get_functional_connectivity_parisots(timeseries):
     The flattened lower triangle of the correlation matrix for the parcellated
     timeseries data.
   """
-  # print("Estimating correlation matrix for subject %s" % (subject_id))
-
+  
   conn_measure = \
-    connectome.ConnectivityMeasure(kind='correlation', vectorize=True)
+    connectome.ConnectivityMeasure(kind='correlation', vectorize=True, discard_diagonal=True)
   connectivity = conn_measure.fit_transform([np.transpose(timeseries)])[0]
   
   print(connectivity)
