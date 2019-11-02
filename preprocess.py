@@ -58,20 +58,21 @@ def get_raw_timeseries(subject_ids):
 
   return timeseries
 
+#TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)
+def get_functional_connectivity(timeseries, subject, kind, save=True, save_path=''):
+  """Derive the correlation matrix for the parcellated timeseries data.
 
-# Compute connectivity matrices
-def subject_connectivity(timeseries, subject, atlas_name, kind, save=True, save_path=''):
-  """
-      timeseries   : timeseries table for subject (timepoints x regions)
-      subject      : the subject ID
-      atlas_name   : name of the parcellation atlas used
-      kind         : the kind of connectivity to be used, e.g. lasso, partial correlation, correlation
-      save         : save the connectivity matrix to a file
-      save_path    : specify path to save the matrix if different from subject folder
+  Args:
+    timeseries: The parcellated timeseries of shape (number ROI x timepoints).
+    subject: Subject ID.
+    save: Indicates whether to save the connectivity matrix to a file.
+    save_path: Indicates the path where to store the connectivity matrix.
 
-  returns:
-      connectivity : connectivity matrix (regions x regions)
+  Returns:
+    The flattened lower triangle of the correlation matrix for the parcellated
+    timeseries data.
   """
+  
 
   pass
 
