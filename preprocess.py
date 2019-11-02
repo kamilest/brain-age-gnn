@@ -13,10 +13,14 @@ import os
 import numpy as np
 import scipy.io as sio
 
+from nilearn import connectome
+from sklearn.covariance import EmpiricalCovariance
+
 # Data sources.
 root_folder = \
   '/Users/kamilestankeviciute/Google Drive/Part II/Dissertation/brain-age-gnn'
 timeseries_data_folder = os.path.join(root_folder, 'data/TS')
+fcm_data_folder = os.path.join(root_folder, 'data/fcm')
 
 
 def get_subject_ids(num_subjects=None):
@@ -31,7 +35,7 @@ def get_subject_ids(num_subjects=None):
     List of subject IDs.
   """
 
-  subject_ids = [f[:-len("_ts_raw.txt")] \
+  subject_ids = [f[:-len("_ts_raw.txt")] 
     for f in sorted(os.listdir(timeseries_data_folder))]
 
   if num_subjects is not None:
@@ -58,23 +62,35 @@ def get_raw_timeseries(subject_ids):
 
   return timeseries
 
-#TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)
-def get_functional_connectivity(timeseries, subject, kind, save=True, save_path=''):
+#TODO: include the argument for the kind of connectivity matrix (partial 
+# correlation, correlation, lasso,...)
+#TODO: save: Indicates whether to save the connectivity matrix to a file.
+#TODO: save_path: Indicates the path where to store the connectivity matrix.
+
+def get_functional_connectivity(timeseries):
   """Derive the correlation matrix for the parcellated timeseries data.
 
   Args:
     timeseries: The parcellated timeseries of shape (number ROI x timepoints).
-    subject: Subject ID.
-    save: Indicates whether to save the connectivity matrix to a file.
-    save_path: Indicates the path where to store the connectivity matrix.
+    subject_id: Subject ID.
 
   Returns:
     The flattened lower triangle of the correlation matrix for the parcellated
     timeseries data.
   """
-
-
-  pass
+  
+  cov_estimator = EmpiricalCovariance(
+    assume_centered=False, 
+    store_precision=False)
+  conn_measure = connectome.ConnectivityMeasure(
+    cov_estimator=cov_estimator, 
+    kind='correlation', 
+    vectorize=True, 
+    discard_diagonal=True)
+  connectivity = conn_measure.fit_transform([np.transpose(timeseries)])[0]
+  
+  print(connectivity)
+  return connectivity
 
 # Get phenotype values for a list of subjects
 def get_subject_score(subject_list, score):
@@ -129,8 +145,7 @@ def create_affinity_graph_from_scores(scores, subject_list):
 
   # return graph
 
-
 subject_ids = get_subject_ids(1)
 print(subject_ids)
 ts = get_raw_timeseries(subject_ids)
-print(ts)
+conn = get_functional_connectivity(ts[0])
