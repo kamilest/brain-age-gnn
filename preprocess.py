@@ -35,7 +35,7 @@ def get_subject_ids(num_subjects=None):
     List of subject IDs.
   """
 
-  subject_ids = [f[:-len("_ts_raw.txt")] \
+  subject_ids = [f[:-len("_ts_raw.txt")] 
     for f in sorted(os.listdir(timeseries_data_folder))]
 
   if num_subjects is not None:
@@ -78,10 +78,14 @@ def get_functional_connectivity(timeseries):
     The flattened lower triangle of the correlation matrix for the parcellated
     timeseries data.
   """
-  cov_estimator = \
-    EmpiricalCovariance(assume_centered=False, store_precision=False)
-  conn_measure = \
-    connectome.ConnectivityMeasure(cov_estimator=cov_estimator, kind='correlation', vectorize=True, discard_diagonal=True)
+  cov_estimator = EmpiricalCovariance(
+    assume_centered=False, 
+    store_precision=False)
+  conn_measure = connectome.ConnectivityMeasure(
+    cov_estimator=cov_estimator, 
+    kind='correlation', 
+    vectorize=True, 
+    discard_diagonal=True)
   connectivity = conn_measure.fit_transform([np.transpose(timeseries)])[0]
   
   print(connectivity)
@@ -90,5 +94,4 @@ def get_functional_connectivity(timeseries):
 subject_ids = get_subject_ids(1)
 print(subject_ids)
 ts = get_raw_timeseries(subject_ids)
-print(ts)
 conn = get_functional_connectivity(ts[0])
