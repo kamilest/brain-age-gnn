@@ -87,7 +87,6 @@ def get_functional_connectivity(timeseries):
     discard_diagonal=True)
   connectivity = conn_measure.fit_transform([np.transpose(timeseries)])[0]
   
-  print(connectivity)
   return connectivity
 
 def get_structural_data(subject_ids):
