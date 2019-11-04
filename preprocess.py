@@ -95,6 +95,15 @@ def get_functional_connectivity(timeseries):
   return connectivity
 
 def get_structural_data(subject_list):
+  """
+  Retrieves the non-timeseries data for the list of subjects.
+
+  Args:
+    subject_ids: List of subject IDs.
+
+  Returns:
+    ???
+  """
   return None
 
 def get_similarity(subject_i, subject_j):
