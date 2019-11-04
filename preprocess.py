@@ -94,7 +94,7 @@ def get_functional_connectivity(timeseries):
   print(connectivity)
   return connectivity
 
-def get_structural_data(subject_list):
+def get_structural_data(subject_ids):
   """
   Retrieves the non-timeseries data for the list of subjects.
 
@@ -131,7 +131,7 @@ def construct_population_graph(subject_ids):
 
   Returns:
     An adjacency list of the population graph of the form 
-    {index: [neighbour_nodes]}
+    {index: [neighbour_nodes]}, indexed by Subject IDs.
   """
 
   pass
