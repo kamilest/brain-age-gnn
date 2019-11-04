@@ -81,11 +81,7 @@ def get_functional_connectivity(timeseries):
     timeseries data.
   """
   
-  cov_estimator = EmpiricalCovariance(
-    assume_centered=False, 
-    store_precision=False)
   conn_measure = connectome.ConnectivityMeasure(
-    cov_estimator=cov_estimator, 
     kind='correlation', 
     vectorize=True, 
     discard_diagonal=True)
