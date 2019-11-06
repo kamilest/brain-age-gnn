@@ -11,25 +11,23 @@ connects nodes into a graph, assigning collected features
 
 import numpy as np
 import scipy.io as sio
-
 import os
-import os.path as osp
 
 from nilearn import connectome
-from sklearn.covariance import EmpiricalCovariance
 
 import torch
 from torch_geometric.data import Data, Dataset
 
 # Data sources.
-root_folder = \
-  '/Users/kamilestankeviciute/Google Drive/Part II/Dissertation/brain-age-gnn'
-timeseries_data_folder = osp.join(root_folder, 'data/TS')
-fcm_data_folder = osp.join(root_folder, 'data/fcm')
-
+data_root = \
+  '/Users/kamilestankeviciute/Google Drive/Part II/Dissertation/' \
+  'brain-age-gnn/data'
+data_timeseries = os.path.join(data_root, 'data/raw_ts')
+graph_root = os.path.join(data_root, 'graph')
 
 class PopulationGraph(Dataset):
-  def __init__(self, root, transform=None, pre_transform=None):
+  
+  def __init__(self, root, size, transform=None, pre_transform=None, pre_filter=None):
     super(PopulationGraph, self).__init__(root, transform, pre_transform)
 
   @property
@@ -44,14 +42,13 @@ class PopulationGraph(Dataset):
     return len(self.processed_file_names)
 
   def download(self):
-    # Download to `self.raw_dir`.
     pass
 
   def process(self):
     i = 0
     for raw_path in self.raw_paths:
       # Read data from `raw_path`.
-      data = Data()
+      data = Data(x=None, edge_index=None, edge_attr=None, y=None, pos=None, norm=None, face=None)
 
       if self.pre_filter is not None and not self.pre_filter(data):
         continue
@@ -59,11 +56,11 @@ class PopulationGraph(Dataset):
       if self.pre_transform is not None:
         data = self.pre_transform(data)
 
-      torch.save(data, osp.join(self.processed_dir, 'data_{}.pt'.format(i)))
+      torch.save(data, os.path.join(self.processed_dir, 'data_{}.pt'.format(i)))
       i += 1
 
   def get(self, idx):
-    data = torch.load(osp.join(self.processed_dir, 'data_{}.pt'.format(idx))
+    data = torch.load(os.path.join(self.processed_dir, 'data_{}.pt'.format(idx)))
     return data
 
 
@@ -81,7 +78,7 @@ def get_subject_ids(num_subjects=None):
   """
 
   subject_ids = [f[:-len("_ts_raw.txt")] 
-    for f in sorted(os.listdir(timeseries_data_folder))]
+    for f in sorted(os.listdir(data_timeseries))]
 
   if num_subjects is not None:
     subject_ids = subject_ids[:num_subjects]
@@ -102,7 +99,7 @@ def get_raw_timeseries(subject_ids):
 
   timeseries = []
   for subject_id in subject_ids:
-    fl = osp.join(timeseries_data_folder, subject_id + '_ts_raw.txt')
+    fl = os.path.join(data_timeseries, subject_id + '_ts_raw.txt')
     print("Reading timeseries file %s" %fl)
     timeseries.append(np.loadtxt(fl, delimiter=','))
 
@@ -134,6 +131,9 @@ def get_functional_connectivity(timeseries):
   
   return connectivity
 
+
+# TODO: get cortical thickness and Euler indices.
+
 def get_structural_data(subject_ids):
   """
   Retrieves the non-timeseries data for the list of subjects.
@@ -161,7 +161,7 @@ def get_similarity(subject_i, subject_j):
   return np.random.rand()
 
 
-def construct_population_graph(subject_ids):
+def construct_edge_list(subject_ids):
   """
   Constructs the adjacency list of the population graph based on the
   similarity metric.
@@ -175,31 +175,6 @@ def construct_population_graph(subject_ids):
   """
 
   pass
-
-  # for l in scores:
-  #     label_dict = get_subject_score(subject_list, l)
-
-  #     # quantitative phenotypic scores
-  #     if l in ['AGE_AT_SCAN', 'FIQ']:
-  #         for k in range(num_nodes):
-  #             for j in range(k + 1, num_nodes):
-  #                 try:
-  #                     val = abs(float(label_dict[subject_list[k]]) - float(label_dict[subject_list[j]]))
-  #                     if val < 2:
-  #                         graph[k, j] += 1
-  #                         graph[j, k] += 1
-  #                 except ValueError:  # missing label
-  #                     pass
-
-  #     else:
-  #         for k in range(num_nodes):
-  #             for j in range(k + 1, num_nodes):
-  #                 if label_dict[subject_list[k]] == label_dict[subject_list[j]]:
-  #                     graph[k, j] += 1
-  #                     graph[j, k] += 1
-
-  # return graph
-
 
 subject_ids = get_subject_ids(1)
 print(subject_ids)
