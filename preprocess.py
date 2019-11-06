@@ -9,18 +9,63 @@ computes graph adjacency scores
 connects nodes into a graph, assigning collected features
 """
 
-import os
 import numpy as np
 import scipy.io as sio
+
+import os
+import os.path as osp
 
 from nilearn import connectome
 from sklearn.covariance import EmpiricalCovariance
 
+import torch
+from torch_geometric.data import Data, Dataset
+
 # Data sources.
 root_folder = \
   '/Users/kamilestankeviciute/Google Drive/Part II/Dissertation/brain-age-gnn'
-timeseries_data_folder = os.path.join(root_folder, 'data/TS')
-fcm_data_folder = os.path.join(root_folder, 'data/fcm')
+timeseries_data_folder = osp.join(root_folder, 'data/TS')
+fcm_data_folder = osp.join(root_folder, 'data/fcm')
+
+
+class PopulationGraph(Dataset):
+  def __init__(self, root, transform=None, pre_transform=None):
+    super(PopulationGraph, self).__init__(root, transform, pre_transform)
+
+  @property
+  def raw_file_names(self):
+    return ['some_file_1', 'some_file_2', ...]
+
+  @property
+  def processed_file_names(self):
+    return ['data_1.pt', 'data_2.pt', ...]
+
+  def __len__(self):
+    return len(self.processed_file_names)
+
+  def download(self):
+    # Download to `self.raw_dir`.
+    pass
+
+  def process(self):
+    i = 0
+    for raw_path in self.raw_paths:
+      # Read data from `raw_path`.
+      data = Data()
+
+      if self.pre_filter is not None and not self.pre_filter(data):
+        continue
+
+      if self.pre_transform is not None:
+        data = self.pre_transform(data)
+
+      torch.save(data, osp.join(self.processed_dir, 'data_{}.pt'.format(i)))
+      i += 1
+
+  def get(self, idx):
+    data = torch.load(osp.join(self.processed_dir, 'data_{}.pt'.format(idx))
+    return data
+
 
 
 def get_subject_ids(num_subjects=None):
@@ -57,7 +102,7 @@ def get_raw_timeseries(subject_ids):
 
   timeseries = []
   for subject_id in subject_ids:
-    fl = os.path.join(timeseries_data_folder, subject_id + '_ts_raw.txt')
+    fl = osp.join(timeseries_data_folder, subject_id + '_ts_raw.txt')
     print("Reading timeseries file %s" %fl)
     timeseries.append(np.loadtxt(fl, delimiter=','))
 
