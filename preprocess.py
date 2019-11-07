@@ -10,6 +10,7 @@ connects nodes into a graph, assigning collected features
 """
 
 import numpy as np
+import pandas as pd
 import scipy.io as sio
 import os
 
@@ -23,6 +24,8 @@ data_root = \
     '/Users/kamilestankeviciute/Google Drive/Part II/Dissertation/' \
     'brain-age-gnn/data'
 data_timeseries = os.path.join(data_root, 'data/raw_ts')
+data_ct = os.path.join(data_root, 'CT.csv')
+data_euler = os.path.join(data_root, 'Euler.csv')
 graph_root = os.path.join(data_root, 'graph')
 
 
@@ -113,8 +116,17 @@ def get_structural_data(subject_ids):
         subjects, of shape (num_subjects, num_structural_attributes)
     """
 
-    # Retrieve cortical thickness.
+    # TODO: just assume sorted. 
 
+    # Retrieve cortical thickness.
+    cts = pd.read_csv(data_ct, sep=',')
+    subject_cts = cts.where(cts['\"NewID\"'] in subject_ids)
+
+    # Retrieve Euler indices
+    eids = pd.read_csv(data_euler, sep=',')
+    subject_eids = eids.where(eids['eid'] in subject_ids)
+
+    # Merge dataframes.
 
     return None
 
