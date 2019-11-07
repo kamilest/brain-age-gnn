@@ -23,10 +23,11 @@ data_root = \
   '/Users/kamilestankeviciute/Google Drive/Part II/Dissertation/' \
   'brain-age-gnn/data'
 data_timeseries = os.path.join(data_root, 'data/raw_ts')
+
+# Graph output directory.
 graph_root = os.path.join(data_root, 'graph')
 
 class PopulationGraph(Dataset):
-  
   def __init__(self, root, size, transform=None, pre_transform=None, pre_filter=None):
     super(PopulationGraph, self).__init__(root, transform, pre_transform)
 
@@ -64,7 +65,8 @@ class PopulationGraph(Dataset):
     return data
 
 
-
+# TODO: make selection random.
+# TODO: consider scalability of this approach when brains don't fit into memory anymore.
 def get_subject_ids(num_subjects=None):
   """
   Gets the list of subject IDs for a spcecified number of subjects.
@@ -107,8 +109,6 @@ def get_raw_timeseries(subject_ids):
 
 #TODO: include the argument for the kind of connectivity matrix (partial 
 # correlation, correlation, lasso,...)
-#TODO: save: Indicates whether to save the connectivity matrix to a file.
-#TODO: save_path: Indicates the path where to store the connectivity matrix.
 
 def get_functional_connectivity(timeseries):
   """
@@ -133,7 +133,6 @@ def get_functional_connectivity(timeseries):
 
 
 # TODO: get cortical thickness and Euler indices.
-
 def get_structural_data(subject_ids):
   """
   Retrieves the non-timeseries data for the list of subjects.
