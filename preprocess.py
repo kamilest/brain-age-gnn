@@ -134,7 +134,7 @@ def get_similarity(subject_i, subject_j):
     return np.random.rand()
 
 
-def construct_edge_list(subject_ids):
+def construct_edge_list(subject_ids, similarity_threshold):
     """
     Constructs the adjacency list of the population graph based on the
     similarity metric.
@@ -143,10 +143,21 @@ def construct_edge_list(subject_ids):
         subject_ids: List of subject IDs.
 
     Returns:
-        An adjacency list of the population graph of the form
-        {index: [neighbour_nodes]}, indexed by Subject IDs.
+        List of edges of shape [2, num_edges], and type torch.long. The
+        same edge (v, w) appears twice as (v, w) and (w, v) to represent
+        bidirectionality.
     """
-    pass
+    v_list = []
+    w_list = []
+
+    for i, id_i in enumerate(subject_ids):
+        for j, id_j in enumerate(subject_ids):
+            if get_similarity(id_i, id_j) > similarity_threshold:
+                v_list.extend([i, j])
+                w_list.extend([j, i])
+    
+    return [v_list, w_list]
+            
 
 def construct_population_graph(x=None, edge_index=None, edge_attr=None, y=None, pos=None, norm=None, face=None, save=True):
     # torch.save(data, os.path.join(self.processed_dir, 'data_{}.pt'.format(i)))
