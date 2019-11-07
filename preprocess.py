@@ -30,8 +30,6 @@ class PopulationGraph(Dataset):
 
     def __init__(self, root, size, transform=None, pre_transform=None, pre_filter=None):
         super(PopulationGraph, self).__init__(root, transform, pre_transform)
-  def __init__(self, root, size, transform=None, pre_transform=None, pre_filter=None):
-    super(PopulationGraph, self).__init__(root, transform, pre_transform)
 
     @property
     def raw_file_names(self):
