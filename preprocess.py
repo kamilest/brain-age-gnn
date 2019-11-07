@@ -30,6 +30,8 @@ class PopulationGraph(Dataset):
 
     def __init__(self, root, size, transform=None, pre_transform=None, pre_filter=None):
         super(PopulationGraph, self).__init__(root, transform, pre_transform)
+  def __init__(self, root, size, transform=None, pre_transform=None, pre_filter=None):
+    super(PopulationGraph, self).__init__(root, transform, pre_transform)
 
     @property
     def raw_file_names(self):
@@ -65,6 +67,8 @@ class PopulationGraph(Dataset):
         return data
 
 
+# TODO: make selection random.
+# TODO: consider scalability of this approach when brains don't fit into memory anymore.
 def get_subject_ids(num_subjects=None):
     """
      Gets the list of subject IDs for a spcecified number of subjects.
