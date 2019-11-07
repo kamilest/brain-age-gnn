@@ -180,6 +180,8 @@ def construct_population_graph(size, save=False, save_dir=None):
         construct_edge_list(subject_ids), 
         dtype=torch.long)
     
+    # TODO: train and test split.
+
     population_graph = Data(x=connectivities, edge_index=edge_index, y=None)
 
     if save:
