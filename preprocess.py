@@ -134,7 +134,7 @@ def get_similarity(subject_i, subject_j):
     return np.random.rand()
 
 
-def construct_edge_list(subject_ids, similarity_threshold):
+def construct_edge_list(subject_ids, similarity_threshold=0.5):
     """
     Constructs the adjacency list of the population graph based on the
     similarity metric.
@@ -143,7 +143,7 @@ def construct_edge_list(subject_ids, similarity_threshold):
         subject_ids: List of subject IDs.
 
     Returns:
-        List of edges of shape [2, num_edges], and type torch.long. The
+        Graph connectivity in coordinate format of shape [2, num_edges]. The
         same edge (v, w) appears twice as (v, w) and (w, v) to represent
         bidirectionality.
     """
@@ -159,18 +159,27 @@ def construct_edge_list(subject_ids, similarity_threshold):
     return [v_list, w_list]
             
 
-def construct_population_graph(x=None, edge_index=None, edge_attr=None, y=None, pos=None, norm=None, face=None, save=True):
-    # torch.save(data, os.path.join(self.processed_dir, 'data_{}.pt'.format(i)))
-    pass
+def construct_population_graph(size, save=False, save_dir=None):
+    subject_ids = get_subject_ids(size)
+    raw_timeseries = get_raw_timeseries(subject_ids)
+    connectivities = [get_functional_connectivity(ts) for ts in raw_timeseries]
 
-def get_population_graph(graph_root):
-    # data = torch.load(os.path.join(self.processed_dir, 'data_{}.pt'.format(idx)))
-    # return data
-    pass
+    edge_index = torch.tensor(
+        construct_edge_list(subject_ids), 
+        dtype=torch.long)
+    
+    population_graph = Data(x=connectivities, edge_index=edge_index, y=None)
+
+    if save:
+        torch.save(population_graph, os.path.join(save_dir, 'population_graph.pt'))
+
+    return population_graph
+
+def load_population_graph(graph_root):
+    return torch.load(os.path.join(graph_root, 'population_graph.pt'))
 
 
-
-subject_ids = get_subject_ids(1)
-print(subject_ids)
-ts = get_raw_timeseries(subject_ids)
-conn = get_functional_connectivity(ts[0])
+# subject_ids = get_subject_ids(1)
+# print(subject_ids)
+# ts = get_raw_timeseries(subject_ids)
+# conn = get_functional_connectivity(ts[0])
