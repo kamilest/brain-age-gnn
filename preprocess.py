@@ -14,7 +14,7 @@ import pandas as pd
 import scipy.io as sio
 import os
 
-from nilearn import connectome
+from nilearn.connectome import ConnectivityMeasure
 
 import torch
 from torch_geometric.data import Data
@@ -93,7 +93,7 @@ def get_functional_connectivity(timeseries):
         parcellated timeseries data.
     """
 
-    conn_measure = connectome.ConnectivityMeasure(
+    conn_measure = ConnectivityMeasure(
         kind='correlation',
         vectorize=True,
         discard_diagonal=True)
