@@ -102,8 +102,6 @@ def get_functional_connectivity(timeseries):
     return connectivity
 
 
-# TODO: get cortical thickness and Euler indices.
-
 def get_structural_data(subject_ids):
     """
     Retrieves the non-timeseries data for the list of subjects.
@@ -115,8 +113,6 @@ def get_structural_data(subject_ids):
         The matrix containing the structural attributes for the list of
         subjects, of shape (num_subjects, num_structural_attributes)
     """
-
-    # TODO: just assume sorted. 
 
     # Retrieve cortical thickness.
     cts = pd.read_csv(data_ct, sep=',')
@@ -180,9 +176,18 @@ def construct_population_graph(size, save=False, save_dir=None):
         construct_edge_list(subject_ids), 
         dtype=torch.long)
     
-    # TODO: train and test split.
+    # Take the first 90% to train, 10% to test
+    split = int(size * 0.9)
+    train_mask = subject_ids[:split]
+    test_mask = subject_ids[:-(size-split)]
 
-    population_graph = Data(x=connectivities, edge_index=edge_index, y=None)
+    population_graph = Data(
+        x=connectivities, 
+        edge_index=edge_index, 
+        y=None, 
+        train_mask=train_mask, 
+        test_mask=test_mask
+    )
 
     if save:
         torch.save(population_graph, os.path.join(save_dir, 'population_graph.pt'))
