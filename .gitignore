@@ -202,3 +202,8 @@ fabric.properties
 .idea/**/markdown-navigator/
 
 # End of https://www.gitignore.io/api/pycharm
+/.idea/brain-age-gnn.iml
+/.idea/misc.xml
+/.idea/modules.xml
+/.idea/inspectionProfiles/profiles_settings.xml
+/.idea/vcs.xml
