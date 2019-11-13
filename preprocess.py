@@ -23,7 +23,7 @@ from torch_geometric.data import Data
 data_root = \
     '/Users/kamilestankeviciute/Google Drive/Part II/Dissertation/' \
     'brain-age-gnn/data'
-data_timeseries = os.path.join(data_root, 'data/raw_ts')
+data_timeseries = os.path.join(data_root, 'raw_ts')
 data_ct = os.path.join(data_root, 'CT.csv')
 data_euler = os.path.join(data_root, 'Euler.csv')
 graph_root = os.path.join(data_root, 'graph')
@@ -198,7 +198,8 @@ def load_population_graph(graph_root):
     return torch.load(os.path.join(graph_root, 'population_graph.pt'))
 
 
-# subject_ids = get_subject_ids(1)
-# print(subject_ids)
-# ts = get_raw_timeseries(subject_ids)
-# conn = get_functional_connectivity(ts[0])
+subject_ids = get_subject_ids(1)
+print(subject_ids)
+ts = get_raw_timeseries(subject_ids)
+conn = get_functional_connectivity(ts[0])
+print(conn.shape)
