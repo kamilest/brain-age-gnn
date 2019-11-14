@@ -11,7 +11,6 @@ connects nodes into a graph, assigning collected features
 
 import numpy as np
 import pandas as pd
-import scipy.io as sio
 import os
 
 from nilearn.connectome import ConnectivityMeasure
@@ -20,13 +19,10 @@ import torch
 from torch_geometric.data import Data
 
 # Data sources.
-data_root = \
-    '/Users/kamilestankeviciute/Google Drive/Part II/Dissertation/' \
-    'brain-age-gnn/data'
-data_timeseries = os.path.join(data_root, 'raw_ts')
-data_ct = os.path.join(data_root, 'CT.csv')
-data_euler = os.path.join(data_root, 'Euler.csv')
-graph_root = os.path.join(data_root, 'graph')
+data_timeseries = 'data/raw_ts'
+data_ct = 'data/CT.csv'
+data_euler = 'data/Euler.csv'
+graph_root = 'data/graph'
 
 
 def get_ts_filenames(num_subjects=None):
@@ -34,12 +30,11 @@ def get_ts_filenames(num_subjects=None):
 
     if num_subjects is not None:
         ts_filenames = ts_filenames[:num_subjects]
-    
+
     return ts_filenames
 
 
 # TODO: make selection random.
-# TODO: consider scalability of this approach when brains don't fit into memory anymore.
 def get_subject_ids(num_subjects=None):
     """
     Gets the list of subject IDs for a spcecified number of subjects.
@@ -81,12 +76,14 @@ def get_raw_timeseries(subject_ids):
 # TODO: save: Indicates whether to save the connectivity matrix to a file.
 # TODO: save_path: Indicates the path where to store the connectivity matrix.
 
-def get_functional_connectivity(timeseries):
+def get_functional_connectivity(timeseries, save=True, save_path='data/processed_ts'):
     """
     Derives the correlation matrix for the parcellated timeseries data.
 
     Args:
         timeseries: Parcellated timeseries of shape [number ROI, timepoints].
+        save: Indicates whether to save the connectivity matrix to a file.
+        save_path: Indicates the path where to store the connectivity matrix.
 
     Returns:
         The flattened lower triangle of the correlation matrix for the 
@@ -149,6 +146,7 @@ def construct_edge_list(subject_ids, similarity_threshold=0.5):
   
     Args:
         subject_ids: List of subject IDs.
+        similarity_threshold: The threshold above which the edge should be added.
 
     Returns:
         Graph connectivity in coordinate format of shape [2, num_edges]. The
@@ -163,9 +161,9 @@ def construct_edge_list(subject_ids, similarity_threshold=0.5):
             if get_similarity(id_i, id_j) > similarity_threshold:
                 v_list.extend([i, j])
                 w_list.extend([j, i])
-    
+
     return [v_list, w_list]
-            
+
 
 def construct_population_graph(size, save=False, save_dir=None):
     subject_ids = get_subject_ids(size)
@@ -173,19 +171,19 @@ def construct_population_graph(size, save=False, save_dir=None):
     connectivities = [get_functional_connectivity(ts) for ts in raw_timeseries]
 
     edge_index = torch.tensor(
-        construct_edge_list(subject_ids), 
+        construct_edge_list(subject_ids),
         dtype=torch.long)
-    
+
     # Take the first 90% to train, 10% to test
     split = int(size * 0.9)
     train_mask = subject_ids[:split]
-    test_mask = subject_ids[:-(size-split)]
+    test_mask = subject_ids[:-(size - split)]
 
     population_graph = Data(
-        x=connectivities, 
-        edge_index=edge_index, 
-        y=None, 
-        train_mask=train_mask, 
+        x=connectivities,
+        edge_index=edge_index,
+        y=None,
+        train_mask=train_mask,
         test_mask=test_mask
     )
 
@@ -193,6 +191,7 @@ def construct_population_graph(size, save=False, save_dir=None):
         torch.save(population_graph, os.path.join(save_dir, 'population_graph.pt'))
 
     return population_graph
+
 
 def load_population_graph(graph_root):
     return torch.load(os.path.join(graph_root, 'population_graph.pt'))
