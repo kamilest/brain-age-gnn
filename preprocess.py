@@ -58,8 +58,7 @@ def get_raw_timeseries(subject_ids):
         subject_ids: List of subject IDs.
 
     Returns:
-        List of timeseries. Rows in timeseries correspond to brain regions, 
-        columns correspond to timeseries values.
+        List of timeseries. Rows in timeseries correspond to brain regions, columns correspond to timeseries values.
     """
 
     timeseries = []
@@ -73,21 +72,18 @@ def get_raw_timeseries(subject_ids):
 
 # TODO: include the argument for the kind of connectivity matrix (partial
 # correlation, correlation, lasso,...)
-# TODO: save: Indicates whether to save the connectivity matrix to a file.
-# TODO: save_path: Indicates the path where to store the connectivity matrix.
-
-def get_functional_connectivity(timeseries, save=True, save_path='data/processed_ts'):
+def get_functional_connectivity(subject_id, timeseries, save=True, save_path='data/processed_ts'):
     """
     Derives the correlation matrix for the parcellated timeseries data.
 
     Args:
+        subject_id: ID of subject.
         timeseries: Parcellated timeseries of shape [number ROI, timepoints].
         save: Indicates whether to save the connectivity matrix to a file.
         save_path: Indicates the path where to store the connectivity matrix.
 
     Returns:
-        The flattened lower triangle of the correlation matrix for the 
-        parcellated timeseries data.
+        The flattened lower triangle of the correlation matrix for the parcellated timeseries data.
     """
 
     conn_measure = ConnectivityMeasure(
@@ -95,6 +91,11 @@ def get_functional_connectivity(timeseries, save=True, save_path='data/processed
         vectorize=True,
         discard_diagonal=True)
     connectivity = conn_measure.fit_transform([np.transpose(timeseries)])[0]
+
+    if save:
+        np.savetxt(os.path.join(save_path, "{}.csv".format(subject_id)),
+                   connectivity,
+                   delimiter=',')
 
     return connectivity
 
