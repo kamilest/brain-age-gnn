@@ -93,9 +93,7 @@ def get_functional_connectivity(subject_id, timeseries, save=True, save_path='da
     connectivity = conn_measure.fit_transform([np.transpose(timeseries)])[0]
 
     if save:
-        np.savetxt(os.path.join(save_path, "{}.csv".format(subject_id)),
-                   connectivity,
-                   delimiter=',')
+        np.save(os.path.join(save_path, subject_id), connectivity)
 
     return connectivity
 
@@ -107,9 +105,8 @@ def get_structural_data(subject_ids):
     Args:
         subject_ids: List of subject IDs.
 
-    Returns:
-        The matrix containing the structural attributes for the list of
-        subjects, of shape (num_subjects, num_structural_attributes)
+    Returns: The matrix containing the structural attributes for the list of subjects, of shape (num_subjects,
+    num_structural_attributes)
     """
 
     # Retrieve cortical thickness.
@@ -201,5 +198,5 @@ def load_population_graph(graph_root):
 subject_ids = get_subject_ids(1)
 print(subject_ids)
 ts = get_raw_timeseries(subject_ids)
-conn = get_functional_connectivity(ts[0])
+conn = get_functional_connectivity(subject_ids[0], ts[0])
 print(conn.shape)

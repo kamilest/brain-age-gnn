@@ -7,10 +7,10 @@ from torch_geometric.datasets import Planetoid
 
 dataset = Planetoid(root='/tmp/Cora', name='Cora')
 
-
 import torch
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
+
 
 class Net(torch.nn.Module):
     def __init__(self):
@@ -28,6 +28,7 @@ class Net(torch.nn.Module):
 
         return F.log_softmax(x, dim=1)
 
+
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 model = Net().to(device)
 data = dataset[0].to(device)
@@ -43,5 +44,5 @@ for epoch in range(200):
 
 model.eval()
 _, pred = model(data).max(dim=1)
-correct = float (pred[data.test_mask].eq(data.y[data.test_mask]).sum().item())
+correct = float(pred[data.test_mask].eq(data.y[data.test_mask]).sum().item())
 acc = correct / data.test_mask.sum().item()
