@@ -20,6 +20,7 @@ from torch_geometric.data import Data
 
 # Data sources.
 data_timeseries = 'data/raw_ts'
+data_phenotype = 'data/phenotype.csv'
 data_ct = 'data/CT.csv'
 data_euler = 'data/Euler.csv'
 graph_root = 'data/graph'
@@ -34,20 +35,27 @@ def get_ts_filenames(num_subjects=None):
     return ts_filenames
 
 
-# TODO: make selection random.
-def get_subject_ids(num_subjects=None):
+def get_subject_ids(num_subjects=None, seed=True):
     """
     Gets the list of subject IDs for a spcecified number of subjects.
     If the number of subjects is not specified, all IDs are returned.
   
     Args:
         num_subjects: The number of subjects.
+        seed: Indicates whether to use a seed for selection of subjects.
 
     Returns:
         List of subject IDs.
     """
 
-    return [f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects)]
+    ids = [f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects)]
+
+    if num_subjects:
+        if seed:
+            np.random.seed(0)
+        return np.random.choice(ids, num_subjects)
+    else:
+        return ids
 
 
 def get_raw_timeseries(subject_ids):
