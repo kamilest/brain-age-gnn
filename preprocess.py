@@ -18,8 +18,11 @@ from nilearn.connectome import ConnectivityMeasure
 import torch
 from torch_geometric.data import Data
 
+import precompute
+
 # Data sources.
 data_timeseries = 'data/raw_ts'
+data_precomputed_fcms = 'data/processed_ts'
 data_phenotype = 'data/phenotype.csv'
 data_ct = 'data/CT.csv'
 data_euler = 'data/Euler.csv'
@@ -78,32 +81,21 @@ def get_raw_timeseries(subject_ids):
     return timeseries
 
 
-# TODO: include the argument for the kind of connectivity matrix (partial
-# correlation, correlation, lasso,...)
-def get_functional_connectivity(subject_id, timeseries, save=True, save_path='data/processed_ts'):
+# TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)
+def get_functional_connectivity(subject_id):
     """
-    Derives the correlation matrix for the parcellated timeseries data.
+    Returns the correlation matrix for the parcellated timeseries data, precomputing if necessary.
 
     Args:
         subject_id: ID of subject.
-        timeseries: Parcellated timeseries of shape [number ROI, timepoints].
-        save: Indicates whether to save the connectivity matrix to a file.
-        save_path: Indicates the path where to store the connectivity matrix.
 
     Returns:
         The flattened lower triangle of the correlation matrix for the parcellated timeseries data.
     """
+    if subject_id not in os.listdir(data_precomputed_fcms):
+        precompute.precompute_fcm(subject_id)
 
-    conn_measure = ConnectivityMeasure(
-        kind='correlation',
-        vectorize=True,
-        discard_diagonal=True)
-    connectivity = conn_measure.fit_transform([np.transpose(timeseries)])[0]
-
-    if save:
-        np.save(os.path.join(save_path, subject_id), connectivity)
-
-    return connectivity
+    return np.load(os.path.join(data_precomputed_fcms, subject_id + '.npy'))
 
 
 def get_structural_data(subject_ids):
