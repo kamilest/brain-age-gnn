@@ -61,26 +61,6 @@ def get_subject_ids(num_subjects=None, seed=True):
         return ids
 
 
-def get_raw_timeseries(subject_ids):
-    """
-    Gets raw timeseries arrays for the given list of subjects.
-
-    Args:
-        subject_ids: List of subject IDs.
-
-    Returns:
-        List of timeseries. Rows in timeseries correspond to brain regions, columns correspond to timeseries values.
-    """
-
-    timeseries = []
-    for subject_id in subject_ids:
-        f = os.path.join(data_timeseries, subject_id + '_ts_raw.txt')
-        print("Reading timeseries file %s" % f)
-        timeseries.append(np.loadtxt(f, delimiter=','))
-
-    return timeseries
-
-
 # TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)
 def get_functional_connectivity(subject_id):
     """
