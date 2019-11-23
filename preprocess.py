@@ -80,30 +80,6 @@ def get_functional_connectivity(subject_id):
     return np.load(os.path.join(data_precomputed_fcms, subject_id + '.npy'))
 
 
-def get_structural_data(subject_ids):
-    """
-    Retrieves the non-timeseries data for the list of subjects.
-
-    Args:
-        subject_ids: List of subject IDs.
-
-    Returns: The matrix containing the structural attributes for the list of subjects, of shape (num_subjects,
-    num_structural_attributes)
-    """
-
-    # Retrieve cortical thickness.
-    cts = pd.read_csv(data_ct, sep=',')
-    subject_cts = cts.where(cts['\"NewID\"'] in subject_ids)
-
-    # Retrieve Euler indices
-    eids = pd.read_csv(data_euler, sep=',')
-    subject_eids = eids.where(eids['eid'] in subject_ids)
-
-    # Merge dataframes.
-
-    return None
-
-
 def get_similarity(phenotypes, subject_i, subject_j):
     """
     Computes the similarity score between two subjects.
