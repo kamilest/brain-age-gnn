@@ -4,6 +4,7 @@ import os
 from nilearn.connectome import ConnectivityMeasure
 
 data_timeseries = 'data/raw_ts'
+data_phenotype = 'data/phenotype.csv'
 data_computed_fcms = 'data/preprocessed_ts'
 
 
@@ -42,6 +43,7 @@ def precompute_fcm(subject_id=None):
             np.save(os.path.join(data_computed_fcms,
                                  ts_file[:-suffix_length]),
                     conn_measure.fit_transform([np.transpose(ts)])[0])
+
 
 
 if __name__ == '__main__':
