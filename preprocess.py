@@ -74,7 +74,7 @@ def get_functional_connectivity(subject_id):
     Returns:
         The flattened lower triangle of the correlation matrix for the parcellated timeseries data.
     """
-    if subject_id not in os.listdir(data_precomputed_fcms):
+    if subject_id + '.npy' not in os.listdir(data_precomputed_fcms):
         precompute.precompute_fcm(subject_id)
 
     return np.load(os.path.join(data_precomputed_fcms, subject_id + '.npy'))
@@ -123,7 +123,7 @@ def construct_edge_list(phenotypes, subject_ids, similarity_threshold=0.5):
     return [v_list, w_list]
 
 
-def construct_population_graph(size, save=True, save_dir=graph_root):
+def construct_population_graph(size, save=True, save_dir=graph_root, name='population_graph.pt'):
     subject_ids = get_subject_ids(size)
     connectivities = [get_functional_connectivity(i) for i in subject_ids]
 
@@ -147,10 +147,14 @@ def construct_population_graph(size, save=True, save_dir=graph_root):
     )
 
     if save:
-        torch.save(population_graph, os.path.join(save_dir, 'population_graph.pt'))
+        torch.save(population_graph, os.path.join(save_dir, name))
 
     return population_graph
 
 
-def load_population_graph(graph_root):
-    return torch.load(os.path.join(graph_root, 'population_graph.pt'))
+def load_population_graph(graph_root, name):
+    return torch.load(os.path.join(graph_root, name))
+
+if __name__ == '__main__':
+    construct_population_graph(10, name='population_graph10.pt')
+    graph = load_population_graph(graph_root, name='population_graph10.pt')

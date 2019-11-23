@@ -6,7 +6,7 @@ from nilearn.connectome import ConnectivityMeasure
 
 data_timeseries = 'data/raw_ts'
 data_phenotype = 'data/phenotype.csv'
-data_computed_fcms = 'data/preprocessed_ts'
+data_computed_fcms = 'data/processed_ts'
 
 
 def precompute_fcm(subject_id=None):
