@@ -48,14 +48,16 @@ def precompute_fcm(subject_id=None):
 
 # extract_phenotype_uids(['31-0.0', '21003-2.0'], ['UKB1000028', 'UKB1000133'])
 def extract_phenotypes(uid_list, subject_ids):
-    phenotype = pd.read_csv(data_phenotype, sep=',')
-    subject_ids_no_UKB = [i[3:] for i in subject_ids]
+    phenotype = pd.read_csv(data_phenotype, sep=',', index_col=['eid'])
+    subject_ids_no_UKB = [int(i[3:]) for i in subject_ids]
 
     # Extract data for relevant subject IDs.
-    subject_phenotype = phenotype[phenotype['eid'].isin(subject_ids_no_UKB)]
+    subject_phenotype = phenotype.loc[subject_ids_no_UKB]
 
     # Extract relevant UIDs.
     subject_phenotype = subject_phenotype[uid_list]
+
+    # Add UKB prefix back to the index
     subject_phenotype.index = subject_ids
 
     return subject_phenotype
