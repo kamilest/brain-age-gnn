@@ -40,8 +40,8 @@ def get_ts_filenames(num_subjects=None):
 
 def get_subject_ids(num_subjects=None, seed=True):
     """
-    Gets the list of subject IDs for a spcecified number of subjects.
-    If the number of subjects is not specified, all IDs are returned.
+    Gets the list of subject IDs for a spcecified number of subjects. If the number of subjects is not specified, all
+    IDs are returned.
   
     Args:
         num_subjects: The number of subjects.
@@ -143,10 +143,9 @@ def construct_edge_list(subject_ids, similarity_threshold=0.5):
     return [v_list, w_list]
 
 
-def construct_population_graph(size, save=False, save_dir=None):
+def construct_population_graph(size, save=True, save_dir=graph_root):
     subject_ids = get_subject_ids(size)
-    raw_timeseries = get_raw_timeseries(subject_ids)
-    connectivities = [get_functional_connectivity(ts) for ts in raw_timeseries]
+    connectivities = [get_functional_connectivity(i) for i in subject_ids]
 
     edge_index = torch.tensor(
         construct_edge_list(subject_ids),
@@ -155,7 +154,7 @@ def construct_population_graph(size, save=False, save_dir=None):
     # Take the first 90% to train, 10% to test
     split = int(size * 0.9)
     train_mask = subject_ids[:split]
-    test_mask = subject_ids[:-(size - split)]
+    test_mask = subject_ids[-(size-split):]
 
     population_graph = Data(
         x=connectivities,
@@ -173,10 +172,3 @@ def construct_population_graph(size, save=False, save_dir=None):
 
 def load_population_graph(graph_root):
     return torch.load(os.path.join(graph_root, 'population_graph.pt'))
-
-
-subject_ids = get_subject_ids(1)
-print(subject_ids)
-ts = get_raw_timeseries(subject_ids)
-conn = get_functional_connectivity(subject_ids[0], ts[0])
-print(conn.shape)
