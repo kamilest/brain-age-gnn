@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import os
 
 from nilearn.connectome import ConnectivityMeasure
@@ -44,6 +45,20 @@ def precompute_fcm(subject_id=None):
                                  ts_file[:-suffix_length]),
                     conn_measure.fit_transform([np.transpose(ts)])[0])
 
+
+# extract_phenotype_uids(['31-0.0', '21003-2.0'], ['UKB1000028', 'UKB1000133'])
+def extract_phenotype_uids(uid_list, subject_ids):
+    phenotype = pd.read_csv(data_phenotype, sep=',')
+    subject_ids_no_UKB = [i[3:] for i in subject_ids]
+
+    # Extract data for relevant subject IDs.
+    subject_phenotype = phenotype[phenotype['eid'].isin(subject_ids_no_UKB)]
+
+    # Extract relevant UIDs.
+    subject_phenotype = subject_phenotype[uid_list]
+    subject_phenotype.index = subject_ids
+
+    return subject_phenotype
 
 
 if __name__ == '__main__':
