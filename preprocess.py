@@ -26,6 +26,12 @@ data_ct = 'data/CT.csv'
 data_euler = 'data/Euler.csv'
 graph_root = 'data/graph'
 
+# Graph construction phenotypic parameters.
+# http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=31
+SEX_UID = '31-0.0'
+# http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=21003
+AGE_UID = '21003-2.0'
+
 
 def get_ts_filenames(num_subjects=None, randomise=True, seed=0):
     ts_filenames = [f for f in sorted(os.listdir(data_timeseries))]
@@ -98,11 +104,12 @@ def get_structural_data(subject_ids):
     return None
 
 
-def get_similarity(subject_i, subject_j):
+def get_similarity(phenotypes, subject_i, subject_j):
     """
     Computes the similarity score between two subjects.
 
     Args:
+        phenotypes: Dataframe with phenotype values.
         subject_i: First subject.
         subject_j: Second subject.
 
@@ -110,15 +117,16 @@ def get_similarity(subject_i, subject_j):
         Similarity score.
     """
 
-    return np.random.rand()
+    return int(phenotypes.loc(subject_i, SEX_UID) == phenotypes.loc(subject_j, SEX_UID))
 
 
-def construct_edge_list(subject_ids, similarity_threshold=0.5):
+def construct_edge_list(phenotypes, subject_ids, similarity_threshold=0.5):
     """
     Constructs the adjacency list of the population graph based on the
     similarity metric.
   
     Args:
+        phenotypes: Dataframe with phenotype values.
         subject_ids: List of subject IDs.
         similarity_threshold: The threshold above which the edge should be added.
 
@@ -132,7 +140,7 @@ def construct_edge_list(subject_ids, similarity_threshold=0.5):
 
     for i, id_i in enumerate(subject_ids):
         for j, id_j in enumerate(subject_ids):
-            if get_similarity(id_i, id_j) > similarity_threshold:
+            if get_similarity(phenotypes, id_i, id_j) > similarity_threshold:
                 v_list.extend([i, j])
                 w_list.extend([j, i])
 
@@ -143,8 +151,10 @@ def construct_population_graph(size, save=True, save_dir=graph_root):
     subject_ids = get_subject_ids(size)
     connectivities = [get_functional_connectivity(i) for i in subject_ids]
 
+    phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
+
     edge_index = torch.tensor(
-        construct_edge_list(subject_ids),
+        construct_edge_list(phenotypes, subject_ids),
         dtype=torch.long)
 
     # Take the first 90% to train, 10% to test
@@ -155,7 +165,7 @@ def construct_population_graph(size, save=True, save_dir=graph_root):
     population_graph = Data(
         x=connectivities,
         edge_index=edge_index,
-        y=None,
+        y=phenotypes[AGE_UID].tolist(),
         train_mask=train_mask,
         test_mask=test_mask
     )
