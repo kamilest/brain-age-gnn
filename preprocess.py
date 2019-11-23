@@ -29,36 +29,34 @@ data_euler = 'data/Euler.csv'
 graph_root = 'data/graph'
 
 
-def get_ts_filenames(num_subjects=None):
+def get_ts_filenames(num_subjects=None, randomise=True, seed=0):
     ts_filenames = [f for f in sorted(os.listdir(data_timeseries))]
 
     if num_subjects is not None:
-        ts_filenames = ts_filenames[:num_subjects]
+        if randomise:
+            np.random.seed(seed)
+            return np.random.choice(ts_filenames, num_subjects)
+        else:
+            return ts_filenames[:num_subjects]
+    else:
+        return ts_filenames
 
-    return ts_filenames
 
-
-def get_subject_ids(num_subjects=None, seed=True):
+def get_subject_ids(num_subjects=None, randomise=True, seed=0):
     """
     Gets the list of subject IDs for a spcecified number of subjects. If the number of subjects is not specified, all
     IDs are returned.
   
     Args:
         num_subjects: The number of subjects.
-        seed: Indicates whether to use a seed for selection of subjects.
+        randomise: Indicates whether to use a random seed for selection of subjects.
+        seed: Seed value.
 
     Returns:
         List of subject IDs.
     """
 
-    ids = [f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects)]
-
-    if num_subjects:
-        if seed:
-            np.random.seed(0)
-        return np.random.choice(ids, num_subjects)
-    else:
-        return ids
+    return [f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects, randomise, seed)]
 
 
 # TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)
