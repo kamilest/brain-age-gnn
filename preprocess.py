@@ -92,11 +92,10 @@ def get_similarity(phenotypes, subject_i, subject_j):
     Returns:
         Similarity score.
     """
+    return int(phenotypes.loc[subject_i, SEX_UID] == phenotypes.loc[subject_j, SEX_UID])
 
-    return int(phenotypes.loc(subject_i, SEX_UID) == phenotypes.loc(subject_j, SEX_UID))
 
-
-def construct_edge_list(phenotypes, subject_ids, similarity_threshold=0.5):
+def construct_edge_list(phenotypes, similarity_threshold=0.5):
     """
     Constructs the adjacency list of the population graph based on the
     similarity metric.
@@ -114,8 +113,10 @@ def construct_edge_list(phenotypes, subject_ids, similarity_threshold=0.5):
     v_list = []
     w_list = []
 
-    for i, id_i in enumerate(subject_ids):
-        for j, id_j in enumerate(subject_ids):
+    for i, id_i in enumerate(phenotypes.index):
+        iter_j = iter(enumerate(phenotypes.index))
+        [next(iter_j) for _ in range(i+1)]
+        for j, id_j in iter_j:
             if get_similarity(phenotypes, id_i, id_j) > similarity_threshold:
                 v_list.extend([i, j])
                 w_list.extend([j, i])
@@ -125,16 +126,16 @@ def construct_edge_list(phenotypes, subject_ids, similarity_threshold=0.5):
 
 def construct_population_graph(size, save=True, save_dir=graph_root, name='population_graph.pt'):
     subject_ids = get_subject_ids(size)
-    connectivities = [get_functional_connectivity(i) for i in subject_ids]
 
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
+    connectivities = [get_functional_connectivity(i) for i in phenotypes.index]
 
     edge_index = torch.tensor(
-        construct_edge_list(phenotypes, subject_ids),
+        construct_edge_list(phenotypes),
         dtype=torch.long)
 
     # Take the first 90% to train, 10% to test
-    split = int(size * 0.9)
+    split = int(len(phenotypes) * 0.9)
     train_mask = subject_ids[:split]
     test_mask = subject_ids[-(size-split):]
 
@@ -155,6 +156,7 @@ def construct_population_graph(size, save=True, save_dir=graph_root, name='popul
 def load_population_graph(graph_root, name):
     return torch.load(os.path.join(graph_root, name))
 
+
 if __name__ == '__main__':
-    construct_population_graph(10, name='population_graph10.pt')
-    graph = load_population_graph(graph_root, name='population_graph10.pt')
+    construct_population_graph(1000, name='population_graph1000.pt')
+    graph = load_population_graph(graph_root, name='population_graph1000.pt')
