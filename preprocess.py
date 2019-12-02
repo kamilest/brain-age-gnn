@@ -128,7 +128,7 @@ def construct_population_graph(size, save=True, save_dir=graph_root, name='popul
     subject_ids = get_subject_ids(size)
 
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
-    connectivities = [get_functional_connectivity(i) for i in phenotypes.index]
+    connectivities = torch.tensor([get_functional_connectivity(i) for i in phenotypes.index], dtype=torch.float)
 
     edge_index = torch.tensor(
         construct_edge_list(phenotypes),
@@ -136,13 +136,15 @@ def construct_population_graph(size, save=True, save_dir=graph_root, name='popul
 
     # Take the first 90% to train, 10% to test
     split = int(len(phenotypes) * 0.9)
-    train_mask = subject_ids[:split]
-    test_mask = subject_ids[-(size-split):]
+    train_mask = torch.tensor(subject_ids[:split])
+    test_mask = torch.tensor(subject_ids[-(size-split):])
+
+    labels = torch.tensor(phenotypes[AGE_UID].tolist())
 
     population_graph = Data(
         x=connectivities,
         edge_index=edge_index,
-        y=phenotypes[AGE_UID].tolist(),
+        y=labels,
         train_mask=train_mask,
         test_mask=test_mask
     )
