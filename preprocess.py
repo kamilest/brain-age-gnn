@@ -135,8 +135,8 @@ def construct_population_graph(size, save=True, save_dir=graph_root, name='popul
 
     np.random.seed(0)
     num_train = int(len(phenotypes) * 0.9)
-    split_mask = np.zeros(len(subject_ids), dtype=bool)
-    split_mask[np.random.choice(len(subject_ids), num_train, replace=False)] = True
+    split_mask = np.zeros(len(phenotypes), dtype=bool)
+    split_mask[np.random.choice(len(phenotypes), num_train, replace=False)] = True
 
     train_mask = torch.tensor(split_mask, dtype=torch.bool)
     test_mask = torch.tensor(np.invert(split_mask), dtype=torch.bool)
