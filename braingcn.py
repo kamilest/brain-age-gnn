@@ -29,6 +29,7 @@ class BrainGCN(torch.nn.Module):
         x = F.relu(x)
         x = F.dropout(x, training=self.training)
         x = self.conv2(x, edge_index)
+        x = self.conv3(x, edge_index)
         x = self.fc_1(x)
 
         return x
