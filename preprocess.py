@@ -137,10 +137,10 @@ def construct_population_graph(size, save=True, save_dir=graph_root, name='popul
     split = int(len(phenotypes) * 0.9)
     # split_mask = np.random.permutation(len(subject_ids))
     split_mask = np.zeros(len(subject_ids), dtype=bool)
-    split_mask[:split] = 1
+    split_mask[:split] = True
 
-    train_mask = torch.tensor(split_mask[:split], dtype=torch.bool)
-    test_mask = torch.tensor(split_mask[-(len(subject_ids) - split):], dtype=torch.bool)
+    train_mask = torch.tensor(np.invert(split_mask), dtype=torch.bool)
+    test_mask = torch.tensor(split_mask, dtype=torch.bool)
 
     labels = torch.tensor(phenotypes[AGE_UID].tolist(), dtype=torch.int8)
 
@@ -163,5 +163,5 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    construct_population_graph(1000, name='population_graph1000.pt')
-    graph = load_population_graph(graph_root, name='population_graph1000.pt')
+    construct_population_graph(5, name='population_graph5.pt')
+    graph = load_population_graph(graph_root, name='population_graph5.pt')
