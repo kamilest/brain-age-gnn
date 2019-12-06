@@ -10,7 +10,6 @@ connects nodes into a graph, assigning collected features
 """
 
 import numpy as np
-import pandas as pd
 import os
 
 import torch
@@ -102,7 +101,6 @@ def construct_edge_list(phenotypes, similarity_threshold=0.5):
   
     Args:
         phenotypes: Dataframe with phenotype values.
-        subject_ids: List of subject IDs.
         similarity_threshold: The threshold above which the edge should be added.
 
     Returns:
@@ -126,6 +124,7 @@ def construct_edge_list(phenotypes, similarity_threshold=0.5):
 
 def construct_population_graph(size, save=True, save_dir=graph_root, name='population_graph.pt'):
     subject_ids = get_subject_ids(size)
+    print(subject_ids)
 
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
     connectivities = torch.tensor([get_functional_connectivity(i) for i in phenotypes.index], dtype=torch.float)
@@ -134,12 +133,16 @@ def construct_population_graph(size, save=True, save_dir=graph_root, name='popul
         construct_edge_list(phenotypes),
         dtype=torch.long)
 
-    # Take the first 90% to train, 10% to test
+    np.random.seed(0)
     split = int(len(phenotypes) * 0.9)
-    train_mask = torch.tensor(subject_ids[:split])
-    test_mask = torch.tensor(subject_ids[-(size-split):])
+    # split_mask = np.random.permutation(len(subject_ids))
+    split_mask = np.zeros(len(subject_ids), dtype=bool)
+    split_mask[:split] = 1
 
-    labels = torch.tensor(phenotypes[AGE_UID].tolist())
+    train_mask = torch.tensor(split_mask[:split], dtype=torch.bool)
+    test_mask = torch.tensor(split_mask[-(len(subject_ids) - split):], dtype=torch.bool)
+
+    labels = torch.tensor(phenotypes[AGE_UID].tolist(), dtype=torch.int8)
 
     population_graph = Data(
         x=connectivities,
