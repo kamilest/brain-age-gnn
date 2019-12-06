@@ -59,7 +59,7 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
         List of subject IDs.
     """
 
-    return [f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects, randomise, seed)]
+    return sorted([f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects, randomise, seed)])
 
 
 # TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)
