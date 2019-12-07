@@ -88,4 +88,4 @@ class BrainGCN(torch.nn.Module):
 torch.manual_seed(0)
 np.random.seed(0)
 
-print('Mean trainin set r^2 score', train_braingcn(data))
+print('Mean training set r^2 score', train_braingcn(data))
