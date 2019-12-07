@@ -122,12 +122,14 @@ def construct_edge_list(phenotypes, similarity_threshold=0.5):
     return [v_list, w_list]
 
 
-def construct_population_graph(size, save=True, save_dir=graph_root, name='population_graph.pt'):
+def construct_population_graph(size=None, save=True, save_dir=graph_root, name='population_graph.pt'):
     subject_ids = get_subject_ids(size)
     print(subject_ids)
 
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
-    connectivities = torch.tensor([get_functional_connectivity(i) for i in phenotypes.index], dtype=torch.float)
+    connectivities = torch.tensor([get_functional_connectivity(i) for i in phenotypes.index], dtype=torch.float32)
+
+    labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
 
     edge_index = torch.tensor(
         construct_edge_list(phenotypes),
