@@ -38,7 +38,7 @@ def get_ts_filenames(num_subjects=None, randomise=True, seed=0):
     if num_subjects is not None:
         if randomise:
             np.random.seed(seed)
-            return np.random.choice(ts_filenames, num_subjects)
+            return np.random.choice(ts_filenames, num_subjects, replace=False)
         else:
             return ts_filenames[:num_subjects]
     else:
