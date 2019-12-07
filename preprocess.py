@@ -78,6 +78,7 @@ def get_functional_connectivity(subject_id):
 
     return np.load(os.path.join(data_precomputed_fcms, subject_id + '.npy'))
 
+
 def extract_connectivities(subject_ids):
     connectivities = []
     exclude = []
@@ -90,6 +91,7 @@ def extract_connectivities(subject_ids):
 
     print('Additional {} entries removed due to small connectivity matrices.'.format(len(exclude)))
     return connectivities, np.delete(subject_ids, exclude), subject_ids[exclude]
+
 
 def get_similarity(phenotypes, subject_i, subject_j):
     """
@@ -174,5 +176,5 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    construct_population_graph(name='population_graph10000.pt')
-    graph = load_population_graph(graph_root, name='population_graph10000.pt')
+    construct_population_graph(name='population_graph1000.pt')
+    graph = load_population_graph(graph_root, name='population_graph1000.pt')
