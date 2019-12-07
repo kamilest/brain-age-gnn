@@ -59,6 +59,8 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
         List of subject IDs.
     """
 
+    # TODO exclude patients with shorter connectivity matrices.
+    # 'UKB2203847', 'UKB2208238', 'UKB2697888'
     return sorted([f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects, randomise, seed)])
 
 
