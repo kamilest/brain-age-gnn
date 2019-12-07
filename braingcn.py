@@ -22,9 +22,6 @@ class BrainGCN(torch.nn.Module):
         super(BrainGCN, self).__init__()
         self.conv1 = GCNConv(population_graph.num_node_features, 16)
         self.conv2 = GCNConv(16, 32)
-        self.conv3 = GCNConv(32, 64)
-        self.conv4 = GCNConv(64, 128)
-        self.conv5 = GCNConv(128, 256)
         self.fc_1 = Linear(32, 1)
 
     def forward(self, data):
