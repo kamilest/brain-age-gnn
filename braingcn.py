@@ -50,6 +50,9 @@ model = BrainGCN().to(device)
 data = population_graph.to(device)
 optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
 
+torch.manual_seed(0)
+np.random.seed(0)
+
 model.train()
 for epoch in range(200):
     optimizer.zero_grad()
