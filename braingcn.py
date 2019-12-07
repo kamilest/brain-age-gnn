@@ -21,7 +21,6 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 data = population_graph.to(device)
 
 
-# TODO cross-validate within the training set, not in the entire set.
 def train_braingcn(data, folds=5):
     train_idx = np.argwhere(data.train_mask.cpu().numpy())
 
