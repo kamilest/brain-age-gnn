@@ -41,12 +41,12 @@ def train_braingcn(data, folds=5):
         # assert(len(np.intersect1d(test_index, np.argwhere(data.test_mask.cpu().numpy()))) == 0)
 
         model = BrainGCN().to(device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
 
         print('Training fold {}'.format(fold))
         # train fold
         model.train()
-        for epoch in range(150):
+        for epoch in range(350):
             optimizer.zero_grad()
             out = model(data)
             loss = F.mse_loss(out[train_index], data.y[train_index])

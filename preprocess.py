@@ -78,6 +78,18 @@ def get_functional_connectivity(subject_id):
 
     return np.load(os.path.join(data_precomputed_fcms, subject_id + '.npy'))
 
+def extract_connectivities(subject_ids):
+    connectivities = []
+    exclude = []
+    for i, subject_id in enumerate(subject_ids):
+        connectivity = get_functional_connectivity(subject_id)
+        if len(connectivity) != 70500:
+            exclude.append(i)
+        else:
+            connectivities.append(connectivity)
+
+    print('Additional {} entries removed due to small connectivity matrices.'.format(len(exclude)))
+    return connectivities, np.delete(subject_ids, exclude), subject_ids[exclude]
 
 def get_similarity(phenotypes, subject_i, subject_j):
     """
@@ -143,8 +155,6 @@ def construct_population_graph(size=None, save=True, save_dir=graph_root, name='
     train_mask = torch.tensor(split_mask, dtype=torch.bool)
     test_mask = torch.tensor(np.invert(split_mask), dtype=torch.bool)
 
-    labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
-
     population_graph = Data(
         x=connectivities,
         edge_index=edge_index,
@@ -164,5 +174,5 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    construct_population_graph(2000, name='population_graph2000.pt')
-    graph = load_population_graph(graph_root, name='population_graph2000.pt')
+    construct_population_graph(name='population_graph10000.pt')
+    graph = load_population_graph(graph_root, name='population_graph10000.pt')
