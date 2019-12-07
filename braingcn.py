@@ -41,21 +41,22 @@ def gcn_train_cv(data, folds=5):
         # assert(len(np.intersect1d(test_index, np.argwhere(data.test_mask.cpu().numpy()))) == 0)
 
         print('Training fold {}'.format(fold))
-        r2 = gcn_train(data, train_index, test_index)
-        cv_scores.append(r2)
+        cv_scores.append(gcn_train(data, train_index, test_index))
 
     return np.mean(cv_scores)
 
 
 def gcn_train(data, train_index, test_index):
     model = BrainGCN().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
 
     model.train()
-    for epoch in range(350):
+    for epoch in range(1000):
         optimizer.zero_grad()
         out = model(data)
         loss = F.mse_loss(out[train_index], data.y[train_index])
+        if epoch % 50 == 0:
+            print(loss)
         loss.backward()
         optimizer.step()
 
@@ -89,7 +90,17 @@ class BrainGCN(torch.nn.Module):
         # x = F.dropout(x, p=0.1, training=self.training)
         x = self.conv2(x, edge_index)
         x = F.relu(x)
+        x = self.conv3(x, edge_index)
+        x = F.relu(x)
+        x = self.conv4(x, edge_index)
+        x = F.relu(x)
+        x = self.conv5(x, edge_index)
+        x = F.relu(x)
+        x = self.conv6(x, edge_index)
+        x = F.relu(x)
         x = self.fc_1(x)
+        x = F.relu(x)
+        x = self.fc_2(x)
 
         return x
 
@@ -97,4 +108,9 @@ class BrainGCN(torch.nn.Module):
 torch.manual_seed(0)
 np.random.seed(0)
 
-print('Mean training set r^2 score', gcn_train_cv(data))
+# print('Mean training set r^2 score', gcn_train_cv(data))
+train_idx = np.argwhere(data.train_mask.cpu().numpy())
+validate_idx = np.random.choice(len(train_idx), int(0.1*len(train_idx)), replace=False)
+np.delete(train_idx, validate_idx)
+
+r2 = gcn_train(data, train_idx, validate_idx)
