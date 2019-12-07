@@ -21,7 +21,7 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 data = population_graph.to(device)
 
 
-def train_braingcn(data, folds=5):
+def gcn_train_cv(data, folds=5):
     train_idx = np.argwhere(data.train_mask.cpu().numpy())
 
     X = data.x[train_idx].cpu().numpy()
@@ -40,37 +40,46 @@ def train_braingcn(data, folds=5):
         # assert(len(np.intersect1d(train_index, np.argwhere(data.test_mask.cpu().numpy()))) == 0)
         # assert(len(np.intersect1d(test_index, np.argwhere(data.test_mask.cpu().numpy()))) == 0)
 
-        model = BrainGCN().to(device)
-        optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
-
         print('Training fold {}'.format(fold))
-        # train fold
-        model.train()
-        for epoch in range(350):
-            optimizer.zero_grad()
-            out = model(data)
-            loss = F.mse_loss(out[train_index], data.y[train_index])
-            loss.backward()
-            optimizer.step()
-
-        model.eval()
-        final_model = model(data)
-        predicted = final_model[test_index].cpu()
-        actual = data.y[test_index].cpu()
-        r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
+        r2 = gcn_train(data, train_index, test_index)
         cv_scores.append(r2)
-        print('Fold {} r2 score: {}'.format(fold, r2))
-        print('Fold {} MSE: {}\n'.format(fold, F.mse_loss(predicted, actual)))
 
     return np.mean(cv_scores)
 
+
+def gcn_train(data, train_index, test_index):
+    model = BrainGCN().to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=5e-4)
+
+    model.train()
+    for epoch in range(350):
+        optimizer.zero_grad()
+        out = model(data)
+        loss = F.mse_loss(out[train_index], data.y[train_index])
+        loss.backward()
+        optimizer.step()
+
+    model.eval()
+    final_model = model(data)
+    predicted = final_model[test_index].cpu()
+    actual = data.y[test_index].cpu()
+    r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
+    print('r2 score: {}'.format(r2))
+    print('MSE: {}\n'.format(F.mse_loss(predicted, actual)))
+
+    return r2
 
 class BrainGCN(torch.nn.Module):
     def __init__(self):
         super(BrainGCN, self).__init__()
         self.conv1 = GCNConv(population_graph.num_node_features, 16)
         self.conv2 = GCNConv(16, 32)
-        self.fc_1 = Linear(32, 1)
+        self.conv3 = GCNConv(32, 64)
+        self.conv4 = GCNConv(64, 128)
+        self.conv5 = GCNConv(128, 256)
+        self.conv6 = GCNConv(256, 512)
+        self.fc_1 = Linear(512, 128)
+        self.fc_2 = Linear(128, 1)
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
@@ -88,4 +97,4 @@ class BrainGCN(torch.nn.Module):
 torch.manual_seed(0)
 np.random.seed(0)
 
-print('Mean training set r^2 score', train_braingcn(data))
+print('Mean training set r^2 score', gcn_train_cv(data))
