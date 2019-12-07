@@ -46,7 +46,7 @@ torch.manual_seed(0)
 np.random.seed(0)
 
 model.train()
-for epoch in range(300):
+for epoch in range(150):
     optimizer.zero_grad()
     out = model(data)
     loss = F.mse_loss(out[data.train_mask], data.y[data.train_mask])
