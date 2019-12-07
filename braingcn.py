@@ -17,17 +17,30 @@ graph_root = 'data/graph'
 graph_name = 'population_graph1000.pt'
 population_graph = preprocess.load_population_graph(graph_root, graph_name)
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+data = population_graph.to(device)
+
 
 # TODO cross-validate within the training set, not in the entire set.
-def cross_validation_score(data, n_splits=5):
-    X = data.x.cpu().numpy()
-    y = data.y.cpu().numpy()
+def train_braingcn(data, folds=5):
+    train_idx = np.argwhere(data.train_mask.cpu().numpy())
 
-    skf = StratifiedKFold(n_splits=n_splits, random_state=0)
+    X = data.x[train_idx].cpu().numpy()
+    y = np.squeeze(data.y[train_idx].cpu().numpy(), axis=(2,))
+    print(data.y[train_idx].shape)
+    print(y.shape)
+
+    skf = StratifiedKFold(n_splits=folds, random_state=0)
     skf.get_n_splits()
 
     cv_scores = []
-    for train_index, test_index in skf.split(X, y):
+    for tr, te in skf.split(X, y):
+        train_index = np.take(train_idx, tr)
+        test_index = np.take(train_idx, te)
+
+        # assert(len(np.intersect1d(train_index, np.argwhere(data.test_mask.cpu().numpy()))) == 0)
+        # assert(len(np.intersect1d(test_index, np.argwhere(data.test_mask.cpu().numpy()))) == 0)
+
         model = BrainGCN().to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
 
@@ -73,10 +86,7 @@ class BrainGCN(torch.nn.Module):
         return x
 
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-data = population_graph.to(device)
-
 torch.manual_seed(0)
 np.random.seed(0)
 
-print('final mean r2 score', cross_validation_score(data))
+print('Mean trainin set r^2 score', train_braingcn(data))
