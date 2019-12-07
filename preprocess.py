@@ -141,7 +141,7 @@ def construct_population_graph(size, save=True, save_dir=graph_root, name='popul
     train_mask = torch.tensor(split_mask, dtype=torch.bool)
     test_mask = torch.tensor(np.invert(split_mask), dtype=torch.bool)
 
-    labels = torch.tensor(phenotypes[AGE_UID].tolist(), dtype=torch.float32)
+    labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
 
     population_graph = Data(
         x=connectivities,
