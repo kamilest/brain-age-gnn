@@ -59,7 +59,7 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
         List of subject IDs.
     """
 
-    return [f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects, randomise, seed)]
+    return sorted([f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects, randomise, seed)])
 
 
 # TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)
@@ -134,15 +134,14 @@ def construct_population_graph(size, save=True, save_dir=graph_root, name='popul
         dtype=torch.long)
 
     np.random.seed(0)
-    split = int(len(phenotypes) * 0.9)
-    # split_mask = np.random.permutation(len(subject_ids))
-    split_mask = np.zeros(len(subject_ids), dtype=bool)
-    split_mask[:split] = 1
+    num_train = int(len(phenotypes) * 0.9)
+    split_mask = np.zeros(len(phenotypes), dtype=bool)
+    split_mask[np.random.choice(len(phenotypes), num_train, replace=False)] = True
 
-    train_mask = torch.tensor(split_mask[:split], dtype=torch.bool)
-    test_mask = torch.tensor(split_mask[-(len(subject_ids) - split):], dtype=torch.bool)
+    train_mask = torch.tensor(split_mask, dtype=torch.bool)
+    test_mask = torch.tensor(np.invert(split_mask), dtype=torch.bool)
 
-    labels = torch.tensor(phenotypes[AGE_UID].tolist(), dtype=torch.int8)
+    labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
 
     population_graph = Data(
         x=connectivities,
@@ -163,5 +162,5 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    construct_population_graph(1000, name='population_graph1000.pt')
-    graph = load_population_graph(graph_root, name='population_graph1000.pt')
+    construct_population_graph(100, name='population_graph100.pt')
+    graph = load_population_graph(graph_root, name='population_graph100.pt')
