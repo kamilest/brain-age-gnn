@@ -162,5 +162,5 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    construct_population_graph(100, name='population_graph100.pt')
-    graph = load_population_graph(graph_root, name='population_graph100.pt')
+    construct_population_graph(2000, name='population_graph2000.pt')
+    graph = load_population_graph(graph_root, name='population_graph2000.pt')
