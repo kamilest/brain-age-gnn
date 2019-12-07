@@ -38,7 +38,7 @@ def get_ts_filenames(num_subjects=None, randomise=True, seed=0):
     if num_subjects is not None:
         if randomise:
             np.random.seed(seed)
-            return np.random.choice(ts_filenames, num_subjects)
+            return np.random.choice(ts_filenames, num_subjects, replace=False)
         else:
             return ts_filenames[:num_subjects]
     else:
@@ -59,6 +59,8 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
         List of subject IDs.
     """
 
+    # TODO exclude patients with shorter connectivity matrices.
+    # 'UKB2203847', 'UKB2208238', 'UKB2697888'
     return sorted([f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects, randomise, seed)])
 
 
@@ -77,6 +79,20 @@ def get_functional_connectivity(subject_id):
         precompute.precompute_fcm(subject_id)
 
     return np.load(os.path.join(data_precomputed_fcms, subject_id + '.npy'))
+
+
+def extract_connectivities(subject_ids):
+    connectivities = []
+    exclude = []
+    for i, subject_id in enumerate(subject_ids):
+        connectivity = get_functional_connectivity(subject_id)
+        if len(connectivity) != 70500:
+            exclude.append(i)
+        else:
+            connectivities.append(connectivity)
+
+    print('Additional {} entries removed due to small connectivity matrices.'.format(len(exclude)))
+    return connectivities, np.delete(subject_ids, exclude), subject_ids[exclude]
 
 
 def get_similarity(phenotypes, subject_i, subject_j):
@@ -122,12 +138,14 @@ def construct_edge_list(phenotypes, similarity_threshold=0.5):
     return [v_list, w_list]
 
 
-def construct_population_graph(size, save=True, save_dir=graph_root, name='population_graph.pt'):
+def construct_population_graph(size=None, save=True, save_dir=graph_root, name='population_graph.pt'):
     subject_ids = get_subject_ids(size)
     print(subject_ids)
 
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
-    connectivities = torch.tensor([get_functional_connectivity(i) for i in phenotypes.index], dtype=torch.float)
+    connectivities = torch.tensor([get_functional_connectivity(i) for i in phenotypes.index], dtype=torch.float32)
+
+    labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
 
     edge_index = torch.tensor(
         construct_edge_list(phenotypes),
@@ -140,8 +158,6 @@ def construct_population_graph(size, save=True, save_dir=graph_root, name='popul
 
     train_mask = torch.tensor(split_mask, dtype=torch.bool)
     test_mask = torch.tensor(np.invert(split_mask), dtype=torch.bool)
-
-    labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
 
     population_graph = Data(
         x=connectivities,
@@ -162,5 +178,5 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    construct_population_graph(100, name='population_graph100.pt')
-    graph = load_population_graph(graph_root, name='population_graph100.pt')
+    construct_population_graph(1000, name='population_graph1000.pt')
+    graph = load_population_graph(graph_root, name='population_graph1000.pt')
