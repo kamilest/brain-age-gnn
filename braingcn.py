@@ -33,7 +33,7 @@ def train_braingcn(data, folds=5):
     skf.get_n_splits()
 
     cv_scores = []
-    for tr, te in skf.split(X, y):
+    for fold, (tr, te) in enumerate(skf.split(X, y)):
         train_index = np.take(train_idx, tr)
         test_index = np.take(train_idx, te)
 
@@ -43,7 +43,7 @@ def train_braingcn(data, folds=5):
         model = BrainGCN().to(device)
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
 
-        print('Training fold ', len(cv_scores)+1)
+        print('Training fold {}'.format(fold))
         # train fold
         model.train()
         for epoch in range(150):
@@ -59,8 +59,8 @@ def train_braingcn(data, folds=5):
         actual = data.y[test_index].cpu()
         r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
         cv_scores.append(r2)
-        print('r2', r2)
-        print('mse', F.mse_loss(predicted, actual))
+        print('Fold {} r2 score: {}'.format(fold, r2))
+        print('Fold {} MSE: {}\n'.format(fold, F.mse_loss(predicted, actual)))
 
     return np.mean(cv_scores)
 
