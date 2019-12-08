@@ -34,6 +34,10 @@ AGE_UID = '21003-2.0'
 
 def get_ts_filenames(num_subjects=None, randomise=True, seed=0):
     ts_filenames = [f for f in sorted(os.listdir(data_timeseries))]
+    for patient in ['UKB2203847_ts_raw.txt', 'UKB2208238_ts_raw.txt', 'UKB2697888_ts_raw.txt']:
+        if patient in ts_filenames:
+            print('Excluded ', patient)
+            ts_filenames.remove(patient)
 
     if num_subjects is not None:
         if randomise:
@@ -178,5 +182,5 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    construct_population_graph(1000, name='population_graph1000.pt')
-    graph = load_population_graph(graph_root, name='population_graph1000.pt')
+    construct_population_graph(10000, name='population_graph10000.pt')
+    graph = load_population_graph(graph_root, name='population_graph10000.pt')
