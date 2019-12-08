@@ -48,10 +48,10 @@ def gcn_train_cv(data, folds=5):
 
 def gcn_train(data, train_index, test_index):
     model = BrainGCN().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=5e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
 
     model.train()
-    for epoch in range(1000):
+    for epoch in range(100):
         optimizer.zero_grad()
         out = model(data)
         loss = F.mse_loss(out[train_index], data.y[train_index])
@@ -69,6 +69,7 @@ def gcn_train(data, train_index, test_index):
     print('MSE: {}\n'.format(F.mse_loss(predicted, actual)))
 
     return r2
+
 
 class BrainGCN(torch.nn.Module):
     def __init__(self):
@@ -109,8 +110,10 @@ torch.manual_seed(0)
 np.random.seed(0)
 
 # print('Mean training set r^2 score', gcn_train_cv(data))
-train_idx = np.argwhere(data.train_mask.cpu().numpy())
-validate_idx = np.random.choice(len(train_idx), int(0.1*len(train_idx)), replace=False)
-np.delete(train_idx, validate_idx)
+train_idx = np.argwhere(data.train_mask.cpu().numpy()).flatten()
+validate_idx = np.random.choice(train_idx, int(0.1*len(train_idx)), replace=False)
+train_idx = list(set(train_idx) - set(validate_idx))
+
+# assert(len(np.intersect1d(train_idx, validate_idx)) == 0)
 
 r2 = gcn_train(data, train_idx, validate_idx)
