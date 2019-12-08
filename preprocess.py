@@ -63,8 +63,6 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
         List of subject IDs.
     """
 
-    # TODO exclude patients with shorter connectivity matrices.
-    # 'UKB2203847', 'UKB2208238', 'UKB2697888'
     return sorted([f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects, randomise, seed)])
 
 
@@ -182,5 +180,5 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    construct_population_graph(10000, name='population_graph10000.pt')
-    graph = load_population_graph(graph_root, name='population_graph10000.pt')
+    construct_population_graph(1000, name='population_graph1000.pt')
+    graph = load_population_graph(graph_root, name='population_graph1000.pt')
