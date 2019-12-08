@@ -34,6 +34,10 @@ AGE_UID = '21003-2.0'
 
 def get_ts_filenames(num_subjects=None, randomise=True, seed=0):
     ts_filenames = [f for f in sorted(os.listdir(data_timeseries))]
+    for patient in ['UKB2203847_ts_raw.txt', 'UKB2208238_ts_raw.txt', 'UKB2697888_ts_raw.txt']:
+        if patient in ts_filenames:
+            print('Excluded ', patient)
+            ts_filenames.remove(patient)
 
     if num_subjects is not None:
         if randomise:
@@ -59,8 +63,6 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
         List of subject IDs.
     """
 
-    # TODO exclude patients with shorter connectivity matrices.
-    # 'UKB2203847', 'UKB2208238', 'UKB2697888'
     return sorted([f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects, randomise, seed)])
 
 
