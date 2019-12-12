@@ -32,7 +32,7 @@ X_train, X_test = connectivities[train_idx], connectivities[validate_idx]
 y_train, y_test = labels[train_idx], labels[validate_idx]
 
 
-pipeline_optimizer = TPOTRegressor(generations=10, max_time_mins=120, verbosity=3)
+pipeline_optimizer = TPOTRegressor(generations=10, n_jobs=-1, max_time_mins=120, verbosity=3)
 
 pipeline_optimizer.fit(X_train, y_train)
 print(pipeline_optimizer.score(X_test, y_test))
