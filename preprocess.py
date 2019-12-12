@@ -158,10 +158,10 @@ def construct_population_graph(size=None, save=True, save_dir=graph_root, name='
     split_mask = np.zeros(len(phenotypes), dtype=bool)
     split_mask[np.random.choice(len(phenotypes), num_train, replace=False)] = True
 
-    train_idx = np.argwhere(split_mask)
+    train_idx = np.argwhere(split_mask).flatten()
     validate_idx = np.random.choice(train_idx, int(0.1 * len(train_idx)), replace=False)
     train_idx = list(set(train_idx) - set(validate_idx))
-    test_idx = np.argwhere(not split_mask)
+    test_idx = np.argwhere(split_mask is False).flatten()
 
     train_np = np.zeros(len(phenotypes), dtype=bool)
     train_np[train_idx] = True
