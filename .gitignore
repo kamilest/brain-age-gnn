@@ -1,4 +1,5 @@
 data/
+examples/
 fcm_example.py
 
 .vscode
