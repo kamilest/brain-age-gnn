@@ -10,7 +10,6 @@ connects nodes into a graph, assigning collected features
 """
 
 import numpy as np
-import pandas as pd
 import os
 
 import torch
@@ -35,11 +34,15 @@ AGE_UID = '21003-2.0'
 
 def get_ts_filenames(num_subjects=None, randomise=True, seed=0):
     ts_filenames = [f for f in sorted(os.listdir(data_timeseries))]
+    for patient in ['UKB2203847_ts_raw.txt', 'UKB2208238_ts_raw.txt', 'UKB2697888_ts_raw.txt']:
+        if patient in ts_filenames:
+            print('Excluded ', patient)
+            ts_filenames.remove(patient)
 
     if num_subjects is not None:
         if randomise:
             np.random.seed(seed)
-            return np.random.choice(ts_filenames, num_subjects)
+            return np.random.choice(ts_filenames, num_subjects, replace=False)
         else:
             return ts_filenames[:num_subjects]
     else:
@@ -60,7 +63,7 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
         List of subject IDs.
     """
 
-    return [f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects, randomise, seed)]
+    return sorted([f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects, randomise, seed)])
 
 
 # TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)
@@ -78,6 +81,20 @@ def get_functional_connectivity(subject_id):
         precompute.precompute_fcm(subject_id)
 
     return np.load(os.path.join(data_precomputed_fcms, subject_id + '.npy'))
+
+
+def extract_connectivities(subject_ids):
+    connectivities = []
+    exclude = []
+    for i, subject_id in enumerate(subject_ids):
+        connectivity = get_functional_connectivity(subject_id)
+        if len(connectivity) != 70500:
+            exclude.append(i)
+        else:
+            connectivities.append(connectivity)
+
+    print('Additional {} entries removed due to small connectivity matrices.'.format(len(exclude)))
+    return connectivities, np.delete(subject_ids, exclude), subject_ids[exclude]
 
 
 def get_similarity(phenotypes, subject_i, subject_j):
@@ -102,7 +119,6 @@ def construct_edge_list(phenotypes, similarity_threshold=0.5):
   
     Args:
         phenotypes: Dataframe with phenotype values.
-        subject_ids: List of subject IDs.
         similarity_threshold: The threshold above which the edge should be added.
 
     Returns:
@@ -124,28 +140,54 @@ def construct_edge_list(phenotypes, similarity_threshold=0.5):
     return [v_list, w_list]
 
 
-def construct_population_graph(size, save=True, save_dir=graph_root, name='population_graph.pt'):
+def construct_population_graph(size=None, save=True, save_dir=graph_root, name='population_graph.pt'):
     subject_ids = get_subject_ids(size)
+    print(subject_ids)
 
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
-    connectivities = [get_functional_connectivity(i) for i in phenotypes.index]
+    connectivities = torch.tensor([get_functional_connectivity(i) for i in phenotypes.index], dtype=torch.float32)
+
+    labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
 
     edge_index = torch.tensor(
         construct_edge_list(phenotypes),
         dtype=torch.long)
 
-    # Take the first 90% to train, 10% to test
-    split = int(len(phenotypes) * 0.9)
-    train_mask = subject_ids[:split]
-    test_mask = subject_ids[-(size-split):]
+    np.random.seed(0)
+    num_train = int(len(phenotypes) * 0.85)
+    num_validate = int(len(phenotypes) * 0.05)
+
+    train_val_idx = np.random.choice(range(len(phenotypes)), num_train + num_validate, replace=False)
+    train_idx = np.random.choice(train_val_idx, num_train, replace=False)
+    validate_idx = list(set(train_val_idx) - set(train_idx))
+    test_idx = list(set(range(len(phenotypes))) - set(train_val_idx))
+
+    assert(len(np.intersect1d(train_idx, validate_idx)) == 0)
+    assert(len(np.intersect1d(train_idx, test_idx)) == 0)
+    assert(len(np.intersect1d(validate_idx, test_idx)) == 0)
+
+    train_np = np.zeros(len(phenotypes), dtype=bool)
+    train_np[train_idx] = True
+
+    validate_np = np.zeros(len(phenotypes), dtype=bool)
+    validate_np[validate_idx] = True
+
+    test_np = np.zeros(len(phenotypes), dtype=bool)
+    test_np[test_idx] = True
+
+    train_mask = torch.tensor(train_np, dtype=torch.bool)
+    validate_mask = torch.tensor(validate_np, dtype=torch.bool)
+    test_mask = torch.tensor(test_np, dtype=torch.bool)
 
     population_graph = Data(
         x=connectivities,
         edge_index=edge_index,
-        y=phenotypes[AGE_UID].tolist(),
+        y=labels,
         train_mask=train_mask,
         test_mask=test_mask
     )
+
+    population_graph.validate_mask = validate_mask
 
     if save:
         torch.save(population_graph, os.path.join(save_dir, name))

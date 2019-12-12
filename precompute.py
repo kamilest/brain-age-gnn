@@ -56,7 +56,7 @@ def extract_phenotypes(uid_list, subject_ids):
     subject_phenotype = phenotype[phenotype['eid'].isin(subject_ids_no_UKB)]
 
     if len(subject_phenotype) != len(subject_ids):
-        print('{} entries removed.'.format(len(subject_ids) - len(subject_phenotype)))
+        print('{} entries had phenotypic data missing.'.format(len(subject_ids) - len(subject_phenotype)))
 
     # Extract relevant UIDs.
     subject_phenotype = subject_phenotype[uid_list]
