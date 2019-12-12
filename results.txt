@@ -1,0 +1,4 @@
+brain_elasticnet.py
+10000 brains, PCA, l1_ratio=0.12, random_state=42
+0.32202945558046664
+
