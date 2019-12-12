@@ -41,12 +41,12 @@ def gcn_train_cv(data, folds=5):
         # assert(len(np.intersect1d(test_index, np.argwhere(data.test_mask.cpu().numpy()))) == 0)
 
         print('Training fold {}'.format(fold))
-        cv_scores.append(gcn_train(data, train_index, test_index))
+        cv_scores.append(gcn_train(data))
 
     return np.mean(cv_scores)
 
 
-def gcn_train(data, train_index, test_index):
+def gcn_train(data):
     model = BrainGCN().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=0)
 
@@ -54,17 +54,17 @@ def gcn_train(data, train_index, test_index):
     for epoch in range(100):
         optimizer.zero_grad()
         out = model(data)
-        loss = F.mse_loss(out[train_index], data.y[train_index])
+        loss = F.mse_loss(out[data.train_mask], data.y[data.train_mask])
         print(loss, end=' ')
-        r2 = r2_score(data.y[train_index].cpu().detach().numpy(), out[train_index].cpu().detach().numpy())
+        r2 = r2_score(data.y[data.train_mask].cpu().detach().numpy(), out[data.train_mask].cpu().detach().numpy())
         print(r2)
         loss.backward()
         optimizer.step()
 
     model.eval()
     final_model = model(data)
-    predicted = final_model[test_index].cpu()
-    actual = data.y[test_index].cpu()
+    predicted = final_model[data.test_mask].cpu()
+    actual = data.y[data.test_mask].cpu()
     r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
     print('r2 score: {}'.format(r2))
     print('MSE: {}\n'.format(F.mse_loss(predicted, actual)))
@@ -115,10 +115,4 @@ class BrainGCN(torch.nn.Module):
 # np.random.seed(0)
 
 # print('Mean training set r^2 score', gcn_train_cv(data))
-train_idx = np.argwhere(data.train_mask.cpu().numpy()).flatten()
-validate_idx = np.random.choice(train_idx, int(0.1*len(train_idx)), replace=False)
-train_idx = list(set(train_idx) - set(validate_idx))
-
-# assert(len(np.intersect1d(train_idx, validate_idx)) == 0)
-
-r2 = gcn_train(data, train_idx, validate_idx)
+r2 = gcn_train(data)

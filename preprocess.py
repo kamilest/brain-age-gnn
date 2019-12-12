@@ -158,8 +158,23 @@ def construct_population_graph(size=None, save=True, save_dir=graph_root, name='
     split_mask = np.zeros(len(phenotypes), dtype=bool)
     split_mask[np.random.choice(len(phenotypes), num_train, replace=False)] = True
 
-    train_mask = torch.tensor(split_mask, dtype=torch.bool)
-    test_mask = torch.tensor(np.invert(split_mask), dtype=torch.bool)
+    train_idx = np.argwhere(split_mask)
+    validate_idx = np.random.choice(train_idx, int(0.1 * len(train_idx)), replace=False)
+    train_idx = list(set(train_idx) - set(validate_idx))
+    test_idx = np.argwhere(not split_mask)
+
+    train_np = np.zeros(len(phenotypes), dtype=bool)
+    train_np[train_idx] = True
+
+    validate_np = np.zeros(len(phenotypes), dtype=bool)
+    validate_np[validate_idx] = True
+
+    test_np = np.zeros(len(phenotypes), dtype=bool)
+    test_np[test_idx] = True
+
+    train_mask = torch.tensor(train_np, dtype=torch.bool)
+    validate_mask = torch.tensor(validate_np, dtype=torch.bool)
+    test_mask = torch.tensor(test_np, dtype=torch.bool)
 
     population_graph = Data(
         x=connectivities,
@@ -168,6 +183,8 @@ def construct_population_graph(size=None, save=True, save_dir=graph_root, name='
         train_mask=train_mask,
         test_mask=test_mask
     )
+
+    population_graph.validate_mask = validate_mask
 
     if save:
         torch.save(population_graph, os.path.join(save_dir, name))
