@@ -48,7 +48,7 @@ def gcn_train_cv(data, folds=5):
 
 def gcn_train(data):
     model = BrainGCN().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.05, weight_decay=0)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=0)
 
     model.train()
     for epoch in range(250):
@@ -75,40 +75,40 @@ def gcn_train(data):
 class BrainGCN(torch.nn.Module):
     def __init__(self):
         super(BrainGCN, self).__init__()
-        self.conv1 = GCNConv(population_graph.num_node_features, 100)
-        self.conv2 = GCNConv(16, 32)
+        self.conv1 = GCNConv(population_graph.num_node_features, 128)
+        self.conv2 = GCNConv(128, 256)
         self.conv3 = GCNConv(32, 64)
         self.conv4 = GCNConv(64, 128)
         self.conv5 = GCNConv(128, 256)
         self.conv6 = GCNConv(256, 512)
-        self.fc_1 = Linear(841, 256)
-        self.fc_2 = Linear(256, 1)
+        self.fc_1 = Linear(256, 128)
+        self.fc_2 = Linear(128, 1)
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
 
+        # x = self.fc_1(x)
+        # x = torch.tanh(x)
+        # x = self.fc_2(x)
+
+        x = self.conv1(x, edge_index)
+        x = torch.tanh(x)
+        # x = F.dropout(x, p=0.1, training=self.training)
+        x = self.conv2(x, edge_index)
+        x = torch.tanh(x)
+        # x = self.conv3(x, edge_index)
+        # x = torch.tanh(x)
+        # x = self.conv4(x, edge_index)
+        # x = torch.tanh(x)
+        # x = self.conv5(x, edge_index)
+        # x = torch.tanh(x)
+        # x = self.conv6(x, edge_index)
+        # x = torch.tanh(x)
         x = self.fc_1(x)
         x = torch.tanh(x)
         x = self.fc_2(x)
 
         return x
-
-        # x = F.dropout(x, p=0.1, training=self.training)
-        # x = self.conv2(x, edge_index)
-        # x = F.relu(x)
-        # x = self.conv3(x, edge_index)
-        # x = F.relu(x)
-        # x = self.conv4(x, edge_index)
-        # x = F.relu(x)
-        # x = self.conv5(x, edge_index)
-        # x = F.relu(x)
-        # x = self.conv6(x, edge_index)
-        # x = F.relu(x)
-        # x = self.fc_1(x)
-        # x = F.relu(x)
-        # x = self.fc_2(x)
-        #
-        # return x
 
 
 # torch.manual_seed(0)
