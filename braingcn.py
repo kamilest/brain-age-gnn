@@ -63,8 +63,8 @@ def gcn_train(data):
 
     model.eval()
     final_model = model(data)
-    predicted = final_model[data.test_mask].cpu()
-    actual = data.y[data.test_mask].cpu()
+    predicted = final_model[data.validate_mask].cpu()
+    actual = data.y[data.validate_mask].cpu()
     r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
     print('r2 score: {}'.format(r2))
     print('MSE: {}\n'.format(F.mse_loss(predicted, actual)))
@@ -88,7 +88,7 @@ class BrainGCN(torch.nn.Module):
         x, edge_index = data.x, data.edge_index
 
         x = self.fc_1(x)
-        x = F.tanh(x)
+        x = torch.tanh(x)
         x = self.fc_2(x)
 
         return x
