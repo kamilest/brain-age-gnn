@@ -48,10 +48,10 @@ def gcn_train_cv(data, folds=5):
 
 def gcn_train(data):
     model = BrainGCN().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=0)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.05, weight_decay=0)
 
     model.train()
-    for epoch in range(100):
+    for epoch in range(250):
         optimizer.zero_grad()
         out = model(data)
         loss = F.mse_loss(out[data.train_mask], data.y[data.train_mask])
@@ -81,8 +81,8 @@ class BrainGCN(torch.nn.Module):
         self.conv4 = GCNConv(64, 128)
         self.conv5 = GCNConv(128, 256)
         self.conv6 = GCNConv(256, 512)
-        self.fc_1 = Linear(70500, 5000)
-        self.fc_2 = Linear(5000, 1)
+        self.fc_1 = Linear(841, 256)
+        self.fc_2 = Linear(256, 1)
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
