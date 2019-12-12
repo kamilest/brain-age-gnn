@@ -48,15 +48,16 @@ def gcn_train_cv(data, folds=5):
 
 def gcn_train(data, train_index, test_index):
     model = BrainGCN().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=5e-4)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.0005, weight_decay=0)
 
     model.train()
     for epoch in range(100):
         optimizer.zero_grad()
         out = model(data)
         loss = F.mse_loss(out[train_index], data.y[train_index])
-        if epoch % 50 == 0:
-            print(loss)
+        print(loss, end=' ')
+        r2 = r2_score(data.y[train_index].cpu().detach().numpy(), out[train_index].cpu().detach().numpy())
+        print(r2)
         loss.backward()
         optimizer.step()
 
@@ -74,40 +75,44 @@ def gcn_train(data, train_index, test_index):
 class BrainGCN(torch.nn.Module):
     def __init__(self):
         super(BrainGCN, self).__init__()
-        self.conv1 = GCNConv(population_graph.num_node_features, 16)
+        self.conv1 = GCNConv(population_graph.num_node_features, 100)
         self.conv2 = GCNConv(16, 32)
         self.conv3 = GCNConv(32, 64)
         self.conv4 = GCNConv(64, 128)
         self.conv5 = GCNConv(128, 256)
         self.conv6 = GCNConv(256, 512)
-        self.fc_1 = Linear(512, 128)
-        self.fc_2 = Linear(128, 1)
+        self.fc_1 = Linear(70500, 5000)
+        self.fc_2 = Linear(5000, 1)
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
 
-        x = self.conv1(x, edge_index)
-        x = F.relu(x)
-        # x = F.dropout(x, p=0.1, training=self.training)
-        x = self.conv2(x, edge_index)
-        x = F.relu(x)
-        x = self.conv3(x, edge_index)
-        x = F.relu(x)
-        x = self.conv4(x, edge_index)
-        x = F.relu(x)
-        x = self.conv5(x, edge_index)
-        x = F.relu(x)
-        x = self.conv6(x, edge_index)
-        x = F.relu(x)
         x = self.fc_1(x)
-        x = F.relu(x)
+        x = F.tanh(x)
         x = self.fc_2(x)
 
         return x
 
+        # x = F.dropout(x, p=0.1, training=self.training)
+        # x = self.conv2(x, edge_index)
+        # x = F.relu(x)
+        # x = self.conv3(x, edge_index)
+        # x = F.relu(x)
+        # x = self.conv4(x, edge_index)
+        # x = F.relu(x)
+        # x = self.conv5(x, edge_index)
+        # x = F.relu(x)
+        # x = self.conv6(x, edge_index)
+        # x = F.relu(x)
+        # x = self.fc_1(x)
+        # x = F.relu(x)
+        # x = self.fc_2(x)
+        #
+        # return x
 
-torch.manual_seed(0)
-np.random.seed(0)
+
+# torch.manual_seed(0)
+# np.random.seed(0)
 
 # print('Mean training set r^2 score', gcn_train_cv(data))
 train_idx = np.argwhere(data.train_mask.cpu().numpy()).flatten()
