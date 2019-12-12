@@ -1,4 +1,5 @@
 data/
+logs/
 fcm_example.py
 results.txt
 
