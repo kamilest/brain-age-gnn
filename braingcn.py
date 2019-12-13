@@ -49,10 +49,10 @@ def gcn_train_cv(data, folds=5):
 
 
 def gcn_train(data):
-    writer = SummaryWriter(log_dir='runs/PCA_2FC_841_1000_1_tanh_epochs=250_lr=0.005_weight_decay=0')
+    writer = SummaryWriter(log_dir='runs/PCA_conv1_fc2_841_1024_512_1_tanh_epochs=250_lr=0.005_weight_decay=1e-5')
 
     model = BrainGCN().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=0)
+    optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=1e-5)
 
     model.train()
     for epoch in range(250):
@@ -102,37 +102,18 @@ def gcn_train(data):
 class BrainGCN(torch.nn.Module):
     def __init__(self):
         super(BrainGCN, self).__init__()
-        self.conv1 = GCNConv(population_graph.num_node_features, 128)
-        self.conv2 = GCNConv(128, 256)
-        self.conv3 = GCNConv(32, 64)
-        self.conv4 = GCNConv(64, 128)
-        self.conv5 = GCNConv(128, 256)
-        self.conv6 = GCNConv(256, 512)
-        self.fc_1 = Linear(population_graph.num_node_features, 1000)
-        self.fc_2 = Linear(1000, 1)
+        self.conv1 = GCNConv(population_graph.num_node_features, 1024)
+        self.fc_1 = Linear(1024, 512)
+        self.fc_2 = Linear(512, 1)
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
 
-        # x = self.fc_1(x)
-        # x = torch.tanh(x)
-        # x = self.fc_2(x)
-
-        # x = self.conv1(x, edge_index)
-        # x = torch.tanh(x)
-        # # x = F.dropout(x, p=0.1, training=self.training)
-        # x = self.conv2(x, edge_index)
-        # x = torch.tanh(x)
-        # x = self.conv3(x, edge_index)
-        # x = torch.tanh(x)
-        # x = self.conv4(x, edge_index)
-        # x = torch.tanh(x)
-        # x = self.conv5(x, edge_index)
-        # x = torch.tanh(x)
-        # x = self.conv6(x, edge_index)
-        # x = torch.tanh(x)
+        x = self.conv1(x, edge_index)
+        x = torch.tanh(x)
         x = self.fc_1(x)
         x = torch.tanh(x)
+        # x = F.dropout(x, p=0.1, training=self.training)
         x = self.fc_2(x)
 
         return x
@@ -141,5 +122,4 @@ class BrainGCN(torch.nn.Module):
 # torch.manual_seed(0)
 # np.random.seed(0)
 
-# print('Mean training set r^2 score', gcn_train_cv(data))
 r2 = gcn_train(data)
