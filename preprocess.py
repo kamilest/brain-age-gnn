@@ -213,4 +213,4 @@ def load_population_graph(graph_root, name):
 
 if __name__ == '__main__':
     construct_population_graph(1000)
-    graph = load_population_graph(graph_root, name='population_graph1000_PCA.pt')
+    # graph = load_population_graph(graph_root, name='population_graph_1000.pt')
