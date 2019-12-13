@@ -15,6 +15,8 @@ import os
 import torch
 from torch_geometric.data import Data
 
+import sklearn
+
 import precompute
 
 # Data sources.
@@ -142,10 +144,9 @@ def construct_edge_list(phenotypes, similarity_threshold=0.5):
 
 def construct_population_graph(size=None, save=True, save_dir=graph_root, name='population_graph.pt'):
     subject_ids = get_subject_ids(size)
-    print(subject_ids)
 
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
-    connectivities = torch.tensor([get_functional_connectivity(i) for i in phenotypes.index], dtype=torch.float32)
+    connectivities = np.array([get_functional_connectivity(i) for i in phenotypes.index])
 
     labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
 
@@ -179,8 +180,12 @@ def construct_population_graph(size=None, save=True, save_dir=graph_root, name='
     validate_mask = torch.tensor(validate_np, dtype=torch.bool)
     test_mask = torch.tensor(test_np, dtype=torch.bool)
 
+    connectivity_pca = sklearn.decomposition.PCA(random_state=42)
+    connectivity_pca.fit(connectivities[train_idx])
+    connectivities_transformed = torch.tensor(connectivity_pca.transform(connectivities), dtype=torch.float32)
+
     population_graph = Data(
-        x=connectivities,
+        x=connectivities_transformed,
         edge_index=edge_index,
         y=labels,
         train_mask=train_mask,
@@ -200,5 +205,5 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    construct_population_graph(1000, name='population_graph1000.pt')
-    graph = load_population_graph(graph_root, name='population_graph1000.pt')
+    construct_population_graph(1000, name='population_graph1000_PCA.pt')
+    graph = load_population_graph(graph_root, name='population_graph1000_PCA.pt')

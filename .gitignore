@@ -1,6 +1,9 @@
 data/
 examples/
+logs/
+runs/
 fcm_example.py
+results.txt
 
 .vscode
 .DS_Store
