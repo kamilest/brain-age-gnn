@@ -3,7 +3,7 @@ examples/
 logs/
 runs/
 fcm_example.py
-results.txt
+results.md
 
 .vscode
 .DS_Store
