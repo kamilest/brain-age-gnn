@@ -49,7 +49,7 @@ def gcn_train_cv(data, folds=5):
 
 
 def gcn_train(data):
-    writer = SummaryWriter(comment='PCA_2FC_841_1000_1_tanh_epochs=250_lr=0.005_weight_decay=0')
+    writer = SummaryWriter(log_dir='runs/PCA_2FC_841_1000_1_tanh_epochs=250_lr=0.005_weight_decay=0')
 
     model = BrainGCN().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=0)
@@ -59,12 +59,29 @@ def gcn_train(data):
         optimizer.zero_grad()
         out = model(data)
         loss = F.mse_loss(out[data.train_mask], data.y[data.train_mask])
-        writer.add_scalar('Train/MSE', loss.item(), epoch)
-        writer.add_scalar('Train/R2', r2_score(data.y[data.train_mask].cpu().detach().numpy(), out[data.train_mask].cpu().detach().numpy()), epoch)
-        writer.add_scalar('Validation/MSE', F.mse_loss(out[data.validate_mask], data.y[data.validate_mask]).item(), epoch)
-        writer.add_scalar('Validation/R2', r2_score(data.y[data.validate_mask].cpu().detach().numpy(), out[data.validate_mask].cpu().detach().numpy()))
-        print(epoch, loss.item(), r2_score(data.y[data.train_mask].cpu().detach().numpy(), out[data.train_mask].cpu().detach().numpy()))
-        print(epoch, F.mse_loss(out[data.validate_mask], data.y[data.validate_mask]).item(), r2_score(data.y[data.validate_mask].cpu().detach().numpy(), out[data.validate_mask].cpu().detach().numpy()))
+        writer.add_scalar('Train/MSE',
+                          loss.item(),
+                          epoch)
+        writer.add_scalar('Train/R2',
+                          r2_score(data.y[data.train_mask].cpu().detach().numpy(),
+                                   out[data.train_mask].cpu().detach().numpy()),
+                          epoch)
+        writer.add_scalar('Validation/MSE',
+                          F.mse_loss(out[data.validate_mask], data.y[data.validate_mask]).item(),
+                          epoch)
+        writer.add_scalar('Validation/R2',
+                          r2_score(data.y[data.validate_mask].cpu().detach().numpy(),
+                                   out[data.validate_mask].cpu().detach().numpy()),
+                          epoch)
+        print(epoch,
+              loss.item(),
+              r2_score(data.y[data.train_mask].cpu().detach().numpy(),
+                       out[data.train_mask].cpu().detach().numpy()))
+        print(epoch,
+              F.mse_loss(out[data.validate_mask],
+                         data.y[data.validate_mask]).item(),
+              r2_score(data.y[data.validate_mask].cpu().detach().numpy(),
+                       out[data.validate_mask].cpu().detach().numpy()))
         print()
 
         loss.backward()
