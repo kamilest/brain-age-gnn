@@ -68,12 +68,20 @@ def gcn_train(data):
                           r2_score(data.y[data.train_mask].cpu().detach().numpy(),
                                    out[data.train_mask].cpu().detach().numpy()),
                           epoch)
+        writer.add_scalar('Train/R',
+                          pearsonr(data.y[data.train_mask].cpu().detach().numpy().flatten(),
+                                   out[data.train_mask].cpu().detach().numpy().flatten())[0],
+                          epoch)
         writer.add_scalar('Validation/MSE',
                           F.mse_loss(out[data.validate_mask], data.y[data.validate_mask]).item(),
                           epoch)
         writer.add_scalar('Validation/R2',
                           r2_score(data.y[data.validate_mask].cpu().detach().numpy(),
                                    out[data.validate_mask].cpu().detach().numpy()),
+                          epoch)
+        writer.add_scalar('Validation/R',
+                          pearsonr(data.y[data.validate_mask].cpu().detach().numpy().flatten(),
+                                   out[data.validate_mask].cpu().detach().numpy().flatten())[0],
                           epoch)
         print(epoch,
               loss.item(),
