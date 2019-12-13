@@ -74,6 +74,7 @@ def extract_cortical_thickness(subject_ids):
     # Extract data for relevant subject IDs.
     subject_ct = ct[ct['NewID'].isin(subject_ids)]
 
+    assert(len(subject_ids) - len(subject_ct) == 0)
     if len(subject_ct) != len(subject_ids):
         print('{} entries had cortical thickness data missing.'.format(len(subject_ids) - len(subject_ct)))
 
