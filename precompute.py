@@ -6,6 +6,7 @@ from nilearn.connectome import ConnectivityMeasure
 
 data_timeseries = 'data/raw_ts'
 data_phenotype = 'data/phenotype.csv'
+data_ct = 'data/CT.csv'
 data_computed_fcms = 'data/processed_ts'
 
 
@@ -66,6 +67,25 @@ def extract_phenotypes(uid_list, subject_ids):
 
     return subject_phenotype
 
+
+def extract_cortical_thickness(subject_ids):
+    ct = pd.read_csv(data_ct, sep=',', quotechar='\"')
+
+    # Extract data for relevant subject IDs.
+    subject_ct = ct[ct['NewID'].isin(subject_ids)]
+
+    assert(len(subject_ids) - len(subject_ct) == 0)
+    if len(subject_ct) != len(subject_ids):
+        print('{} entries had cortical thickness data missing.'.format(len(subject_ids) - len(subject_ct)))
+
+    subject_ct = subject_ct.drop(subject_ct.columns[0], axis=1)
+    subject_ct = subject_ct.drop(['lh_???', 'rh_???'], axis=1)
+
+    subject_ct.index = subject_ct['NewID']
+    subject_ct = subject_ct.drop(['NewID'], axis=1)
+    subject_ct = subject_ct.sort_index()
+
+    return subject_ct
 
 if __name__ == '__main__':
     precompute_fcm()

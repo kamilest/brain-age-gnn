@@ -149,7 +149,7 @@ def construct_population_graph(size=None,
                                pca=False,
                                structural=False):
     if name is None:
-        name = 'population_graph_' + str(size) + ('_PCA' if pca else '') + '.pt'
+        name = 'population_graph_' + str(size) + ('_PCA' if pca else '') + ('_structural' if structural else '') + '.pt'
 
     subject_ids = get_subject_ids(size)
 
@@ -158,6 +158,8 @@ def construct_population_graph(size=None,
 
     if not structural:
         connectivities = np.array([get_functional_connectivity(i) for i in phenotypes.index])
+    else:
+        connectivities = precompute.extract_cortical_thickness(phenotypes.index).to_numpy()
 
     labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
 
@@ -200,6 +202,11 @@ def construct_population_graph(size=None,
                                                       dtype=torch.float32)
         else:
             connectivities_transformed = torch.tensor(connectivities, dtype=torch.float32)
+    else:
+        scaler = sklearn.preprocessing.StandardScaler()
+        scaler.fit(connectivities[train_idx])
+        connectivities_transformed = torch.tensor(scaler.transform(connectivities),
+                                                  dtype=torch.float32)
 
     population_graph = Data(
         x=connectivities_transformed,
@@ -222,5 +229,5 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    construct_population_graph(1000)
-    # graph = load_population_graph(graph_root, name='population_graph_1000.pt')
+    construct_population_graph(1000, structural=True)
+    graph = load_population_graph(graph_root, name='population_graph_1000_structural.pt')
