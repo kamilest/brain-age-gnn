@@ -10,6 +10,7 @@ from torch.nn import Linear
 from torch_geometric.nn import GCNConv
 
 import numpy as np
+from scipy.stats import pearsonr
 from sklearn.metrics import r2_score
 from sklearn.model_selection import StratifiedKFold
 
@@ -77,12 +78,16 @@ def gcn_train(data):
         print(epoch,
               loss.item(),
               r2_score(data.y[data.train_mask].cpu().detach().numpy(),
-                       out[data.train_mask].cpu().detach().numpy()))
+                       out[data.train_mask].cpu().detach().numpy()),
+              pearsonr(data.y[data.train_mask].cpu().detach().numpy().flatten(),
+                       out[data.train_mask].cpu().detach().numpy().flatten()))
         print(epoch,
               F.mse_loss(out[data.validate_mask],
                          data.y[data.validate_mask]).item(),
               r2_score(data.y[data.validate_mask].cpu().detach().numpy(),
-                       out[data.validate_mask].cpu().detach().numpy()))
+                       out[data.validate_mask].cpu().detach().numpy()),
+              pearsonr(data.y[data.validate_mask].cpu().detach().numpy().flatten(),
+                       out[data.validate_mask].cpu().detach().numpy().flatten()))
         print()
 
         loss.backward()
@@ -94,8 +99,10 @@ def gcn_train(data):
     predicted = final_model[data.validate_mask].cpu()
     actual = data.y[data.validate_mask].cpu()
     r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
+    r = pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
     print('Final validation r2: {}'.format(r2))
-    print('Final validation MSE: {}\n'.format(F.mse_loss(predicted, actual)))
+    print('Final validation MSE: {}'.format(F.mse_loss(predicted, actual)))
+    print('Final Pearson\'s r: {}'.format(r))
 
     return r2, predicted, actual
 
