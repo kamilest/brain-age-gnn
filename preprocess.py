@@ -133,7 +133,7 @@ def construct_edge_list(phenotypes, similarity_threshold=0.5):
 
     for i, id_i in enumerate(phenotypes.index):
         iter_j = iter(enumerate(phenotypes.index))
-        [next(iter_j) for _ in range(i+1)]
+        [next(iter_j) for _ in range(i + 1)]
         for j, id_j in iter_j:
             if get_similarity(phenotypes, id_i, id_j) > similarity_threshold:
                 v_list.extend([i, j])
@@ -142,14 +142,22 @@ def construct_edge_list(phenotypes, similarity_threshold=0.5):
     return [v_list, w_list]
 
 
-def construct_population_graph(size=None, save=True, save_dir=graph_root, name=None, pca=False):
+def construct_population_graph(size=None,
+                               save=True,
+                               save_dir=graph_root,
+                               name=None,
+                               pca=False,
+                               structural=False):
     if name is None:
         name = 'population_graph_' + str(size) + ('_PCA' if pca else '') + '.pt'
 
     subject_ids = get_subject_ids(size)
 
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
-    connectivities = np.array([get_functional_connectivity(i) for i in phenotypes.index])
+    connectivities = []
+
+    if not structural:
+        connectivities = np.array([get_functional_connectivity(i) for i in phenotypes.index])
 
     labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
 
@@ -166,9 +174,9 @@ def construct_population_graph(size=None, save=True, save_dir=graph_root, name=N
     validate_idx = list(set(train_val_idx) - set(train_idx))
     test_idx = list(set(range(len(phenotypes))) - set(train_val_idx))
 
-    assert(len(np.intersect1d(train_idx, validate_idx)) == 0)
-    assert(len(np.intersect1d(train_idx, test_idx)) == 0)
-    assert(len(np.intersect1d(validate_idx, test_idx)) == 0)
+    assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
+    assert (len(np.intersect1d(train_idx, test_idx)) == 0)
+    assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
 
     train_np = np.zeros(len(phenotypes), dtype=bool)
     train_np[train_idx] = True
@@ -183,13 +191,15 @@ def construct_population_graph(size=None, save=True, save_dir=graph_root, name=N
     validate_mask = torch.tensor(validate_np, dtype=torch.bool)
     test_mask = torch.tensor(test_np, dtype=torch.bool)
 
-    if pca:
-        connectivity_pca = sklearn.decomposition.PCA(random_state=42)
-        connectivity_pca.fit(connectivities[train_idx])
-        connectivities_transformed = torch.tensor(connectivity_pca.transform(connectivities),
-                                                  dtype=torch.float32)
-    else:
-        connectivities_transformed = torch.tensor(connectivities, dtype=torch.float32)
+    connectivities_transformed = []
+    if not structural:
+        if pca:
+            connectivity_pca = sklearn.decomposition.PCA(random_state=42)
+            connectivity_pca.fit(connectivities[train_idx])
+            connectivities_transformed = torch.tensor(connectivity_pca.transform(connectivities),
+                                                      dtype=torch.float32)
+        else:
+            connectivities_transformed = torch.tensor(connectivities, dtype=torch.float32)
 
     population_graph = Data(
         x=connectivities_transformed,
