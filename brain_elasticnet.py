@@ -14,7 +14,7 @@ AGE_UID = '21003-2.0'
 subject_ids = preprocess.get_subject_ids(1000)
 
 phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
-connectivities = np.array([preprocess.get_functional_connectivity(i) for i in phenotypes.index])
+connectivities = precompute.extract_cortical_thickness(phenotypes.index).to_numpy()
 
 labels = np.array(phenotypes[AGE_UID].tolist())
 
@@ -30,13 +30,17 @@ test_idx = list(set(range(len(phenotypes))) - set(train_val_idx))
 X_train, X_test = connectivities[train_idx], connectivities[validate_idx]
 y_train, y_test = labels[train_idx], labels[validate_idx]
 
-connectivity_pca = sklearn.decomposition.PCA(random_state=42)
-connectivity_pca.fit(connectivities[train_idx])
-connectivities_transformed = connectivity_pca.transform(connectivities)
+# connectivity_pca = sklearn.decomposition.PCA(random_state=42)
+# connectivity_pca.fit(connectivities[train_idx])
+# connectivities_transformed = connectivity_pca.transform(connectivities)
+
+scaler = sklearn.preprocessing.StandardScaler()
+scaler.fit(connectivities[train_idx])
+connectivities_transformed = scaler.transform(connectivities)
 
 X_train_prepared, X_test_prepared = connectivities_transformed[train_idx], connectivities_transformed[validate_idx]
 
-elastic_net = sklearn.linear_model.ElasticNet(l1_ratio=0.12, random_state=42)
+elastic_net = sklearn.linear_model.ElasticNet(l1_ratio=0.75, random_state=42)
 elastic_net.fit(X_train_prepared, y_train)
 print(elastic_net.score(X_test_prepared, y_test))
 
