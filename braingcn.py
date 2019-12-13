@@ -17,7 +17,7 @@ from sklearn.model_selection import StratifiedKFold
 from torch.utils.tensorboard import SummaryWriter
 
 graph_root = 'data/graph'
-graph_name = 'population_graph_1000_PCA.pt'
+graph_name = 'population_graph_1000_structural.pt'
 population_graph = preprocess.load_population_graph(graph_root, graph_name)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -51,7 +51,7 @@ def gcn_train_cv(data, folds=5):
 
 def gcn_train(data):
     writer = SummaryWriter(
-        log_dir='runs/PCA_fc2_841_1024_512_1_tanh_epochs=250_lr=0.005_weight_decay=1e-5')
+        log_dir='runs/structural_fc3_362_512_256_1_tanh_epochs=250_lr=0.005_weight_decay=1e-5')
 
     model = BrainGCN().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=1e-5)
@@ -68,12 +68,20 @@ def gcn_train(data):
                           r2_score(data.y[data.train_mask].cpu().detach().numpy(),
                                    out[data.train_mask].cpu().detach().numpy()),
                           epoch)
+        writer.add_scalar('Train/R',
+                          pearsonr(data.y[data.train_mask].cpu().detach().numpy().flatten(),
+                                   out[data.train_mask].cpu().detach().numpy().flatten())[0],
+                          epoch)
         writer.add_scalar('Validation/MSE',
                           F.mse_loss(out[data.validate_mask], data.y[data.validate_mask]).item(),
                           epoch)
         writer.add_scalar('Validation/R2',
                           r2_score(data.y[data.validate_mask].cpu().detach().numpy(),
                                    out[data.validate_mask].cpu().detach().numpy()),
+                          epoch)
+        writer.add_scalar('Validation/R',
+                          pearsonr(data.y[data.validate_mask].cpu().detach().numpy().flatten(),
+                                   out[data.validate_mask].cpu().detach().numpy().flatten())[0],
                           epoch)
         print(epoch,
               loss.item(),
@@ -111,14 +119,17 @@ class BrainGCN(torch.nn.Module):
     def __init__(self):
         super(BrainGCN, self).__init__()
         # self.conv1 = GCNConv(population_graph.num_node_features, 1024)
-        self.fc_1 = Linear(population_graph.num_node_features, 1024)
-        self.fc_2 = Linear(1024, 1)
+        self.fc_1 = Linear(population_graph.num_node_features, 512)
+        self.fc_2 = Linear(512, 256)
+        self.fc_3 = Linear(256, 1)
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
         x = self.fc_1(x)
         x = torch.tanh(x)
         x = self.fc_2(x)
+        x = torch.tanh(x)
+        x = self.fc_3(x)
 
         return x
 
