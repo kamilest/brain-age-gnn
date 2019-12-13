@@ -159,7 +159,7 @@ def construct_population_graph(size=None,
     if not structural:
         connectivities = np.array([get_functional_connectivity(i) for i in phenotypes.index])
     else:
-        connectivities = precompute.extract_cortical_thickness(phenotypes.index)
+        connectivities = precompute.extract_cortical_thickness(phenotypes.index).to_numpy()
 
     labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
 
