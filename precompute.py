@@ -69,7 +69,7 @@ def extract_phenotypes(uid_list, subject_ids):
 
 
 def extract_cortical_thickness(subject_ids):
-    ct = pd.read_csv(data_ct, sep=',')
+    ct = pd.read_csv(data_ct, sep=',', quotechar='\"')
 
     # Extract data for relevant subject IDs.
     subject_ct = ct[ct['NewID'].isin(subject_ids)]
@@ -78,11 +78,12 @@ def extract_cortical_thickness(subject_ids):
     if len(subject_ct) != len(subject_ids):
         print('{} entries had cortical thickness data missing.'.format(len(subject_ids) - len(subject_ct)))
 
-    subject_ct = subject_ct.drop(['', 'lh_???', 'rh_???'])
+    subject_ct = subject_ct.drop(subject_ct.columns[0], axis=1)
+    subject_ct = subject_ct.drop(['lh_???', 'rh_???'], axis=1)
 
-    # Add UKB prefix back to the index.
     subject_ct.index = subject_ct['NewID']
-    subject_ct = subject_ct.drop(['NewID'])
+    subject_ct = subject_ct.drop(['NewID'], axis=1)
+    subject_ct = subject_ct.sort_index()
 
     return subject_ct
 
