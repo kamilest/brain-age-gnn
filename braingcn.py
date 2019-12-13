@@ -86,6 +86,7 @@ def gcn_train(data):
 
         loss.backward()
         optimizer.step()
+    writer.close()
 
     model.eval()
     final_model = model(data)
