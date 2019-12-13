@@ -142,7 +142,7 @@ def construct_edge_list(phenotypes, similarity_threshold=0.5):
     return [v_list, w_list]
 
 
-def construct_population_graph(size=None, save=True, save_dir=graph_root, name=None, pca=True):
+def construct_population_graph(size=None, save=True, save_dir=graph_root, name=None, pca=False):
     if name is None:
         name = 'population_graph_' + str(size) + ('_PCA' if pca else '') + '.pt'
 
