@@ -145,9 +145,14 @@ def construct_population_graph(size=None,
                                save_dir=graph_root,
                                name=None,
                                pca=False,
-                               structural=False):
+                               structural=False,
+                               euler=False):
     if name is None:
-        name = 'population_graph_' + str(size) + ('_PCA' if pca else '') + ('_structural' if structural else '') + '.pt'
+        name = 'population_graph_' \
+               + str(size) + ('_PCA' if pca else '') \
+               + ('_structural' if structural else '') \
+               + ('_euler' if euler else '') \
+               + '.pt'
 
     subject_ids = get_subject_ids(size)
 
@@ -157,7 +162,12 @@ def construct_population_graph(size=None,
     if not structural:
         connectivities = np.array([get_functional_connectivity(i) for i in phenotypes.index])
     else:
-        connectivities = precompute.extract_cortical_thickness(phenotypes.index).to_numpy()
+        ct = precompute.extract_cortical_thickness(phenotypes.index)
+        if euler:
+            euler = precompute.extract_euler(ct.index)
+            connectivities = np.concatenate((ct.to_numpy(), euler.to_numpy()), axis=1)
+        else:
+            connectivities = ct.to_numpy()
 
     labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
 
@@ -227,5 +237,5 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    construct_population_graph(1000, structural=True)
-    graph = load_population_graph(graph_root, name='population_graph_1000_structural.pt')
+    construct_population_graph(1000, structural=True, euler=True)
+    graph = load_population_graph(graph_root, name='population_graph_1000_structural_euler.pt')
