@@ -7,6 +7,7 @@ from nilearn.connectome import ConnectivityMeasure
 data_timeseries = 'data/raw_ts'
 data_phenotype = 'data/phenotype.csv'
 data_ct = 'data/CT.csv'
+data_euler = 'data/Euler.csv'
 data_computed_fcms = 'data/processed_ts'
 
 
@@ -86,6 +87,21 @@ def extract_cortical_thickness(subject_ids):
     subject_ct = subject_ct.sort_index()
 
     return subject_ct
+
+
+def extract_euler(subject_ids):
+    euler = pd.read_csv(data_euler, sep=',', quotechar='\"')
+
+    # Extract data for relevant subject IDs.
+    subject_euler = euler[euler['eid'].isin(subject_ids)]
+    assert (len(subject_ids) - len(subject_euler) == 0)
+
+    subject_euler.index = subject_euler['eid']
+    subject_euler = subject_euler.drop(['eid', 'oldID'], axis=1)
+    subject_euler = subject_euler.sort_index()
+
+    return subject_euler
+
 
 if __name__ == '__main__':
     precompute_fcm()

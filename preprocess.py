@@ -23,8 +23,6 @@ import precompute
 data_timeseries = 'data/raw_ts'
 data_precomputed_fcms = 'data/processed_ts'
 data_phenotype = 'data/phenotype.csv'
-data_ct = 'data/CT.csv'
-data_euler = 'data/Euler.csv'
 graph_root = 'data/graph'
 
 # Graph construction phenotypic parameters.
