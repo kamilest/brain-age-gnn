@@ -16,6 +16,7 @@ import torch
 from torch_geometric.data import Data
 
 import sklearn
+from sklearn.preprocessing import OneHotEncoder
 
 import precompute
 
@@ -164,6 +165,8 @@ def construct_population_graph(size=None,
         connectivities = np.array([get_functional_connectivity(i) for i in phenotypes.index])
     else:
         ct = precompute.extract_cortical_thickness(phenotypes.index)
+        sex = OneHotEncoder().fit_transform(phenotypes[SEX_UID].to_numpy().reshape(-1, 1))
+        ct_sex = np.concatenate((ct.to_numpy(), sex.toarray()), axis=1)
         if euler:
             euler = precompute.extract_euler(ct.index)
             connectivities = np.concatenate((ct.to_numpy(), euler.to_numpy()), axis=1)
