@@ -149,7 +149,8 @@ def construct_population_graph(size=None,
                                euler=False):
     if name is None:
         name = 'population_graph_' \
-               + str(size) + ('_PCA' if pca else '') \
+               + (str(size) if size is not None else 'all') \
+               + ('_PCA' if pca else '') \
                + ('_structural' if structural else '') \
                + ('_euler' if euler else '') \
                + '.pt'
