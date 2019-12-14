@@ -169,15 +169,15 @@ def construct_population_graph(size=None,
         ct_sex = np.concatenate((ct.to_numpy(), sex.toarray()), axis=1)
         if euler:
             euler = precompute.extract_euler(ct.index)
-            connectivities = np.concatenate((ct.to_numpy(), euler.to_numpy()), axis=1)
+            connectivities = np.concatenate((ct_sex, euler.to_numpy()), axis=1)
         else:
-            connectivities = ct.to_numpy()
+            connectivities = ct_sex
 
     labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
 
-    edge_index = torch.tensor(
-        construct_edge_list(phenotypes),
-        dtype=torch.long)
+    # edge_index = torch.tensor(
+    #     construct_edge_list(phenotypes),
+    #     dtype=torch.long)
 
     np.random.seed(0)
     num_train = int(len(phenotypes) * 0.85)
@@ -222,7 +222,7 @@ def construct_population_graph(size=None,
 
     population_graph = Data(
         x=connectivities_transformed,
-        edge_index=edge_index,
+        # edge_index=edge_index,
         y=labels,
         train_mask=train_mask,
         test_mask=test_mask
@@ -241,5 +241,5 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    construct_population_graph(1000, structural=True, euler=True)
-    graph = load_population_graph(graph_root, name='population_graph_1000_structural_euler.pt')
+    construct_population_graph(name='population_graph_all_structural_euler_no_edges_sex.pt', structural=True, euler=True)
+    # graph = load_population_graph(graph_root, name='population_graph_1000_structural_euler.pt')
