@@ -200,19 +200,19 @@ def construct_population_graph(size=None,
     if functional:
         functional_connectivities, subject_ids = get_all_functional_connectivities(subject_ids)
     else:
-        functional_connectivities = np.array([])
+        functional_connectivities = pd.DataFrame()
 
     if structural:
         ct = precompute.extract_cortical_thickness(subject_ids)
         subject_ids = ct.index
     else:
-        ct = np.array([])
+        ct = pd.DataFrame()
 
     if euler:
         euler_data = precompute.extract_euler(subject_ids)
         subject_ids = euler_data.index
     else:
-        euler_data = np.array([])
+        euler_data = pd.DataFrame()
 
     # sex = OneHotEncoder().fit_transform(phenotypes[SEX_UID].to_numpy().reshape(-1, 1))
     # ct_sex = np.concatenate((ct.to_numpy(), sex.toarray()), axis=1)
