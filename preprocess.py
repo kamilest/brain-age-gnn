@@ -86,7 +86,7 @@ def get_functional_connectivity(subject_id):
     return np.load(os.path.join(data_precomputed_fcms, subject_id + '.npy'))
 
 
-def extract_connectivities(subject_ids):
+def get_all_functional_connectivities(subject_ids):
     connectivities = []
     exclude = []
     for i, subject_id in enumerate(subject_ids):
@@ -148,6 +148,7 @@ def construct_population_graph(size=None,
                                save_dir=graph_root,
                                name=None,
                                pca=False,
+                               functional=True,
                                structural=False,
                                euler=False):
     if name is None:
