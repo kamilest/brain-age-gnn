@@ -10,7 +10,6 @@ connects nodes into a graph, assigning collected features
 """
 
 import numpy as np
-import pandas as pd
 import os
 
 import torch
@@ -149,7 +148,6 @@ def construct_edge_list(phenotypes, similarity_function=get_similarity, similari
 
     return [v_list, w_list]
 
-
 def get_train_val_test_split(num_subjects, test=0.1, seed=0):
     np.random.seed(seed)
 
@@ -175,7 +173,6 @@ def get_train_val_test_split(num_subjects, test=0.1, seed=0):
     test_np[test_idx] = True
 
     return train_np, validate_np, test_np
-
 
 def construct_population_graph(size=None,
                                functional=False,
@@ -224,26 +221,22 @@ def construct_population_graph(size=None,
     # else:
     # connectivities = ct_sex
 
-    num_subjects = len(subject_ids)
-    print('{} subjects remaining for graph construction.'.format(num_subjects))
-
-    # Filter out only the subjects which remain across all the feature types.
-    # TODO better naming
-    functional_connectivities = functional_connectivities.loc[subject_ids]
-    ct = ct.loc[subject_ids]
-    euler_data = euler_data.loc[subject_ids]
-
-    # Extract labels.
     labels = torch.tensor([phenotypes[AGE_UID].iloc(subject_ids).tolist()], dtype=torch.float32)\
                   .transpose_(0, 1)
 
-    # Construct the edge index.
+    num_subjects = len(subject_ids)
+
+    print('{} subjects remaining for graph construction.'.format(num_subjects))
+
     edge_index = torch.tensor(
         construct_edge_list(subject_ids),
         dtype=torch.long)
 
-    # Split subjects into train, validation and test sets.
     train_np, validate_np, test_np = get_train_val_test_split(num_subjects)
+
+    train_mask = torch.tensor(train_np, dtype=torch.bool)
+    validate_mask = torch.tensor(validate_np, dtype=torch.bool)
+    test_mask = torch.tensor(test_np, dtype=torch.bool)
 
     # Optional functional data preprocessing (PCA) based on the traning index.
     if functional and pca:
@@ -255,22 +248,11 @@ def construct_population_graph(size=None,
         ct_scaler.fit(ct[train_np])
         ct = ct_scaler.transform(ct)
 
-    # Scaling Euler index data based on training index.
-    if euler:
-        euler_scaler = sklearn.preprocessing.StandardScaler()
-        euler_scaler.fit(euler_data[train_np])
-        euler_data = euler_scaler.transform(euler_data)
-
-    # Unify feature sets into one feature vector.
     features = np.concatenate([functional_connectivities.to_numpy(),
                                ct.to_numpy(),
                                euler_data.to_numpy()], axis=1)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
-
-    train_mask = torch.tensor(train_np, dtype=torch.bool)
-    validate_mask = torch.tensor(validate_np, dtype=torch.bool)
-    test_mask = torch.tensor(test_np, dtype=torch.bool)
 
     population_graph = Data(
         x=feature_tensor,
