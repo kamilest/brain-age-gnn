@@ -203,25 +203,28 @@ def construct_population_graph(size=None,
         dtype=torch.long)
 
     np.random.seed(0)
-    num_train = int(len(subject_ids) * 0.85)
-    num_validate = int(len(subject_ids) * 0.05)
 
-    train_val_idx = np.random.choice(range(len(phenotypes)), num_train + num_validate, replace=False)
+    num_subjects = len(subject_ids)
+
+    num_train = int(num_subjects * 0.85)
+    num_validate = int(num_subjects * 0.05)
+
+    train_val_idx = np.random.choice(range(num_subjects), num_train + num_validate, replace=False)
     train_idx = np.random.choice(train_val_idx, num_train, replace=False)
     validate_idx = list(set(train_val_idx) - set(train_idx))
-    test_idx = list(set(range(len(phenotypes))) - set(train_val_idx))
+    test_idx = list(set(range(num_subjects)) - set(train_val_idx))
 
     assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
     assert (len(np.intersect1d(train_idx, test_idx)) == 0)
     assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
 
-    train_np = np.zeros(len(phenotypes), dtype=bool)
+    train_np = np.zeros(num_subjects, dtype=bool)
     train_np[train_idx] = True
 
-    validate_np = np.zeros(len(phenotypes), dtype=bool)
+    validate_np = np.zeros(num_subjects, dtype=bool)
     validate_np[validate_idx] = True
 
-    test_np = np.zeros(len(phenotypes), dtype=bool)
+    test_np = np.zeros(num_subjects, dtype=bool)
     test_np[test_idx] = True
 
     train_mask = torch.tensor(train_np, dtype=torch.bool)
