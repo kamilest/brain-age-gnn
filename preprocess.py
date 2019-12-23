@@ -113,13 +113,13 @@ def get_similarity(phenotypes, subject_i, subject_j):
     return int(phenotypes.loc[subject_i, SEX_UID] == phenotypes.loc[subject_j, SEX_UID])
 
 
-def construct_edge_list(phenotypes, similarity_threshold=0.5):
+def construct_edge_list(phenotypes, similarity_function=get_similarity, similarity_threshold=0.5):
     """
-    Constructs the adjacency list of the population graph based on the
-    similarity metric.
+    Constructs the adjacency list of the population graph based on a similarity metric provided.
   
     Args:
         phenotypes: Dataframe with phenotype values.
+        similarity_function: Function which is returns similarity between two subjects according to some metric.
         similarity_threshold: The threshold above which the edge should be added.
 
     Returns:
@@ -134,7 +134,7 @@ def construct_edge_list(phenotypes, similarity_threshold=0.5):
         iter_j = iter(enumerate(phenotypes.index))
         [next(iter_j) for _ in range(i + 1)]
         for j, id_j in iter_j:
-            if get_similarity(phenotypes, id_i, id_j) > similarity_threshold:
+            if similarity_function(phenotypes, id_i, id_j) > similarity_threshold:
                 v_list.extend([i, j])
                 w_list.extend([j, i])
 
@@ -175,9 +175,9 @@ def construct_population_graph(size=None,
 
     labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
 
-    # edge_index = torch.tensor(
-    #     construct_edge_list(phenotypes),
-    #     dtype=torch.long)
+    edge_index = torch.tensor(
+        construct_edge_list(phenotypes),
+        dtype=torch.long)
 
     np.random.seed(0)
     num_train = int(len(phenotypes) * 0.85)
@@ -222,7 +222,7 @@ def construct_population_graph(size=None,
 
     population_graph = Data(
         x=connectivities_transformed,
-        # edge_index=edge_index,
+        edge_index=edge_index,
         y=labels,
         train_mask=train_mask,
         test_mask=test_mask
@@ -241,5 +241,4 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    construct_population_graph(name='population_graph_all_structural_euler_no_edges_sex.pt', structural=True, euler=True)
-    # graph = load_population_graph(graph_root, name='population_graph_1000_structural_euler.pt')
+    graph = construct_population_graph(1000)
