@@ -153,10 +153,10 @@ def construct_population_graph(size=None,
                                save=True,
                                save_dir=graph_root,
                                name=None,
-                               pca=False,
                                functional=False,
+                               pca=False,
                                structural=True,
-                               euler=False):
+                               euler=True):
     if name is None:
         name = 'population_graph_' \
                + (str(size) if size is not None else 'all') \
