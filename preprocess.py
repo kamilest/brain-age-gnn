@@ -148,6 +148,31 @@ def construct_edge_list(phenotypes, similarity_function=get_similarity, similari
 
     return [v_list, w_list]
 
+def get_train_val_test_split(num_subjects, test=0.1, seed=0):
+    np.random.seed(seed)
+
+    num_train = int(num_subjects * 0.85)
+    num_validate = int(num_subjects * 0.05)
+
+    train_val_idx = np.random.choice(range(num_subjects), num_train + num_validate, replace=False)
+    train_idx = np.random.choice(train_val_idx, num_train, replace=False)
+    validate_idx = list(set(train_val_idx) - set(train_idx))
+    test_idx = list(set(range(num_subjects)) - set(train_val_idx))
+
+    assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
+    assert (len(np.intersect1d(train_idx, test_idx)) == 0)
+    assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
+
+    train_np = np.zeros(num_subjects, dtype=bool)
+    train_np[train_idx] = True
+
+    validate_np = np.zeros(num_subjects, dtype=bool)
+    validate_np[validate_idx] = True
+
+    test_np = np.zeros(num_subjects, dtype=bool)
+    test_np[test_idx] = True
+
+    return train_np, validate_np, test_np
 
 def construct_population_graph(size=None,
                                functional=False,
@@ -175,19 +200,19 @@ def construct_population_graph(size=None,
     if functional:
         functional_connectivities, subject_ids = get_all_functional_connectivities(subject_ids)
     else:
-        functional_connectivities = []
+        functional_connectivities = np.array([])
 
     if structural:
         ct = precompute.extract_cortical_thickness(subject_ids)
         subject_ids = ct.index
     else:
-        ct = []
+        ct = np.array([])
 
     if euler:
         euler_data = precompute.extract_euler(subject_ids)
         subject_ids = euler_data.index
     else:
-        euler_data = []
+        euler_data = np.array([])
 
     # sex = OneHotEncoder().fit_transform(phenotypes[SEX_UID].to_numpy().reshape(-1, 1))
     # ct_sex = np.concatenate((ct.to_numpy(), sex.toarray()), axis=1)
@@ -207,28 +232,7 @@ def construct_population_graph(size=None,
         construct_edge_list(subject_ids),
         dtype=torch.long)
 
-    np.random.seed(0)
-
-    num_train = int(num_subjects * 0.85)
-    num_validate = int(num_subjects * 0.05)
-
-    train_val_idx = np.random.choice(range(num_subjects), num_train + num_validate, replace=False)
-    train_idx = np.random.choice(train_val_idx, num_train, replace=False)
-    validate_idx = list(set(train_val_idx) - set(train_idx))
-    test_idx = list(set(range(num_subjects)) - set(train_val_idx))
-
-    assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
-    assert (len(np.intersect1d(train_idx, test_idx)) == 0)
-    assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
-
-    train_np = np.zeros(num_subjects, dtype=bool)
-    train_np[train_idx] = True
-
-    validate_np = np.zeros(num_subjects, dtype=bool)
-    validate_np[validate_idx] = True
-
-    test_np = np.zeros(num_subjects, dtype=bool)
-    test_np[test_idx] = True
+    train_np, validate_np, test_np = get_train_val_test_split(num_subjects)
 
     train_mask = torch.tensor(train_np, dtype=torch.bool)
     validate_mask = torch.tensor(validate_np, dtype=torch.bool)
@@ -236,12 +240,12 @@ def construct_population_graph(size=None,
 
     # Optional functional data preprocessing (PCA) based on the traning index.
     if functional and pca:
-        functional_connectivities = functional_connectivities_pca(functional_connectivities, train_idx)
+        functional_connectivities = functional_connectivities_pca(functional_connectivities, train_np)
 
     # Scaling structural data based on training index.
     if structural:
         ct_scaler = sklearn.preprocessing.StandardScaler()
-        ct_scaler.fit(ct[train_idx])
+        ct_scaler.fit(ct[train_np])
         ct = ct_scaler.transform(ct)
 
     features = np.concatenate([functional_connectivities.to_numpy(),
