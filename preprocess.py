@@ -150,13 +150,13 @@ def construct_edge_list(phenotypes, similarity_function=get_similarity, similari
 
 
 def construct_population_graph(size=None,
-                               save=True,
-                               save_dir=graph_root,
-                               name=None,
                                functional=False,
                                pca=False,
                                structural=True,
-                               euler=True):
+                               euler=True,
+                               save=True,
+                               save_dir=graph_root,
+                               name=None):
     if name is None:
         name = 'population_graph_' \
                + (str(size) if size is not None else 'all') \
