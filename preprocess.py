@@ -32,10 +32,12 @@ SEX_UID = '31-0.0'
 # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=21003
 AGE_UID = '21003-2.0'
 
+# Exclude the following raw timeseries due to incorrect size.
+EXCLUDED_UKBS = ['UKB2203847_ts_raw.txt', 'UKB2208238_ts_raw.txt', 'UKB2697888_ts_raw.txt']
 
 def get_ts_filenames(num_subjects=None, randomise=True, seed=0):
     ts_filenames = [f for f in sorted(os.listdir(data_timeseries))]
-    for patient in ['UKB2203847_ts_raw.txt', 'UKB2208238_ts_raw.txt', 'UKB2697888_ts_raw.txt']:
+    for patient in EXCLUDED_UKBS:
         if patient in ts_filenames:
             print('Excluded ', patient)
             ts_filenames.remove(patient)
