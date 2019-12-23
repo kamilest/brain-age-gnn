@@ -183,12 +183,10 @@ def construct_population_graph(size=None,
         ct = []
 
     if euler:
-        euler = precompute.extract_euler(subject_ids)
-        subject_ids = euler.index
+        euler_data = precompute.extract_euler(subject_ids)
+        subject_ids = euler_data.index
     else:
-        euler = []
-
-    print('{} subjects remaining for graph construction.'.format(len(subject_ids)))
+        euler_data = []
 
     # sex = OneHotEncoder().fit_transform(phenotypes[SEX_UID].to_numpy().reshape(-1, 1))
     # ct_sex = np.concatenate((ct.to_numpy(), sex.toarray()), axis=1)
