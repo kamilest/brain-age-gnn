@@ -234,21 +234,21 @@ def construct_population_graph(size=None,
     validate_mask = torch.tensor(validate_np, dtype=torch.bool)
     test_mask = torch.tensor(test_np, dtype=torch.bool)
 
+    # Optional functional data preprocessing (PCA) based on the traning index.
     if functional and pca:
         functional_connectivities = functional_connectivities_pca(functional_connectivities, train_idx)
+
+    # Scaling structural data based on training index.
+    if structural:
+        ct_scaler = sklearn.preprocessing.StandardScaler()
+        ct_scaler.fit(ct[train_idx])
+        ct = ct_scaler.transform(ct)
 
     features = np.concatenate([functional_connectivities.to_numpy(),
                                ct.to_numpy(),
                                euler_data.to_numpy()], axis=1)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
-
-    # TODO: scale structural data.
-    # if structural:
-    #     scaler = sklearn.preprocessing.StandardScaler()
-    #     scaler.fit(connectivities[train_idx])
-    #     connectivities_transformed = torch.tensor(scaler.transform(connectivities),
-    #                                               dtype=torch.float32)
 
     population_graph = Data(
         x=feature_tensor,
