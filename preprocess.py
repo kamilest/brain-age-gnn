@@ -168,6 +168,7 @@ def construct_population_graph(size=None,
 
     subject_ids = get_subject_ids(size)
 
+    # Collect the required data.
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
     subject_ids = phenotypes.index
 
@@ -195,15 +196,18 @@ def construct_population_graph(size=None,
     # else:
     # connectivities = ct_sex
 
-    labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
+    labels = torch.tensor([phenotypes[AGE_UID].iloc(subject_ids).tolist()], dtype=torch.float32)\
+                  .transpose_(0, 1)
+
+    num_subjects = len(subject_ids)
+
+    print('{} subjects remaining for graph construction.'.format(num_subjects))
 
     edge_index = torch.tensor(
         construct_edge_list(subject_ids),
         dtype=torch.long)
 
     np.random.seed(0)
-
-    num_subjects = len(subject_ids)
 
     num_train = int(num_subjects * 0.85)
     num_validate = int(num_subjects * 0.05)
@@ -233,11 +237,13 @@ def construct_population_graph(size=None,
     if functional and pca:
         functional_connectivities = functional_connectivities_pca(functional_connectivities, train_idx)
 
-    fc_tensor = torch.tensor(functional_connectivities, dtype=torch.float32)
+    features = np.concatenate([functional_connectivities.to_numpy(),
+                               ct.to_numpy(),
+                               euler_data.to_numpy()], axis=1)
+
+    feature_tensor = torch.tensor(features, dtype=torch.float32)
 
     # TODO: scale structural data.
-    # TODO: structural/Euler data tensor construction.
-    # TODO: concatenate functional, structural, Euler data as needed.
     # if structural:
     #     scaler = sklearn.preprocessing.StandardScaler()
     #     scaler.fit(connectivities[train_idx])
@@ -245,7 +251,7 @@ def construct_population_graph(size=None,
     #                                               dtype=torch.float32)
 
     population_graph = Data(
-        x=functional_connectivities,
+        x=feature_tensor,
         edge_index=edge_index,
         y=labels,
         train_mask=train_mask,
