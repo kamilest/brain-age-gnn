@@ -136,6 +136,12 @@ def construct_edge_list(phenotypes, similarity_function=get_similarity, similari
     return [v_list, w_list]
 
 
+def test_subject_split(train_idx, validate_idx, test_idx):
+    assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
+    assert (len(np.intersect1d(train_idx, test_idx)) == 0)
+    assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
+
+
 def get_random_subject_split(num_subjects, test=0.1, seed=0):
     np.random.seed(seed)
 
@@ -147,10 +153,7 @@ def get_random_subject_split(num_subjects, test=0.1, seed=0):
     validate_idx = list(set(train_val_idx) - set(train_idx))
     test_idx = list(set(range(num_subjects)) - set(train_val_idx))
 
-    assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
-    assert (len(np.intersect1d(train_idx, test_idx)) == 0)
-    assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
-
+    test_subject_split(train_idx, validate_idx, test_idx)
     return train_idx, validate_idx, test_idx
 
 
@@ -166,7 +169,12 @@ def get_stratified_subject_split(features, labels, test_size=None, random_state=
 
         train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
         for train_index, validate_index in train_validate_split.split(features_train, labels_train):
-            return train_validate_index[train_index], train_validate_index[validate_index], test_index
+            train_idx = train_validate_index[train_index]
+            validate_idx = train_validate_index[validate_index]
+            test_idx = test_index
+
+            test_subject_split(train_idx, validate_idx, test_idx)
+            return train_idx, validate_idx, test_idx
 
 
 def get_subject_split_masks(train_index, validate_index, test_index):
