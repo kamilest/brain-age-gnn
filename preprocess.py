@@ -18,6 +18,7 @@ from torch_geometric.data import Data
 
 import sklearn
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.model_selection import StratifiedShuffleSplit
 
 import precompute
 
@@ -162,9 +163,19 @@ def get_train_val_test_split(num_subjects, test=0.1, seed=0):
     return train_np, validate_np, test_np
 
 
-# TODO stratify
-def get_stratified_train_val_test_split(features, labels, n_splits=10, test_size=None, train_size=None, random_state=None):
-    return None, None, None
+def get_stratified_subject_split(features, labels, test_size=None, random_state=None):
+    train_test_split = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
+
+    for train_validate_index, test_index in train_test_split.split(features, labels):
+        features_train = features[train_validate_index]
+        labels_train = labels[train_validate_index]
+
+        train_validate_index = np.array(train_validate_index)
+        test_index = np.array(test_index)
+
+        train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
+        for train_index, validate_index in train_validate_split.split(features_train, labels_train):
+            return train_validate_index[train_index], train_validate_index[validate_index], test_index
 
 
 def construct_population_graph(size=None,
@@ -225,7 +236,7 @@ def construct_population_graph(size=None,
     labels = [phenotypes[AGE_UID].iloc(subject_ids).tolist()]
 
     # Split subjects into train, validation and test sets.
-    train_np, validate_np, test_np = get_stratified_train_val_test_split(features, labels)
+    train_np, validate_np, test_np = get_stratified_subject_split(features, labels)
 
     # Optional functional data preprocessing (PCA) based on the traning index.
     if functional and pca:
