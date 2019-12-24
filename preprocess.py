@@ -151,7 +151,6 @@ def construct_edge_list(phenotypes, similarity_function=get_similarity, similari
     return [v_list, w_list]
 
 
-# TODO stratify.
 def get_train_val_test_split(num_subjects, test=0.1, seed=0):
     np.random.seed(seed)
 
@@ -177,6 +176,11 @@ def get_train_val_test_split(num_subjects, test=0.1, seed=0):
     test_np[test_idx] = True
 
     return train_np, validate_np, test_np
+
+
+# TODO stratify
+def get_stratified_train_val_test_split(features, labels, n_splits=10, test_size=None, train_size=None, random_state=None):
+    return None, None, None
 
 
 def construct_population_graph(size=None,
@@ -235,8 +239,13 @@ def construct_population_graph(size=None,
     ct = ct.loc[subject_ids]
     euler_data = euler_data.loc[subject_ids]
 
+    features = np.concatenate([functional_connectivities.to_numpy(),
+                               ct.to_numpy(),
+                               euler_data.to_numpy()], axis=1)
+    labels = [phenotypes[AGE_UID].iloc(subject_ids).tolist()]
+
     # Split subjects into train, validation and test sets.
-    train_np, validate_np, test_np = get_train_val_test_split(num_subjects)
+    train_np, validate_np, test_np = get_stratified_train_val_test_split(features, labels)
 
     # Optional functional data preprocessing (PCA) based on the traning index.
     if functional and pca:
@@ -260,9 +269,6 @@ def construct_population_graph(size=None,
                                euler_data.to_numpy()], axis=1)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
-
-    # Extract labels.
-    labels = [phenotypes[AGE_UID].iloc(subject_ids).tolist()]
     label_tensor = torch.tensor(labels, dtype=torch.float32).transpose_(0, 1)
 
     # Construct the edge index.
