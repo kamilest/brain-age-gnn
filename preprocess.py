@@ -22,6 +22,7 @@ from sklearn.preprocessing import OneHotEncoder
 import precompute
 
 # Data sources.
+data_root = 'data'
 data_timeseries = 'data/raw_ts'
 data_precomputed_fcms = 'data/processed_ts'
 data_phenotype = 'data/phenotype.csv'
@@ -32,25 +33,6 @@ graph_root = 'data/graph'
 SEX_UID = '31-0.0'
 # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=21003
 AGE_UID = '21003-2.0'
-
-# Exclude the following raw timeseries due to incorrect size.
-EXCLUDED_UKBS = ['UKB2203847_ts_raw.txt', 'UKB2208238_ts_raw.txt', 'UKB2697888_ts_raw.txt']
-
-def get_ts_filenames(num_subjects=None, randomise=True, seed=0):
-    ts_filenames = [f for f in sorted(os.listdir(data_timeseries))]
-    for patient in EXCLUDED_UKBS:
-        if patient in ts_filenames:
-            print('Excluded ', patient)
-            ts_filenames.remove(patient)
-
-    if num_subjects is not None:
-        if randomise:
-            np.random.seed(seed)
-            return np.random.choice(ts_filenames, num_subjects, replace=False)
-        else:
-            return ts_filenames[:num_subjects]
-    else:
-        return ts_filenames
 
 
 def get_subject_ids(num_subjects=None, randomise=True, seed=0):
@@ -66,8 +48,15 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
     Returns:
         List of subject IDs.
     """
+    subject_ids = np.load(os.path.join(data_root, 'subject_ids.npy'))
 
-    return sorted([f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects, randomise, seed)])
+    if not num_subjects:
+        return subject_ids
+
+    if randomise:
+        return np.random.choice(subject_ids, num_subjects, replace=False)
+    else:
+        return subject_ids[:num_subjects]
 
 
 # TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)
@@ -89,16 +78,12 @@ def get_functional_connectivity(subject_id):
 
 def get_all_functional_connectivities(subject_ids):
     connectivities = []
-    exclude = []
     for i, subject_id in enumerate(subject_ids):
         connectivity = get_functional_connectivity(subject_id)
-        if len(connectivity) != 70500:
-            exclude.append(i)
-            print('Excluded {}: connectivity matrix length {}'.format(subject_id, len(connectivity)))
-        else:
-            connectivities.append(connectivity)
+        assert len(connectivity) == 70500
+        connectivities.append(connectivity)
 
-    return connectivities, np.delete(subject_ids, exclude)
+    return connectivities
 
 
 def functional_connectivities_pca(connectivities, train_idx, random_state=0):
@@ -177,6 +162,11 @@ def get_train_val_test_split(num_subjects, test=0.1, seed=0):
     return train_np, validate_np, test_np
 
 
+# TODO stratify
+def get_stratified_train_val_test_split(features, labels, n_splits=10, test_size=None, train_size=None, random_state=None):
+    return None, None, None
+
+
 def construct_population_graph(size=None,
                                functional=False,
                                pca=False,
@@ -198,22 +188,22 @@ def construct_population_graph(size=None,
 
     # Collect the required data.
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
-    subject_ids = phenotypes.index
+    assert len(np.intersect1d(subject_ids, phenotypes.index)) == 0
 
     if functional:
-        functional_connectivities, subject_ids = get_all_functional_connectivities(subject_ids)
+        functional_connectivities = get_all_functional_connectivities(subject_ids)
     else:
         functional_connectivities = pd.DataFrame()
 
     if structural:
         ct = precompute.extract_cortical_thickness(subject_ids)
-        subject_ids = ct.index
+        assert len(np.intersect1d(subject_ids, ct.index)) == 0
     else:
         ct = pd.DataFrame()
 
     if euler:
         euler_data = precompute.extract_euler(subject_ids)
-        subject_ids = euler_data.index
+        assert len(np.intersect1d(subject_ids, euler_data.index)) == 0
     else:
         euler_data = pd.DataFrame()
 
@@ -227,23 +217,15 @@ def construct_population_graph(size=None,
     num_subjects = len(subject_ids)
     print('{} subjects remaining for graph construction.'.format(num_subjects))
 
-    # Filter out only the subjects which remain across all the feature types.
     # TODO better naming
-    functional_connectivities = functional_connectivities.loc[subject_ids]
-    ct = ct.loc[subject_ids]
-    euler_data = euler_data.loc[subject_ids]
 
-    # Extract labels.
-    labels = torch.tensor([phenotypes[AGE_UID].iloc(subject_ids).tolist()], dtype=torch.float32)\
-                  .transpose_(0, 1)
-
-    # Construct the edge index.
-    edge_index = torch.tensor(
-        construct_edge_list(subject_ids),
-        dtype=torch.long)
+    features = np.concatenate([functional_connectivities.to_numpy(),
+                               ct.to_numpy(),
+                               euler_data.to_numpy()], axis=1)
+    labels = [phenotypes[AGE_UID].iloc(subject_ids).tolist()]
 
     # Split subjects into train, validation and test sets.
-    train_np, validate_np, test_np = get_train_val_test_split(num_subjects)
+    train_np, validate_np, test_np = get_stratified_train_val_test_split(features, labels)
 
     # Optional functional data preprocessing (PCA) based on the traning index.
     if functional and pca:
@@ -267,6 +249,12 @@ def construct_population_graph(size=None,
                                euler_data.to_numpy()], axis=1)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
+    label_tensor = torch.tensor(labels, dtype=torch.float32).transpose_(0, 1)
+
+    # Construct the edge index.
+    edge_index = torch.tensor(
+        construct_edge_list(subject_ids),
+        dtype=torch.long)
 
     train_mask = torch.tensor(train_np, dtype=torch.bool)
     validate_mask = torch.tensor(validate_np, dtype=torch.bool)
@@ -275,7 +263,7 @@ def construct_population_graph(size=None,
     population_graph = Data(
         x=feature_tensor,
         edge_index=edge_index,
-        y=labels,
+        y=label_tensor,
         train_mask=train_mask,
         test_mask=test_mask
     )
