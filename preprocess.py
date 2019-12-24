@@ -145,8 +145,13 @@ def test_subject_split(train_idx, validate_idx, test_idx):
 def get_random_subject_split(num_subjects, test=0.1, seed=0):
     np.random.seed(seed)
 
-    num_train = int(num_subjects * 0.85)
-    num_validate = int(num_subjects * 0.05)
+    assert 0 <= test <= 1
+    train_validate = 1 - test
+    train = 0.9 * train_validate
+    validate = 0.1 * train_validate
+
+    num_train = int(num_subjects * train)
+    num_validate = int(num_subjects * validate)
 
     train_val_idx = np.random.choice(range(num_subjects), num_train + num_validate, replace=False)
     train_idx = np.random.choice(train_val_idx, num_train, replace=False)
