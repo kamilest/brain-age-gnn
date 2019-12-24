@@ -208,15 +208,15 @@ def construct_population_graph(size=None,
     assert len(np.intersect1d(subject_ids, phenotypes.index)) == 0
 
     if functional:
-        functional_connectivities = get_all_functional_connectivities(subject_ids)
+        functional_data = get_all_functional_connectivities(subject_ids)
     else:
-        functional_connectivities = pd.DataFrame()
+        functional_data = pd.DataFrame()
 
     if structural:
-        ct = precompute.extract_cortical_thickness(subject_ids)
-        assert len(np.intersect1d(subject_ids, ct.index)) == 0
+        structural_data = precompute.extract_cortical_thickness(subject_ids)
+        assert len(np.intersect1d(subject_ids, structural_data.index)) == 0
     else:
-        ct = pd.DataFrame()
+        structural_data = pd.DataFrame()
 
     if euler:
         euler_data = precompute.extract_euler(subject_ids)
@@ -236,8 +236,8 @@ def construct_population_graph(size=None,
 
     # TODO better naming
 
-    features = np.concatenate([functional_connectivities.to_numpy(),
-                               ct.to_numpy(),
+    features = np.concatenate([functional_data.to_numpy(),
+                               structural_data.to_numpy(),
                                euler_data.to_numpy()], axis=1)
     labels = [phenotypes[AGE_UID].iloc(subject_ids).tolist()]
 
@@ -247,13 +247,13 @@ def construct_population_graph(size=None,
 
     # Optional functional data preprocessing (PCA) based on the traning index.
     if functional and pca:
-        functional_connectivities = functional_connectivities_pca(functional_connectivities, train_mask)
+        functional_data = functional_connectivities_pca(functional_data, train_mask)
 
     # Scaling structural data based on training index.
     if structural:
-        ct_scaler = sklearn.preprocessing.StandardScaler()
-        ct_scaler.fit(ct[train_mask])
-        ct = ct_scaler.transform(ct)
+        structural_scaler = sklearn.preprocessing.StandardScaler()
+        structural_scaler.fit(structural_data[train_mask])
+        structural_data = structural_scaler.transform(structural_data)
 
     # Scaling Euler index data based on training index.
     if euler:
@@ -262,8 +262,8 @@ def construct_population_graph(size=None,
         euler_data = euler_scaler.transform(euler_data)
 
     # Unify feature sets into one feature vector.
-    features = np.concatenate([functional_connectivities.to_numpy(),
-                               ct.to_numpy(),
+    features = np.concatenate([functional_data.to_numpy(),
+                               structural_data.to_numpy(),
                                euler_data.to_numpy()], axis=1)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
