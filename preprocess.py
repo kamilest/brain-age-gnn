@@ -33,25 +33,7 @@ SEX_UID = '31-0.0'
 # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=21003
 AGE_UID = '21003-2.0'
 
-# Exclude the following raw timeseries due to incorrect size.
-EXCLUDED_UKBS = ['UKB2203847_ts_raw.txt', 'UKB2208238_ts_raw.txt', 'UKB2697888_ts_raw.txt']
 
-
-def get_ts_filenames(num_subjects=None, randomise=True, seed=0):
-    ts_filenames = [f for f in sorted(os.listdir(data_timeseries))]
-    for patient in EXCLUDED_UKBS:
-        if patient in ts_filenames:
-            print('Excluded ', patient)
-            ts_filenames.remove(patient)
-
-    if num_subjects is not None:
-        if randomise:
-            np.random.seed(seed)
-            return np.random.choice(ts_filenames, num_subjects, replace=False)
-        else:
-            return ts_filenames[:num_subjects]
-    else:
-        return ts_filenames
 
 
 def get_subject_ids(num_subjects=None, randomise=True, seed=0):
@@ -67,8 +49,8 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
     Returns:
         List of subject IDs.
     """
-
-    return sorted([f[:-len("_ts_raw.txt")] for f in get_ts_filenames(num_subjects, randomise, seed)])
+    # TODO return the required number of subject IDs from the intersected list.
+    pass
 
 
 # TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)

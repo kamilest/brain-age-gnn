@@ -3,12 +3,17 @@ import pandas as pd
 import os
 
 from nilearn.connectome import ConnectivityMeasure
+from functools import reduce
 
+data_root = 'data/'
 data_timeseries = 'data/raw_ts'
 data_phenotype = 'data/phenotype.csv'
 data_ct = 'data/CT.csv'
 data_euler = 'data/Euler.csv'
 data_computed_fcms = 'data/processed_ts'
+
+# Exclude the following raw timeseries due to incorrect size.
+EXCLUDED_UKB_IDS = ['UKB2203847', 'UKB2208238', 'UKB2697888']
 
 
 def precompute_fcm(subject_id=None):
@@ -46,6 +51,30 @@ def precompute_fcm(subject_id=None):
             np.save(os.path.join(data_computed_fcms,
                                  ts_file[:-suffix_length]),
                     conn_measure.fit_transform([np.transpose(ts)])[0])
+
+
+def precompute_subject_ids():
+    # Timeseries subject IDs.
+    timeseries_ids = [f[:-len("_ts_raw.txt")] for f in sorted(os.listdir(data_timeseries))]
+
+    for i in EXCLUDED_UKB_IDS:
+        timeseries_ids.remove(i)
+
+    # Phenotype data IDs.
+    phenotype = pd.read_csv(data_phenotype, sep=',')
+    phenotype_ids = ('UKB' + phenotype['eid']).to_numpy()
+
+    # Cortical thickness IDs.
+    ct = pd.read_csv(data_ct, sep=',', quotechar='\"')
+    ct_ids = ct['NewID'].to_numpy()
+
+    # Euler index IDs.
+    euler = pd.read_csv(data_euler, sep=',', quotechar='\"')
+    euler_ids = euler['eid'].to_numpy()
+
+    # Save intersection of the subject IDs present in all datasets.
+    intersected_ids = reduce(np.intersect1d, (timeseries_ids, phenotype_ids, ct_ids, euler_ids))
+    np.save(os.path.join(data_root, 'subject_ids'), intersected_ids)
 
 
 # extract_phenotype_uids(['31-0.0', '21003-2.0'], ['UKB1000028', 'UKB1000133'])
@@ -104,4 +133,5 @@ def extract_euler(subject_ids):
 
 
 if __name__ == '__main__':
-    precompute_fcm()
+    # precompute_fcm()
+    precompute_subject_ids()
