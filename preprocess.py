@@ -10,6 +10,7 @@ connects nodes into a graph, assigning collected features
 """
 
 import numpy as np
+import pandas as pd
 import os
 
 import torch
@@ -32,10 +33,12 @@ SEX_UID = '31-0.0'
 # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=21003
 AGE_UID = '21003-2.0'
 
+# Exclude the following raw timeseries due to incorrect size.
+EXCLUDED_UKBS = ['UKB2203847_ts_raw.txt', 'UKB2208238_ts_raw.txt', 'UKB2697888_ts_raw.txt']
 
 def get_ts_filenames(num_subjects=None, randomise=True, seed=0):
     ts_filenames = [f for f in sorted(os.listdir(data_timeseries))]
-    for patient in ['UKB2203847_ts_raw.txt', 'UKB2208238_ts_raw.txt', 'UKB2697888_ts_raw.txt']:
+    for patient in EXCLUDED_UKBS:
         if patient in ts_filenames:
             print('Excluded ', patient)
             ts_filenames.remove(patient)
@@ -84,18 +87,24 @@ def get_functional_connectivity(subject_id):
     return np.load(os.path.join(data_precomputed_fcms, subject_id + '.npy'))
 
 
-def extract_connectivities(subject_ids):
+def get_all_functional_connectivities(subject_ids):
     connectivities = []
     exclude = []
     for i, subject_id in enumerate(subject_ids):
         connectivity = get_functional_connectivity(subject_id)
         if len(connectivity) != 70500:
             exclude.append(i)
+            print('Excluded {}: connectivity matrix length {}'.format(subject_id, len(connectivity)))
         else:
             connectivities.append(connectivity)
 
-    print('Additional {} entries removed due to small connectivity matrices.'.format(len(exclude)))
-    return connectivities, np.delete(subject_ids, exclude), subject_ids[exclude]
+    return connectivities, np.delete(subject_ids, exclude)
+
+
+def functional_connectivities_pca(connectivities, train_idx, random_state=0):
+    connectivity_pca = sklearn.decomposition.PCA(random_state=random_state)
+    connectivity_pca.fit(connectivities[train_idx])
+    return connectivity_pca.transform(connectivities)
 
 
 def get_similarity(phenotypes, subject_i, subject_j):
@@ -141,87 +150,130 @@ def construct_edge_list(phenotypes, similarity_function=get_similarity, similari
     return [v_list, w_list]
 
 
+def get_train_val_test_split(num_subjects, test=0.1, seed=0):
+    np.random.seed(seed)
+
+    num_train = int(num_subjects * 0.85)
+    num_validate = int(num_subjects * 0.05)
+
+    train_val_idx = np.random.choice(range(num_subjects), num_train + num_validate, replace=False)
+    train_idx = np.random.choice(train_val_idx, num_train, replace=False)
+    validate_idx = list(set(train_val_idx) - set(train_idx))
+    test_idx = list(set(range(num_subjects)) - set(train_val_idx))
+
+    assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
+    assert (len(np.intersect1d(train_idx, test_idx)) == 0)
+    assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
+
+    train_np = np.zeros(num_subjects, dtype=bool)
+    train_np[train_idx] = True
+
+    validate_np = np.zeros(num_subjects, dtype=bool)
+    validate_np[validate_idx] = True
+
+    test_np = np.zeros(num_subjects, dtype=bool)
+    test_np[test_idx] = True
+
+    return train_np, validate_np, test_np
+
+
 def construct_population_graph(size=None,
+                               functional=False,
+                               pca=False,
+                               structural=True,
+                               euler=True,
                                save=True,
                                save_dir=graph_root,
-                               name=None,
-                               pca=False,
-                               structural=False,
-                               euler=False):
+                               name=None):
     if name is None:
         name = 'population_graph_' \
                + (str(size) if size is not None else 'all') \
-               + ('_PCA' if pca else '') \
+               + ('_functional' if functional else '') \
+               + ('_PCA' if functional and pca else '') \
                + ('_structural' if structural else '') \
                + ('_euler' if euler else '') \
                + '.pt'
 
     subject_ids = get_subject_ids(size)
 
+    # Collect the required data.
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
-    connectivities = []
+    subject_ids = phenotypes.index
 
-    if not structural:
-        connectivities = np.array([get_functional_connectivity(i) for i in phenotypes.index])
+    if functional:
+        functional_connectivities, subject_ids = get_all_functional_connectivities(subject_ids)
     else:
-        ct = precompute.extract_cortical_thickness(phenotypes.index)
-        sex = OneHotEncoder().fit_transform(phenotypes[SEX_UID].to_numpy().reshape(-1, 1))
-        ct_sex = np.concatenate((ct.to_numpy(), sex.toarray()), axis=1)
-        if euler:
-            euler = precompute.extract_euler(ct.index)
-            connectivities = np.concatenate((ct_sex, euler.to_numpy()), axis=1)
-        else:
-            connectivities = ct_sex
+        functional_connectivities = pd.DataFrame()
 
-    labels = torch.tensor([phenotypes[AGE_UID].tolist()], dtype=torch.float32).transpose_(0, 1)
+    if structural:
+        ct = precompute.extract_cortical_thickness(subject_ids)
+        subject_ids = ct.index
+    else:
+        ct = pd.DataFrame()
 
+    if euler:
+        euler_data = precompute.extract_euler(subject_ids)
+        subject_ids = euler_data.index
+    else:
+        euler_data = pd.DataFrame()
+
+    # sex = OneHotEncoder().fit_transform(phenotypes[SEX_UID].to_numpy().reshape(-1, 1))
+    # ct_sex = np.concatenate((ct.to_numpy(), sex.toarray()), axis=1)
+    # if euler:
+    #
+    # else:
+    # connectivities = ct_sex
+
+    num_subjects = len(subject_ids)
+    print('{} subjects remaining for graph construction.'.format(num_subjects))
+
+    # Filter out only the subjects which remain across all the feature types.
+    # TODO better naming
+    functional_connectivities = functional_connectivities.loc[subject_ids]
+    ct = ct.loc[subject_ids]
+    euler_data = euler_data.loc[subject_ids]
+
+    # Extract labels.
+    labels = torch.tensor([phenotypes[AGE_UID].iloc(subject_ids).tolist()], dtype=torch.float32)\
+                  .transpose_(0, 1)
+
+    # Construct the edge index.
     edge_index = torch.tensor(
-        construct_edge_list(phenotypes),
+        construct_edge_list(subject_ids),
         dtype=torch.long)
 
-    np.random.seed(0)
-    num_train = int(len(phenotypes) * 0.85)
-    num_validate = int(len(phenotypes) * 0.05)
+    # Split subjects into train, validation and test sets.
+    train_np, validate_np, test_np = get_train_val_test_split(num_subjects)
 
-    train_val_idx = np.random.choice(range(len(phenotypes)), num_train + num_validate, replace=False)
-    train_idx = np.random.choice(train_val_idx, num_train, replace=False)
-    validate_idx = list(set(train_val_idx) - set(train_idx))
-    test_idx = list(set(range(len(phenotypes))) - set(train_val_idx))
+    # Optional functional data preprocessing (PCA) based on the traning index.
+    if functional and pca:
+        functional_connectivities = functional_connectivities_pca(functional_connectivities, train_np)
 
-    assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
-    assert (len(np.intersect1d(train_idx, test_idx)) == 0)
-    assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
+    # Scaling structural data based on training index.
+    if structural:
+        ct_scaler = sklearn.preprocessing.StandardScaler()
+        ct_scaler.fit(ct[train_np])
+        ct = ct_scaler.transform(ct)
 
-    train_np = np.zeros(len(phenotypes), dtype=bool)
-    train_np[train_idx] = True
+    # Scaling Euler index data based on training index.
+    if euler:
+        euler_scaler = sklearn.preprocessing.StandardScaler()
+        euler_scaler.fit(euler_data[train_np])
+        euler_data = euler_scaler.transform(euler_data)
 
-    validate_np = np.zeros(len(phenotypes), dtype=bool)
-    validate_np[validate_idx] = True
+    # Unify feature sets into one feature vector.
+    features = np.concatenate([functional_connectivities.to_numpy(),
+                               ct.to_numpy(),
+                               euler_data.to_numpy()], axis=1)
 
-    test_np = np.zeros(len(phenotypes), dtype=bool)
-    test_np[test_idx] = True
+    feature_tensor = torch.tensor(features, dtype=torch.float32)
 
     train_mask = torch.tensor(train_np, dtype=torch.bool)
     validate_mask = torch.tensor(validate_np, dtype=torch.bool)
     test_mask = torch.tensor(test_np, dtype=torch.bool)
 
-    connectivities_transformed = []
-    if not structural:
-        if pca:
-            connectivity_pca = sklearn.decomposition.PCA(random_state=42)
-            connectivity_pca.fit(connectivities[train_idx])
-            connectivities_transformed = torch.tensor(connectivity_pca.transform(connectivities),
-                                                      dtype=torch.float32)
-        else:
-            connectivities_transformed = torch.tensor(connectivities, dtype=torch.float32)
-    else:
-        scaler = sklearn.preprocessing.StandardScaler()
-        scaler.fit(connectivities[train_idx])
-        connectivities_transformed = torch.tensor(scaler.transform(connectivities),
-                                                  dtype=torch.float32)
-
     population_graph = Data(
-        x=connectivities_transformed,
+        x=feature_tensor,
         edge_index=edge_index,
         y=labels,
         train_mask=train_mask,
