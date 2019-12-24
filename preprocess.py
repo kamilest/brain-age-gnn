@@ -151,16 +151,7 @@ def get_train_val_test_split(num_subjects, test=0.1, seed=0):
     assert (len(np.intersect1d(train_idx, test_idx)) == 0)
     assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
 
-    train_np = np.zeros(num_subjects, dtype=bool)
-    train_np[train_idx] = True
-
-    validate_np = np.zeros(num_subjects, dtype=bool)
-    validate_np[validate_idx] = True
-
-    test_np = np.zeros(num_subjects, dtype=bool)
-    test_np[test_idx] = True
-
-    return train_np, validate_np, test_np
+    return train_idx, validate_idx, test_idx
 
 
 def get_stratified_subject_split(features, labels, test_size=None, random_state=None):
@@ -176,6 +167,21 @@ def get_stratified_subject_split(features, labels, test_size=None, random_state=
         train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
         for train_index, validate_index in train_validate_split.split(features_train, labels_train):
             return train_validate_index[train_index], train_validate_index[validate_index], test_index
+
+
+def get_subject_split_masks(train_index, validate_index, test_index):
+    num_subjects = len(train_index) + len(validate_index) + len(test_index)
+
+    train_mask = np.zeros(num_subjects, dtype=bool)
+    train_mask[train_index] = True
+
+    validate_mask = np.zeros(num_subjects, dtype=bool)
+    validate_mask[validate_index] = True
+
+    test_mask = np.zeros(num_subjects, dtype=bool)
+    test_mask[test_index] = True
+
+    return train_mask, validate_mask, test_mask
 
 
 def construct_population_graph(size=None,
