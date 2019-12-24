@@ -36,6 +36,7 @@ AGE_UID = '21003-2.0'
 # Exclude the following raw timeseries due to incorrect size.
 EXCLUDED_UKBS = ['UKB2203847_ts_raw.txt', 'UKB2208238_ts_raw.txt', 'UKB2697888_ts_raw.txt']
 
+
 def get_ts_filenames(num_subjects=None, randomise=True, seed=0):
     ts_filenames = [f for f in sorted(os.listdir(data_timeseries))]
     for patient in EXCLUDED_UKBS:
@@ -150,6 +151,7 @@ def construct_edge_list(phenotypes, similarity_function=get_similarity, similari
     return [v_list, w_list]
 
 
+# TODO stratify.
 def get_train_val_test_split(num_subjects, test=0.1, seed=0):
     np.random.seed(seed)
 
@@ -233,15 +235,6 @@ def construct_population_graph(size=None,
     ct = ct.loc[subject_ids]
     euler_data = euler_data.loc[subject_ids]
 
-    # Extract labels.
-    labels = torch.tensor([phenotypes[AGE_UID].iloc(subject_ids).tolist()], dtype=torch.float32)\
-                  .transpose_(0, 1)
-
-    # Construct the edge index.
-    edge_index = torch.tensor(
-        construct_edge_list(subject_ids),
-        dtype=torch.long)
-
     # Split subjects into train, validation and test sets.
     train_np, validate_np, test_np = get_train_val_test_split(num_subjects)
 
@@ -267,6 +260,15 @@ def construct_population_graph(size=None,
                                euler_data.to_numpy()], axis=1)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
+
+    # Extract labels.
+    labels = torch.tensor([phenotypes[AGE_UID].iloc(subject_ids).tolist()], dtype=torch.float32)\
+                  .transpose_(0, 1)
+
+    # Construct the edge index.
+    edge_index = torch.tensor(
+        construct_edge_list(subject_ids),
+        dtype=torch.long)
 
     train_mask = torch.tensor(train_np, dtype=torch.bool)
     validate_mask = torch.tensor(validate_np, dtype=torch.bool)
