@@ -78,16 +78,12 @@ def get_functional_connectivity(subject_id):
 
 def get_all_functional_connectivities(subject_ids):
     connectivities = []
-    exclude = []
     for i, subject_id in enumerate(subject_ids):
         connectivity = get_functional_connectivity(subject_id)
-        if len(connectivity) != 70500:
-            exclude.append(i)
-            print('Excluded {}: connectivity matrix length {}'.format(subject_id, len(connectivity)))
-        else:
-            connectivities.append(connectivity)
+        assert len(connectivity) == 70500
+        connectivities.append(connectivity)
 
-    return connectivities, np.delete(subject_ids, exclude)
+    return connectivities
 
 
 def functional_connectivities_pca(connectivities, train_idx, random_state=0):
@@ -192,22 +188,22 @@ def construct_population_graph(size=None,
 
     # Collect the required data.
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
-    subject_ids = phenotypes.index
+    assert len(np.intersect1d(subject_ids, phenotypes.index)) == 0
 
     if functional:
-        functional_connectivities, subject_ids = get_all_functional_connectivities(subject_ids)
+        functional_connectivities = get_all_functional_connectivities(subject_ids)
     else:
         functional_connectivities = pd.DataFrame()
 
     if structural:
         ct = precompute.extract_cortical_thickness(subject_ids)
-        subject_ids = ct.index
+        assert len(np.intersect1d(subject_ids, ct.index)) == 0
     else:
         ct = pd.DataFrame()
 
     if euler:
         euler_data = precompute.extract_euler(subject_ids)
-        subject_ids = euler_data.index
+        assert len(np.intersect1d(subject_ids, euler_data.index)) == 0
     else:
         euler_data = pd.DataFrame()
 
@@ -221,11 +217,7 @@ def construct_population_graph(size=None,
     num_subjects = len(subject_ids)
     print('{} subjects remaining for graph construction.'.format(num_subjects))
 
-    # Filter out only the subjects which remain across all the feature types.
     # TODO better naming
-    functional_connectivities = functional_connectivities.loc[subject_ids]
-    ct = ct.loc[subject_ids]
-    euler_data = euler_data.loc[subject_ids]
 
     features = np.concatenate([functional_connectivities.to_numpy(),
                                ct.to_numpy(),
