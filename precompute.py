@@ -5,7 +5,7 @@ import os
 from nilearn.connectome import ConnectivityMeasure
 from functools import reduce
 
-data_root = 'data/'
+data_root = 'data'
 data_timeseries = 'data/raw_ts'
 data_phenotype = 'data/phenotype.csv'
 data_ct = 'data/CT.csv'

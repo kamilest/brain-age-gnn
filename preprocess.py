@@ -22,6 +22,7 @@ from sklearn.preprocessing import OneHotEncoder
 import precompute
 
 # Data sources.
+data_root = 'data'
 data_timeseries = 'data/raw_ts'
 data_precomputed_fcms = 'data/processed_ts'
 data_phenotype = 'data/phenotype.csv'
@@ -32,8 +33,6 @@ graph_root = 'data/graph'
 SEX_UID = '31-0.0'
 # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=21003
 AGE_UID = '21003-2.0'
-
-
 
 
 def get_subject_ids(num_subjects=None, randomise=True, seed=0):
@@ -49,8 +48,15 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
     Returns:
         List of subject IDs.
     """
-    # TODO return the required number of subject IDs from the intersected list.
-    pass
+    subject_ids = np.load(os.path.join(data_root, 'subject_ids.npy'))
+
+    if not num_subjects:
+        return subject_ids
+
+    if randomise:
+        return np.random.choice(subject_ids, num_subjects, replace=False)
+    else:
+        return subject_ids[:num_subjects]
 
 
 # TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)
