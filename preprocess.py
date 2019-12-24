@@ -234,8 +234,6 @@ def construct_population_graph(size=None,
     num_subjects = len(subject_ids)
     print('{} subjects remaining for graph construction.'.format(num_subjects))
 
-    # TODO better naming
-
     features = np.concatenate([functional_data.to_numpy(),
                                structural_data.to_numpy(),
                                euler_data.to_numpy()], axis=1)
