@@ -262,8 +262,8 @@ def construct_population_graph(size=None,
     feature_tensor = torch.tensor(features, dtype=torch.float32)
 
     # Extract labels.
-    labels = torch.tensor([phenotypes[AGE_UID].iloc(subject_ids).tolist()], dtype=torch.float32)\
-                  .transpose_(0, 1)
+    labels = [phenotypes[AGE_UID].iloc(subject_ids).tolist()]
+    label_tensor = torch.tensor(labels, dtype=torch.float32).transpose_(0, 1)
 
     # Construct the edge index.
     edge_index = torch.tensor(
@@ -277,7 +277,7 @@ def construct_population_graph(size=None,
     population_graph = Data(
         x=feature_tensor,
         edge_index=edge_index,
-        y=labels,
+        y=label_tensor,
         train_mask=train_mask,
         test_mask=test_mask
     )
