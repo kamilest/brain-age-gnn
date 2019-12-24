@@ -242,22 +242,23 @@ def construct_population_graph(size=None,
     labels = [phenotypes[AGE_UID].iloc(subject_ids).tolist()]
 
     # Split subjects into train, validation and test sets.
-    train_np, validate_np, test_np = get_stratified_subject_split(features, labels)
+    stratified_subject_split = get_stratified_subject_split(features, labels)
+    train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
 
     # Optional functional data preprocessing (PCA) based on the traning index.
     if functional and pca:
-        functional_connectivities = functional_connectivities_pca(functional_connectivities, train_np)
+        functional_connectivities = functional_connectivities_pca(functional_connectivities, train_mask)
 
     # Scaling structural data based on training index.
     if structural:
         ct_scaler = sklearn.preprocessing.StandardScaler()
-        ct_scaler.fit(ct[train_np])
+        ct_scaler.fit(ct[train_mask])
         ct = ct_scaler.transform(ct)
 
     # Scaling Euler index data based on training index.
     if euler:
         euler_scaler = sklearn.preprocessing.StandardScaler()
-        euler_scaler.fit(euler_data[train_np])
+        euler_scaler.fit(euler_data[train_mask])
         euler_data = euler_scaler.transform(euler_data)
 
     # Unify feature sets into one feature vector.
@@ -273,19 +274,19 @@ def construct_population_graph(size=None,
         construct_edge_list(subject_ids),
         dtype=torch.long)
 
-    train_mask = torch.tensor(train_np, dtype=torch.bool)
-    validate_mask = torch.tensor(validate_np, dtype=torch.bool)
-    test_mask = torch.tensor(test_np, dtype=torch.bool)
+    train_mask_tensor = torch.tensor(train_mask, dtype=torch.bool)
+    validate_mask_tensor = torch.tensor(validate_mask, dtype=torch.bool)
+    test_mask_tensor = torch.tensor(test_mask, dtype=torch.bool)
 
     population_graph = Data(
         x=feature_tensor,
         edge_index=edge_index,
         y=label_tensor,
-        train_mask=train_mask,
-        test_mask=test_mask
+        train_mask=train_mask_tensor,
+        test_mask=test_mask_tensor
     )
 
-    population_graph.validate_mask = validate_mask
+    population_graph.validate_mask = validate_mask_tensor
 
     if save:
         torch.save(population_graph, os.path.join(save_dir, name))
