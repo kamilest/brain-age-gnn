@@ -136,7 +136,7 @@ def construct_edge_list(phenotypes, similarity_function=get_similarity, similari
     return [v_list, w_list]
 
 
-def get_train_val_test_split(num_subjects, test=0.1, seed=0):
+def get_random_subject_split(num_subjects, test=0.1, seed=0):
     np.random.seed(seed)
 
     num_train = int(num_subjects * 0.85)
