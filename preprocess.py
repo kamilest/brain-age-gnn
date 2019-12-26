@@ -173,7 +173,6 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
         train_validate_index = np.array(train_validate_index)
         test_index = np.array(test_index)
 
-        # TODO: fix possible issue when there are too few instances of a certain label.
         train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
         for train_index, validate_index in train_validate_split.split(features_train, labels_train):
             train_idx = train_validate_index[train_index]
@@ -246,13 +245,19 @@ def construct_population_graph(size=None,
     # else:
     # connectivities = ct_sex
 
+    # Remove subjects with too few instances of the label for stratification.
+    age_counts = phenotypes[AGE_UID].value_counts()
+    ages = age_counts.iloc(np.argwhere(age_counts >= 3).flatten()).index.tolist()
+    age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
+
+    subject_ids = phenotypes.iloc[age_index].index.tolist()
     num_subjects = len(subject_ids)
     print('{} subjects remaining for graph construction.'.format(num_subjects))
 
     features = np.concatenate([functional_data.to_numpy(),
                                structural_data.to_numpy(),
-                               euler_data.to_numpy()], axis=1)
-    labels = [phenotypes[AGE_UID].iloc(subject_ids).tolist()]
+                               euler_data.to_numpy()], axis=1)[age_index]
+    labels = phenotypes[AGE_UID].iloc(age_index).tolist()
 
     # Split subjects into train, validation and test sets.
     stratified_subject_split = get_stratified_subject_split(features, labels)
