@@ -55,6 +55,7 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
         return subject_ids
 
     if randomise:
+        np.random.seed(seed)
         return np.random.choice(subject_ids, num_subjects, replace=False)
     else:
         return subject_ids[:num_subjects]
@@ -172,6 +173,7 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
         train_validate_index = np.array(train_validate_index)
         test_index = np.array(test_index)
 
+        # TODO: fix possible issue when there are too few instances of a certain label.
         train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
         for train_index, validate_index in train_validate_split.split(features_train, labels_train):
             train_idx = train_validate_index[train_index]
