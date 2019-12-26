@@ -18,6 +18,7 @@ from torch_geometric.data import Data
 
 import sklearn
 from sklearn.preprocessing import OneHotEncoder
+from sklearn.model_selection import StratifiedShuffleSplit
 
 import precompute
 
@@ -135,36 +136,65 @@ def construct_edge_list(phenotypes, similarity_function=get_similarity, similari
     return [v_list, w_list]
 
 
-def get_train_val_test_split(num_subjects, test=0.1, seed=0):
+def test_subject_split(train_idx, validate_idx, test_idx):
+    assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
+    assert (len(np.intersect1d(train_idx, test_idx)) == 0)
+    assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
+
+
+def get_random_subject_split(num_subjects, test=0.1, seed=0):
     np.random.seed(seed)
 
-    num_train = int(num_subjects * 0.85)
-    num_validate = int(num_subjects * 0.05)
+    assert 0 <= test <= 1
+    train_validate = 1 - test
+    train = 0.9 * train_validate
+    validate = 0.1 * train_validate
+
+    num_train = int(num_subjects * train)
+    num_validate = int(num_subjects * validate)
 
     train_val_idx = np.random.choice(range(num_subjects), num_train + num_validate, replace=False)
     train_idx = np.random.choice(train_val_idx, num_train, replace=False)
     validate_idx = list(set(train_val_idx) - set(train_idx))
     test_idx = list(set(range(num_subjects)) - set(train_val_idx))
 
-    assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
-    assert (len(np.intersect1d(train_idx, test_idx)) == 0)
-    assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
-
-    train_np = np.zeros(num_subjects, dtype=bool)
-    train_np[train_idx] = True
-
-    validate_np = np.zeros(num_subjects, dtype=bool)
-    validate_np[validate_idx] = True
-
-    test_np = np.zeros(num_subjects, dtype=bool)
-    test_np[test_idx] = True
-
-    return train_np, validate_np, test_np
+    test_subject_split(train_idx, validate_idx, test_idx)
+    return train_idx, validate_idx, test_idx
 
 
-# TODO stratify
-def get_stratified_train_val_test_split(features, labels, n_splits=10, test_size=None, train_size=None, random_state=None):
-    return None, None, None
+def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0):
+    train_test_split = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
+
+    for train_validate_index, test_index in train_test_split.split(features, labels):
+        features_train = features[train_validate_index]
+        labels_train = labels[train_validate_index]
+
+        train_validate_index = np.array(train_validate_index)
+        test_index = np.array(test_index)
+
+        train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
+        for train_index, validate_index in train_validate_split.split(features_train, labels_train):
+            train_idx = train_validate_index[train_index]
+            validate_idx = train_validate_index[validate_index]
+            test_idx = test_index
+
+            test_subject_split(train_idx, validate_idx, test_idx)
+            return train_idx, validate_idx, test_idx
+
+
+def get_subject_split_masks(train_index, validate_index, test_index):
+    num_subjects = len(train_index) + len(validate_index) + len(test_index)
+
+    train_mask = np.zeros(num_subjects, dtype=bool)
+    train_mask[train_index] = True
+
+    validate_mask = np.zeros(num_subjects, dtype=bool)
+    validate_mask[validate_index] = True
+
+    test_mask = np.zeros(num_subjects, dtype=bool)
+    test_mask[test_index] = True
+
+    return train_mask, validate_mask, test_mask
 
 
 def construct_population_graph(size=None,
@@ -191,15 +221,15 @@ def construct_population_graph(size=None,
     assert len(np.intersect1d(subject_ids, phenotypes.index)) == 0
 
     if functional:
-        functional_connectivities = get_all_functional_connectivities(subject_ids)
+        functional_data = get_all_functional_connectivities(subject_ids)
     else:
-        functional_connectivities = pd.DataFrame()
+        functional_data = pd.DataFrame()
 
     if structural:
-        ct = precompute.extract_cortical_thickness(subject_ids)
-        assert len(np.intersect1d(subject_ids, ct.index)) == 0
+        structural_data = precompute.extract_cortical_thickness(subject_ids)
+        assert len(np.intersect1d(subject_ids, structural_data.index)) == 0
     else:
-        ct = pd.DataFrame()
+        structural_data = pd.DataFrame()
 
     if euler:
         euler_data = precompute.extract_euler(subject_ids)
@@ -217,35 +247,34 @@ def construct_population_graph(size=None,
     num_subjects = len(subject_ids)
     print('{} subjects remaining for graph construction.'.format(num_subjects))
 
-    # TODO better naming
-
-    features = np.concatenate([functional_connectivities.to_numpy(),
-                               ct.to_numpy(),
+    features = np.concatenate([functional_data.to_numpy(),
+                               structural_data.to_numpy(),
                                euler_data.to_numpy()], axis=1)
     labels = [phenotypes[AGE_UID].iloc(subject_ids).tolist()]
 
     # Split subjects into train, validation and test sets.
-    train_np, validate_np, test_np = get_stratified_train_val_test_split(features, labels)
+    stratified_subject_split = get_stratified_subject_split(features, labels)
+    train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
 
     # Optional functional data preprocessing (PCA) based on the traning index.
     if functional and pca:
-        functional_connectivities = functional_connectivities_pca(functional_connectivities, train_np)
+        functional_data = functional_connectivities_pca(functional_data, train_mask)
 
     # Scaling structural data based on training index.
     if structural:
-        ct_scaler = sklearn.preprocessing.StandardScaler()
-        ct_scaler.fit(ct[train_np])
-        ct = ct_scaler.transform(ct)
+        structural_scaler = sklearn.preprocessing.StandardScaler()
+        structural_scaler.fit(structural_data[train_mask])
+        structural_data = structural_scaler.transform(structural_data)
 
     # Scaling Euler index data based on training index.
     if euler:
         euler_scaler = sklearn.preprocessing.StandardScaler()
-        euler_scaler.fit(euler_data[train_np])
+        euler_scaler.fit(euler_data[train_mask])
         euler_data = euler_scaler.transform(euler_data)
 
     # Unify feature sets into one feature vector.
-    features = np.concatenate([functional_connectivities.to_numpy(),
-                               ct.to_numpy(),
+    features = np.concatenate([functional_data.to_numpy(),
+                               structural_data.to_numpy(),
                                euler_data.to_numpy()], axis=1)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
@@ -256,19 +285,19 @@ def construct_population_graph(size=None,
         construct_edge_list(subject_ids),
         dtype=torch.long)
 
-    train_mask = torch.tensor(train_np, dtype=torch.bool)
-    validate_mask = torch.tensor(validate_np, dtype=torch.bool)
-    test_mask = torch.tensor(test_np, dtype=torch.bool)
+    train_mask_tensor = torch.tensor(train_mask, dtype=torch.bool)
+    validate_mask_tensor = torch.tensor(validate_mask, dtype=torch.bool)
+    test_mask_tensor = torch.tensor(test_mask, dtype=torch.bool)
 
     population_graph = Data(
         x=feature_tensor,
         edge_index=edge_index,
         y=label_tensor,
-        train_mask=train_mask,
-        test_mask=test_mask
+        train_mask=train_mask_tensor,
+        test_mask=test_mask_tensor
     )
 
-    population_graph.validate_mask = validate_mask
+    population_graph.validate_mask = validate_mask_tensor
 
     if save:
         torch.save(population_graph, os.path.join(save_dir, name))
