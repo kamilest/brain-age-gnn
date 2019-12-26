@@ -77,7 +77,7 @@ def precompute_subject_ids():
     np.save(os.path.join(data_root, 'subject_ids'), intersected_ids)
 
 
-# extract_phenotype_uids(['31-0.0', '21003-2.0'], ['UKB1000028', 'UKB1000133'])
+# extract_phenotypes(['31-0.0', '21003-2.0'], ['UKB1000028', 'UKB1000133'])
 def extract_phenotypes(uid_list, subject_ids):
     uid_list.append('eid')
     phenotype = pd.read_csv(data_phenotype, sep=',')
