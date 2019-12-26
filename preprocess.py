@@ -162,7 +162,7 @@ def get_random_subject_split(num_subjects, test=0.1, seed=0):
     return train_idx, validate_idx, test_idx
 
 
-def get_stratified_subject_split(features, labels, test_size=None, random_state=None):
+def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0):
     train_test_split = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
 
     for train_validate_index, test_index in train_test_split.split(features, labels):
