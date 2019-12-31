@@ -62,7 +62,7 @@ def precompute_subject_ids():
 
     # Phenotype data IDs.
     phenotype = pd.read_csv(data_phenotype, sep=',')
-    phenotype_ids = ('UKB' + phenotype['eid']).to_numpy()
+    phenotype_ids = np.array(['UKB' + str(eid) for eid in phenotype['eid']])
 
     # Cortical thickness IDs.
     ct = pd.read_csv(data_ct, sep=',', quotechar='\"')
@@ -135,3 +135,9 @@ def extract_euler(subject_ids):
 if __name__ == '__main__':
     # precompute_fcm()
     precompute_subject_ids()
+    subject_ids = np.load(os.path.join(data_root, 'subject_ids.npy'), allow_pickle=True)
+
+    # 17550 = count of functional connectivity files
+    # 3 = excluded functional connectivity files due to mismatched formatting
+    # 233 = number of missing patients in phenotype data
+    assert len(subject_ids) == (17550 - 233 - 3)

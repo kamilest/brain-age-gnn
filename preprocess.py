@@ -317,4 +317,4 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    graph = construct_population_graph(1000)
+    graph = construct_population_graph(5)
