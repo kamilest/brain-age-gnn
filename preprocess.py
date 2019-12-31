@@ -319,6 +319,7 @@ def construct_population_graph(size=None,
     )
 
     population_graph.validate_mask = validate_mask_tensor
+    population_graph.subject_index = subject_ids
 
     if save:
         torch.save(population_graph, os.path.join(save_dir, name))
