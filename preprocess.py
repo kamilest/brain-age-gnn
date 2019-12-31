@@ -262,11 +262,12 @@ def construct_population_graph(size=None,
     functional_data = functional_data.iloc[age_index]
     structural_data = structural_data.iloc[age_index]
     euler_data = euler_data.iloc[age_index]
+    phenotypes = phenotypes.iloc[age_index]
 
     features = np.concatenate([functional_data,
                                structural_data,
                                euler_data], axis=1)
-    labels = phenotypes[AGE_UID].iloc[age_index].tolist()
+    labels = phenotypes[AGE_UID].tolist()
 
     # Split subjects into train, validation and test sets.
     if stratify:
