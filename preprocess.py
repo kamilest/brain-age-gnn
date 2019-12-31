@@ -49,12 +49,16 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
     Returns:
         List of subject IDs.
     """
-    subject_ids = np.load(os.path.join(data_root, 'subject_ids.npy'))
+    if not os.path.isfile(os.path.join(data_root, 'subject_ids.npy')):
+        precompute.precompute_subject_ids()
+
+    subject_ids = np.load(os.path.join(data_root, 'subject_ids.npy'), allow_pickle=True)
 
     if not num_subjects:
         return subject_ids
 
     if randomise:
+        np.random.seed(seed)
         return np.random.choice(subject_ids, num_subjects, replace=False)
     else:
         return subject_ids[:num_subjects]
@@ -202,6 +206,7 @@ def construct_population_graph(size=None,
                                pca=False,
                                structural=True,
                                euler=True,
+                               stratify=True,
                                save=True,
                                save_dir=graph_root,
                                name=None):
@@ -218,24 +223,24 @@ def construct_population_graph(size=None,
 
     # Collect the required data.
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
-    assert len(np.intersect1d(subject_ids, phenotypes.index)) == 0
+    assert len(np.intersect1d(subject_ids, phenotypes.index)) == len(subject_ids)
 
     if functional:
         functional_data = get_all_functional_connectivities(subject_ids)
     else:
-        functional_data = pd.DataFrame()
+        functional_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
     if structural:
         structural_data = precompute.extract_cortical_thickness(subject_ids)
-        assert len(np.intersect1d(subject_ids, structural_data.index)) == 0
+        assert len(np.intersect1d(subject_ids, structural_data.index)) == len(subject_ids)
     else:
-        structural_data = pd.DataFrame()
+        structural_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
     if euler:
         euler_data = precompute.extract_euler(subject_ids)
-        assert len(np.intersect1d(subject_ids, euler_data.index)) == 0
+        assert len(np.intersect1d(subject_ids, euler_data.index)) == len(subject_ids)
     else:
-        euler_data = pd.DataFrame()
+        euler_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
     # sex = OneHotEncoder().fit_transform(phenotypes[SEX_UID].to_numpy().reshape(-1, 1))
     # ct_sex = np.concatenate((ct.to_numpy(), sex.toarray()), axis=1)
@@ -244,17 +249,33 @@ def construct_population_graph(size=None,
     # else:
     # connectivities = ct_sex
 
+    # Remove subjects with too few instances of the label for stratification.
+    age_counts = phenotypes[AGE_UID].value_counts()
+    # TODO: set a stratify parameter and set the lower bound based on this.
+    ages = age_counts.iloc[np.argwhere(age_counts >= 3).flatten()].index.tolist()
+    age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
+
+    subject_ids = phenotypes.iloc[age_index].index.tolist()
     num_subjects = len(subject_ids)
     print('{} subjects remaining for graph construction.'.format(num_subjects))
 
-    features = np.concatenate([functional_data.to_numpy(),
-                               structural_data.to_numpy(),
-                               euler_data.to_numpy()], axis=1)
-    labels = [phenotypes[AGE_UID].iloc(subject_ids).tolist()]
+    functional_data = functional_data.iloc[age_index]
+    structural_data = structural_data.iloc[age_index]
+    euler_data = euler_data.iloc[age_index]
+    phenotypes = phenotypes.iloc[age_index]
+
+    features = np.concatenate([functional_data,
+                               structural_data,
+                               euler_data], axis=1)
+    labels = phenotypes[AGE_UID].tolist()
 
     # Split subjects into train, validation and test sets.
-    stratified_subject_split = get_stratified_subject_split(features, labels)
-    train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
+    if stratify:
+        stratified_subject_split = get_stratified_subject_split(features, labels)
+        train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
+    else:
+        subject_split = get_random_subject_split(num_subjects)
+        train_mask, validate_mask, test_mask = get_subject_split_masks(*subject_split)
 
     # Optional functional data preprocessing (PCA) based on the traning index.
     if functional and pca:
@@ -273,16 +294,16 @@ def construct_population_graph(size=None,
         euler_data = euler_scaler.transform(euler_data)
 
     # Unify feature sets into one feature vector.
-    features = np.concatenate([functional_data.to_numpy(),
-                               structural_data.to_numpy(),
-                               euler_data.to_numpy()], axis=1)
+    features = np.concatenate([functional_data,
+                               structural_data,
+                               euler_data], axis=1)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
-    label_tensor = torch.tensor(labels, dtype=torch.float32).transpose_(0, 1)
+    label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
 
     # Construct the edge index.
     edge_index = torch.tensor(
-        construct_edge_list(subject_ids),
+        construct_edge_list(phenotypes),
         dtype=torch.long)
 
     train_mask_tensor = torch.tensor(train_mask, dtype=torch.bool)
@@ -298,6 +319,7 @@ def construct_population_graph(size=None,
     )
 
     population_graph.validate_mask = validate_mask_tensor
+    population_graph.subject_index = subject_ids
 
     if save:
         torch.save(population_graph, os.path.join(save_dir, name))
@@ -310,4 +332,4 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    graph = construct_population_graph(1000)
+    graph = construct_population_graph(20, stratify=False)
