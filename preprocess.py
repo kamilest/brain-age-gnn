@@ -303,7 +303,7 @@ def construct_population_graph(size=None,
 
     # Construct the edge index.
     edge_index = torch.tensor(
-        construct_edge_list(subject_ids),
+        construct_edge_list(phenotypes),
         dtype=torch.long)
 
     train_mask_tensor = torch.tensor(train_mask, dtype=torch.bool)
