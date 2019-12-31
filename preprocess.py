@@ -222,25 +222,24 @@ def construct_population_graph(size=None,
 
     # Collect the required data.
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
-    print(subject_ids, '\n', phenotypes.index)
     assert len(np.intersect1d(subject_ids, phenotypes.index)) == len(subject_ids)
 
     if functional:
         functional_data = get_all_functional_connectivities(subject_ids)
     else:
-        functional_data = pd.DataFrame()
+        functional_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
     if structural:
         structural_data = precompute.extract_cortical_thickness(subject_ids)
         assert len(np.intersect1d(subject_ids, structural_data.index)) == len(subject_ids)
     else:
-        structural_data = pd.DataFrame()
+        structural_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
     if euler:
         euler_data = precompute.extract_euler(subject_ids)
         assert len(np.intersect1d(subject_ids, euler_data.index)) == len(subject_ids)
     else:
-        euler_data = pd.DataFrame()
+        euler_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
     # sex = OneHotEncoder().fit_transform(phenotypes[SEX_UID].to_numpy().reshape(-1, 1))
     # ct_sex = np.concatenate((ct.to_numpy(), sex.toarray()), axis=1)
@@ -251,7 +250,8 @@ def construct_population_graph(size=None,
 
     # Remove subjects with too few instances of the label for stratification.
     age_counts = phenotypes[AGE_UID].value_counts()
-    ages = age_counts.iloc(np.argwhere(age_counts >= 3).flatten()).index.tolist()
+    # TODO: set a stratify parameter and set the lower bound based on this.
+    ages = age_counts.iloc[np.argwhere(age_counts >= 3).flatten()].index.tolist()
     age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
 
     subject_ids = phenotypes.iloc[age_index].index.tolist()
@@ -261,7 +261,7 @@ def construct_population_graph(size=None,
     features = np.concatenate([functional_data.to_numpy(),
                                structural_data.to_numpy(),
                                euler_data.to_numpy()], axis=1)[age_index]
-    labels = phenotypes[AGE_UID].iloc(age_index).tolist()
+    labels = phenotypes[AGE_UID].iloc[age_index].tolist()
 
     # Split subjects into train, validation and test sets.
     stratified_subject_split = get_stratified_subject_split(features, labels)
@@ -321,4 +321,4 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    graph = construct_population_graph(5)
+    graph = construct_population_graph(20)
