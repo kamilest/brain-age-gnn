@@ -259,9 +259,13 @@ def construct_population_graph(size=None,
     num_subjects = len(subject_ids)
     print('{} subjects remaining for graph construction.'.format(num_subjects))
 
-    features = np.concatenate([functional_data.to_numpy(),
-                               structural_data.to_numpy(),
-                               euler_data.to_numpy()], axis=1)[age_index]
+    functional_data = functional_data.iloc[age_index]
+    structural_data = structural_data.iloc[age_index]
+    euler_data = euler_data.iloc[age_index]
+
+    features = np.concatenate([functional_data,
+                               structural_data,
+                               euler_data], axis=1)
     labels = phenotypes[AGE_UID].iloc[age_index].tolist()
 
     # Split subjects into train, validation and test sets.
@@ -289,12 +293,12 @@ def construct_population_graph(size=None,
         euler_data = euler_scaler.transform(euler_data)
 
     # Unify feature sets into one feature vector.
-    features = np.concatenate([functional_data.to_numpy(),
-                               structural_data.to_numpy(),
-                               euler_data.to_numpy()], axis=1)
+    features = np.concatenate([functional_data,
+                               structural_data,
+                               euler_data], axis=1)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
-    label_tensor = torch.tensor(labels, dtype=torch.float32).transpose_(0, 1)
+    label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
 
     # Construct the edge index.
     edge_index = torch.tensor(
@@ -326,4 +330,4 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    graph = construct_population_graph(20)
+    graph = construct_population_graph(20, stratify=False)
