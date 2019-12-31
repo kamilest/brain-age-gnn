@@ -49,7 +49,10 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
     Returns:
         List of subject IDs.
     """
-    subject_ids = np.load(os.path.join(data_root, 'subject_ids.npy'))
+    if not os.path.isfile(os.path.join(data_root, 'subject_ids.npy')):
+        precompute.precompute_subject_ids()
+
+    subject_ids = np.load(os.path.join(data_root, 'subject_ids.npy'), allow_pickle=True)
 
     if not num_subjects:
         return subject_ids
@@ -219,7 +222,8 @@ def construct_population_graph(size=None,
 
     # Collect the required data.
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
-    assert len(np.intersect1d(subject_ids, phenotypes.index)) == 0
+    print(subject_ids, '\n', phenotypes.index)
+    assert len(np.intersect1d(subject_ids, phenotypes.index)) == len(subject_ids)
 
     if functional:
         functional_data = get_all_functional_connectivities(subject_ids)
@@ -228,13 +232,13 @@ def construct_population_graph(size=None,
 
     if structural:
         structural_data = precompute.extract_cortical_thickness(subject_ids)
-        assert len(np.intersect1d(subject_ids, structural_data.index)) == 0
+        assert len(np.intersect1d(subject_ids, structural_data.index)) == len(subject_ids)
     else:
         structural_data = pd.DataFrame()
 
     if euler:
         euler_data = precompute.extract_euler(subject_ids)
-        assert len(np.intersect1d(subject_ids, euler_data.index)) == 0
+        assert len(np.intersect1d(subject_ids, euler_data.index)) == len(subject_ids)
     else:
         euler_data = pd.DataFrame()
 
