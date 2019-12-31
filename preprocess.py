@@ -206,6 +206,7 @@ def construct_population_graph(size=None,
                                pca=False,
                                structural=True,
                                euler=True,
+                               stratify=True,
                                save=True,
                                save_dir=graph_root,
                                name=None):
@@ -264,8 +265,12 @@ def construct_population_graph(size=None,
     labels = phenotypes[AGE_UID].iloc[age_index].tolist()
 
     # Split subjects into train, validation and test sets.
-    stratified_subject_split = get_stratified_subject_split(features, labels)
-    train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
+    if stratify:
+        stratified_subject_split = get_stratified_subject_split(features, labels)
+        train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
+    else:
+        subject_split = get_random_subject_split(num_subjects)
+        train_mask, validate_mask, test_mask = get_subject_split_masks(*subject_split)
 
     # Optional functional data preprocessing (PCA) based on the traning index.
     if functional and pca:
