@@ -1,7 +1,4 @@
-# Graph construction phenotypic parameters.
-# http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=31
-SEX_UID = '31-0.0'
-
+from phenotype import Phenotype
 
 def sex_similarity(phenotypes, subject_i, subject_j):
     """
@@ -15,5 +12,5 @@ def sex_similarity(phenotypes, subject_i, subject_j):
     Returns:
         Similarity score.
     """
-    return int(phenotypes.loc[subject_i, SEX_UID] == phenotypes.loc[subject_j, SEX_UID])
+    return int(phenotypes.loc[subject_i, Phenotype.SEX] == phenotypes.loc[subject_j, Phenotype.SEX])
 
