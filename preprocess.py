@@ -21,6 +21,7 @@ from sklearn.preprocessing import OneHotEncoder
 from sklearn.model_selection import StratifiedShuffleSplit
 
 import precompute
+import similarity
 
 # Data sources.
 data_root = 'data'
@@ -97,22 +98,7 @@ def functional_connectivities_pca(connectivities, train_idx, random_state=0):
     return connectivity_pca.transform(connectivities)
 
 
-def get_similarity(phenotypes, subject_i, subject_j):
-    """
-    Computes the similarity score between two subjects.
-
-    Args:
-        phenotypes: Dataframe with phenotype values.
-        subject_i: First subject.
-        subject_j: Second subject.
-
-    Returns:
-        Similarity score.
-    """
-    return int(phenotypes.loc[subject_i, SEX_UID] == phenotypes.loc[subject_j, SEX_UID])
-
-
-def construct_edge_list(phenotypes, similarity_function=get_similarity, similarity_threshold=0.5):
+def construct_edge_list(phenotypes, similarity_function=similarity.age_similarity, similarity_threshold=0.5):
     """
     Constructs the adjacency list of the population graph based on a similarity metric provided.
   
