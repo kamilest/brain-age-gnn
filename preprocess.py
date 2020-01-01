@@ -98,7 +98,7 @@ def functional_connectivities_pca(connectivities, train_idx, random_state=0):
     return connectivity_pca.transform(connectivities)
 
 
-def construct_edge_list(phenotypes, similarity_function=similarity.age_similarity, similarity_threshold=0.5):
+def construct_edge_list(phenotypes, similarity_function=similarity.sex_similarity, similarity_threshold=0.5):
     """
     Constructs the adjacency list of the population graph based on a similarity metric provided.
   

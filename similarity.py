@@ -3,7 +3,7 @@
 SEX_UID = '31-0.0'
 
 
-def age_similarity(phenotypes, subject_i, subject_j):
+def sex_similarity(phenotypes, subject_i, subject_j):
     """
     Computes the similarity score between two subjects.
 
@@ -16,3 +16,4 @@ def age_similarity(phenotypes, subject_i, subject_j):
         Similarity score.
     """
     return int(phenotypes.loc[subject_i, SEX_UID] == phenotypes.loc[subject_j, SEX_UID])
+
