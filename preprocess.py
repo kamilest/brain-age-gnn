@@ -250,19 +250,20 @@ def construct_population_graph(size=None,
     # connectivities = ct_sex
 
     # Remove subjects with too few instances of the label for stratification.
-    age_counts = phenotypes[AGE_UID].value_counts()
-    # TODO: set a stratify parameter and set the lower bound based on this.
-    ages = age_counts.iloc[np.argwhere(age_counts >= 3).flatten()].index.tolist()
-    age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
+    if stratify:
+        age_counts = phenotypes[AGE_UID].value_counts()
+        ages = age_counts.iloc[np.argwhere(age_counts >= 3).flatten()].index.tolist()
+        age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
 
-    subject_ids = phenotypes.iloc[age_index].index.tolist()
+        subject_ids = phenotypes.iloc[age_index].index.tolist()
+
+        functional_data = functional_data.iloc[age_index]
+        structural_data = structural_data.iloc[age_index]
+        euler_data = euler_data.iloc[age_index]
+        phenotypes = phenotypes.iloc[age_index]
+
     num_subjects = len(subject_ids)
     print('{} subjects remaining for graph construction.'.format(num_subjects))
-
-    functional_data = functional_data.iloc[age_index]
-    structural_data = structural_data.iloc[age_index]
-    euler_data = euler_data.iloc[age_index]
-    phenotypes = phenotypes.iloc[age_index]
 
     features = np.concatenate([functional_data,
                                structural_data,
