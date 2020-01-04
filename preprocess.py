@@ -9,16 +9,14 @@ computes graph adjacency scores
 connects nodes into a graph, assigning collected features
 """
 
-import numpy as np
-import pandas as pd
 import os
 
-import torch
-from torch_geometric.data import Data
-
+import numpy as np
+import pandas as pd
 import sklearn
-from sklearn.preprocessing import OneHotEncoder
+import torch
 from sklearn.model_selection import StratifiedShuffleSplit
+from torch_geometric.data import Data
 
 import precompute
 import similarity
@@ -171,6 +169,17 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
             return train_idx, validate_idx, test_idx
 
 
+def get_subject_split(features, labels, stratify):
+    if stratify:
+        stratified_subject_split = get_stratified_subject_split(features, labels)
+        train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
+    else:
+        subject_split = get_random_subject_split(len(features))
+        train_mask, validate_mask, test_mask = get_subject_split_masks(*subject_split)
+
+    return train_mask, validate_mask, test_mask
+
+
 def get_subject_split_masks(train_index, validate_index, test_index):
     num_subjects = len(train_index) + len(validate_index) + len(test_index)
 
@@ -186,7 +195,7 @@ def get_subject_split_masks(train_index, validate_index, test_index):
     return train_mask, validate_mask, test_mask
 
 
-def create_graph_name(size, functional, pca, structural, euler):
+def get_graph_name(size, functional, pca, structural, euler):
     return 'population_graph_' \
                + (str(size) if size is not None else 'all') \
                + ('_functional' if functional else '') \
@@ -224,7 +233,7 @@ def remove_low_age_occurrence_instances(phenotypes, functional_data, structural_
     age_counts = phenotypes[AGE_UID].value_counts()
     ages = age_counts.iloc[np.argwhere(age_counts >= 3).flatten()].index.tolist()
     age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
-    subject_ids =sorted(phenotypes.iloc[age_index].index.tolist())
+    subject_ids = sorted(phenotypes.iloc[age_index].index.tolist())
 
     functional_data = functional_data.iloc[age_index]
     structural_data = structural_data.iloc[age_index]
@@ -234,18 +243,7 @@ def remove_low_age_occurrence_instances(phenotypes, functional_data, structural_
     return phenotypes, functional_data, structural_data, euler_data, subject_ids
 
 
-def get_subject_split(features, labels, stratify):
-    if stratify:
-        stratified_subject_split = get_stratified_subject_split(features, labels)
-        train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
-    else:
-        subject_split = get_random_subject_split(len(features))
-        train_mask, validate_mask, test_mask = get_subject_split_masks(*subject_split)
-
-    return train_mask, validate_mask, test_mask
-
-
-def get_transformed_features(functional_data, structural_data, euler_data, functional, pca, structural, euler, train_mask):
+def transform_features(functional_data, structural_data, euler_data, functional, pca, structural, euler, train_mask):
     # Optional functional data preprocessing (PCA) based on the traning index.
     if functional and pca:
         functional_data = functional_connectivities_pca(functional_data, train_mask)
@@ -280,7 +278,7 @@ def construct_population_graph(size=None,
                                save_dir=graph_root,
                                name=None):
     if name is None:
-        name = create_graph_name(size, functional, pca, structural, euler)
+        name = get_graph_name(size, functional, pca, structural, euler)
 
     subject_ids = sorted(get_subject_ids(size))
 
@@ -312,8 +310,8 @@ def construct_population_graph(size=None,
     train_mask, validate_mask, test_mask = get_subject_split(features, labels, stratify)
 
     # Transform features based on the training set.
-    # features = get_transformed_features(functional_data, structural_data, euler_data,
-    #                                     functional, pca, structural, euler, train_mask)
+    features = transform_features(functional_data, structural_data, euler_data,
+                                  functional, pca, structural, euler, train_mask)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
