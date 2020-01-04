@@ -234,6 +234,42 @@ def remove_low_age_occurrence_instances(phenotypes, functional_data, structural_
     return phenotypes, functional_data, structural_data, euler_data
 
 
+def get_subject_split(features, labels, stratify):
+    if stratify:
+        stratified_subject_split = get_stratified_subject_split(features, labels)
+        train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
+    else:
+        subject_split = get_random_subject_split(len(features))
+        train_mask, validate_mask, test_mask = get_subject_split_masks(*subject_split)
+
+    return train_mask, validate_mask, test_mask
+
+
+def get_transformed_features(functional_data, structural_data, euler_data, functional, pca, structural, euler, train_mask):
+    # Optional functional data preprocessing (PCA) based on the traning index.
+    if functional and pca:
+        functional_data = functional_connectivities_pca(functional_data, train_mask)
+
+    # Scaling structural data based on training index.
+    if structural:
+        structural_scaler = sklearn.preprocessing.StandardScaler()
+        structural_scaler.fit(structural_data[train_mask])
+        structural_data = structural_scaler.transform(structural_data)
+
+    # Scaling Euler index data based on training index.
+    if euler:
+        euler_scaler = sklearn.preprocessing.StandardScaler()
+        euler_scaler.fit(euler_data[train_mask])
+        euler_data = euler_scaler.transform(euler_data)
+
+    # Unify feature sets into one feature vector.
+    features = np.concatenate([functional_data,
+                               structural_data,
+                               euler_data], axis=1)
+
+    return features
+
+
 def construct_population_graph(size=None,
                                functional=False,
                                pca=False,
@@ -273,39 +309,17 @@ def construct_population_graph(size=None,
     labels = phenotypes[AGE_UID].tolist()
 
     # Split subjects into train, validation and test sets.
-    if stratify:
-        stratified_subject_split = get_stratified_subject_split(features, labels)
-        train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
-    else:
-        subject_split = get_random_subject_split(num_subjects)
-        train_mask, validate_mask, test_mask = get_subject_split_masks(*subject_split)
+    train_mask, validate_mask, test_mask = get_subject_split(features, labels, stratify)
 
-    # Optional functional data preprocessing (PCA) based on the traning index.
-    if functional and pca:
-        functional_data = functional_connectivities_pca(functional_data, train_mask)
-
-    # Scaling structural data based on training index.
-    if structural:
-        structural_scaler = sklearn.preprocessing.StandardScaler()
-        structural_scaler.fit(structural_data[train_mask])
-        structural_data = structural_scaler.transform(structural_data)
-
-    # Scaling Euler index data based on training index.
-    if euler:
-        euler_scaler = sklearn.preprocessing.StandardScaler()
-        euler_scaler.fit(euler_data[train_mask])
-        euler_data = euler_scaler.transform(euler_data)
-
-    # Unify feature sets into one feature vector.
-    features = np.concatenate([functional_data,
-                               structural_data,
-                               euler_data], axis=1)
+    # Transform features based on the training set.
+    features = get_transformed_features(functional_data, structural_data, euler_data,
+                                        functional, pca, structural, euler, train_mask)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
 
     # Construct the edge index.
-    edge_index = torch.tensor(
+    edge_index_tensor = torch.tensor(
         construct_edge_list(phenotypes),
         dtype=torch.long)
 
@@ -315,7 +329,7 @@ def construct_population_graph(size=None,
 
     population_graph = Data(
         x=feature_tensor,
-        edge_index=edge_index,
+        edge_index=edge_index_tensor,
         y=label_tensor,
         train_mask=train_mask_tensor,
         test_mask=test_mask_tensor
