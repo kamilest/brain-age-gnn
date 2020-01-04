@@ -195,7 +195,7 @@ def get_subject_split_masks(train_index, validate_index, test_index):
     return train_mask, validate_mask, test_mask
 
 
-def create_graph_name(size, functional, pca, structural, euler):
+def get_graph_name(size, functional, pca, structural, euler):
     return 'population_graph_' \
                + (str(size) if size is not None else 'all') \
                + ('_functional' if functional else '') \
@@ -233,7 +233,7 @@ def remove_low_age_occurrence_instances(phenotypes, functional_data, structural_
     age_counts = phenotypes[AGE_UID].value_counts()
     ages = age_counts.iloc[np.argwhere(age_counts >= 3).flatten()].index.tolist()
     age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
-    subject_ids =sorted(phenotypes.iloc[age_index].index.tolist())
+    subject_ids = sorted(phenotypes.iloc[age_index].index.tolist())
 
     functional_data = functional_data.iloc[age_index]
     structural_data = structural_data.iloc[age_index]
@@ -278,7 +278,7 @@ def construct_population_graph(size=None,
                                save_dir=graph_root,
                                name=None):
     if name is None:
-        name = create_graph_name(size, functional, pca, structural, euler)
+        name = get_graph_name(size, functional, pca, structural, euler)
 
     subject_ids = sorted(get_subject_ids(size))
 
