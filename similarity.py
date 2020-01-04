@@ -1,5 +1,6 @@
-import numpy as np
 import math
+
+import numpy as np
 
 from phenotype import Phenotype
 
@@ -41,7 +42,8 @@ def custom_similarity(feature_list):
     """
     def get_similarity(phenotypes, subject_i, subject_j):
         total_score = 0
-        for feature in feature_list:
+        for feature_set in feature_list:
+            feature = feature_set.value
             if np.array_equal(feature, Phenotype.MENTAL_HEALTH.value):
                 # TODO compare the rest of the categories
                 # First value in the mental health feature array gives the overall diagnosis as string.
