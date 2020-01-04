@@ -40,6 +40,8 @@ def custom_similarity_function(feature_list):
     """
     def get_similarity(phenotypes, subject_i, subject_j):
         total_score = 0
+        if len(feature_list) == 0:
+            return 0
         for feature_set in feature_list:
             feature = feature_set.value
             if np.array_equal(feature, Phenotype.MENTAL_HEALTH.value):
