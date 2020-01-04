@@ -204,21 +204,7 @@ def filter_age(phenotypes):
     return age_index, subject_ids
 
 
-def construct_population_graph(size=None,
-                               functional=False,
-                               pca=False,
-                               structural=True,
-                               euler=True,
-                               stratify=True,
-                               save=True,
-                               save_dir=graph_root,
-                               name=None):
-    if name is None:
-        name = create_graph_name(size, functional, pca, structural, euler)
-
-    subject_ids = get_subject_ids(size)
-
-    # Collect the required data.
+def collect_graph_data(subject_ids, functional, structural, euler):
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
     assert len(np.intersect1d(subject_ids, phenotypes.index)) == len(subject_ids)
 
@@ -238,6 +224,27 @@ def construct_population_graph(size=None,
         assert len(np.intersect1d(subject_ids, euler_data.index)) == len(subject_ids)
     else:
         euler_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
+
+    return phenotypes, functional_data, structural_data, euler_data
+
+
+def construct_population_graph(size=None,
+                               functional=False,
+                               pca=False,
+                               structural=True,
+                               euler=True,
+                               stratify=True,
+                               save=True,
+                               save_dir=graph_root,
+                               name=None):
+    if name is None:
+        name = create_graph_name(size, functional, pca, structural, euler)
+
+    subject_ids = get_subject_ids(size)
+
+    # Collect the required data.
+    phenotypes, functional_data, structural_data, euler_data = \
+        collect_graph_data(subject_ids, functional, structural, euler)
 
     # sex = OneHotEncoder().fit_transform(phenotypes[SEX_UID].to_numpy().reshape(-1, 1))
     # ct_sex = np.concatenate((ct.to_numpy(), sex.toarray()), axis=1)
