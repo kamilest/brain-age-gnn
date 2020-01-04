@@ -32,8 +32,8 @@ data_phenotype = 'data/phenotype.csv'
 graph_root = 'data/graph'
 
 # Graph construction phenotypic parameters.
-SEX_UID = Phenotype.SEX
-AGE_UID = Phenotype.AGE
+SEX_UID = Phenotype.SEX[0]
+AGE_UID = Phenotype.AGE[0]
 
 
 def get_subject_ids(num_subjects=None, randomise=True, seed=0):
