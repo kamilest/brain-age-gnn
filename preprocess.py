@@ -224,14 +224,14 @@ def remove_low_age_occurrence_instances(phenotypes, functional_data, structural_
     age_counts = phenotypes[AGE_UID].value_counts()
     ages = age_counts.iloc[np.argwhere(age_counts >= 3).flatten()].index.tolist()
     age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
-    subject_ids = phenotypes.iloc[age_index].index.tolist()
+    subject_ids =sorted(phenotypes.iloc[age_index].index.tolist())
 
     functional_data = functional_data.iloc[age_index]
     structural_data = structural_data.iloc[age_index]
     euler_data = euler_data.iloc[age_index]
     phenotypes = phenotypes.iloc[age_index]
 
-    return phenotypes, functional_data, structural_data, euler_data
+    return phenotypes, functional_data, structural_data, euler_data, subject_ids
 
 
 def get_subject_split(features, labels, stratify):
@@ -282,7 +282,7 @@ def construct_population_graph(size=None,
     if name is None:
         name = create_graph_name(size, functional, pca, structural, euler)
 
-    subject_ids = get_subject_ids(size)
+    subject_ids = sorted(get_subject_ids(size))
 
     # Collect the required data.
     phenotypes, functional_data, structural_data, euler_data = \
@@ -297,7 +297,7 @@ def construct_population_graph(size=None,
 
     # Remove subjects with too few instances of the label for stratification.
     if stratify:
-        phenotypes, functional_data, structural_data, euler_data = \
+        phenotypes, functional_data, structural_data, euler_data, subject_ids = \
             remove_low_age_occurrence_instances(phenotypes, functional_data, structural_data, euler_data)
 
     num_subjects = len(subject_ids)
@@ -312,8 +312,8 @@ def construct_population_graph(size=None,
     train_mask, validate_mask, test_mask = get_subject_split(features, labels, stratify)
 
     # Transform features based on the training set.
-    features = get_transformed_features(functional_data, structural_data, euler_data,
-                                        functional, pca, structural, euler, train_mask)
+    # features = get_transformed_features(functional_data, structural_data, euler_data,
+    #                                     functional, pca, structural, euler, train_mask)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)

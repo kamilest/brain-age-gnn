@@ -94,6 +94,7 @@ def extract_phenotypes(uid_list, subject_ids):
 
     # Add UKB prefix back to the index.
     subject_phenotype.index = ['UKB' + str(eid) for eid in subject_phenotype['eid']]
+    subject_phenotype.sort_index()
 
     return subject_phenotype
 
