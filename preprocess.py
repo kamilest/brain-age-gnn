@@ -196,14 +196,6 @@ def create_graph_name(size, functional, pca, structural, euler):
                + '.pt'
 
 
-def filter_age(phenotypes):
-    age_counts = phenotypes[AGE_UID].value_counts()
-    ages = age_counts.iloc[np.argwhere(age_counts >= 3).flatten()].index.tolist()
-    age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
-    subject_ids = phenotypes.iloc[age_index].index.tolist()
-    return age_index, subject_ids
-
-
 def collect_graph_data(subject_ids, functional, structural, euler):
     phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
     assert len(np.intersect1d(subject_ids, phenotypes.index)) == len(subject_ids)
@@ -224,6 +216,20 @@ def collect_graph_data(subject_ids, functional, structural, euler):
         assert len(np.intersect1d(subject_ids, euler_data.index)) == len(subject_ids)
     else:
         euler_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
+
+    return phenotypes, functional_data, structural_data, euler_data
+
+
+def remove_low_age_occurrence_instances(phenotypes, functional_data, structural_data, euler_data):
+    age_counts = phenotypes[AGE_UID].value_counts()
+    ages = age_counts.iloc[np.argwhere(age_counts >= 3).flatten()].index.tolist()
+    age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
+    subject_ids = phenotypes.iloc[age_index].index.tolist()
+
+    functional_data = functional_data.iloc[age_index]
+    structural_data = structural_data.iloc[age_index]
+    euler_data = euler_data.iloc[age_index]
+    phenotypes = phenotypes.iloc[age_index]
 
     return phenotypes, functional_data, structural_data, euler_data
 
@@ -255,12 +261,8 @@ def construct_population_graph(size=None,
 
     # Remove subjects with too few instances of the label for stratification.
     if stratify:
-        age_index, subject_ids = filter_age(phenotypes)
-
-        functional_data = functional_data.iloc[age_index]
-        structural_data = structural_data.iloc[age_index]
-        euler_data = euler_data.iloc[age_index]
-        phenotypes = phenotypes.iloc[age_index]
+        phenotypes, functional_data, structural_data, euler_data = \
+            remove_low_age_occurrence_instances(phenotypes, functional_data, structural_data, euler_data)
 
     num_subjects = len(subject_ids)
     print('{} subjects remaining for graph construction.'.format(num_subjects))
