@@ -312,8 +312,8 @@ def construct_population_graph(size=None,
     train_mask, validate_mask, test_mask = get_subject_split(features, labels, stratify)
 
     # Transform features based on the training set.
-    # features = get_transformed_features(functional_data, structural_data, euler_data,
-    #                                     functional, pca, structural, euler, train_mask)
+    features = get_transformed_features(functional_data, structural_data, euler_data,
+                                        functional, pca, structural, euler, train_mask)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
