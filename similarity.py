@@ -18,7 +18,7 @@ def sex_similarity(phenotypes, subject_i, subject_j):
     return int(phenotypes.loc[subject_i, Phenotype.SEX.value[0]] == phenotypes.loc[subject_j, Phenotype.SEX.value[0]])
 
 
-def create_custom_similarity_function(feature_list):
+def custom_similarity_function(feature_list):
     """
     Creates the similarity metric based on the phenotype feature list.
 
