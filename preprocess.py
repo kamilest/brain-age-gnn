@@ -9,16 +9,14 @@ computes graph adjacency scores
 connects nodes into a graph, assigning collected features
 """
 
-import numpy as np
-import pandas as pd
 import os
 
-import torch
-from torch_geometric.data import Data
-
+import numpy as np
+import pandas as pd
 import sklearn
-from sklearn.preprocessing import OneHotEncoder
+import torch
 from sklearn.model_selection import StratifiedShuffleSplit
+from torch_geometric.data import Data
 
 import precompute
 import similarity
@@ -245,7 +243,7 @@ def get_subject_split(features, labels, stratify):
     return train_mask, validate_mask, test_mask
 
 
-def get_transformed_features(functional_data, structural_data, euler_data, functional, pca, structural, euler, train_mask):
+def transform_features(functional_data, structural_data, euler_data, functional, pca, structural, euler, train_mask):
     # Optional functional data preprocessing (PCA) based on the traning index.
     if functional and pca:
         functional_data = functional_connectivities_pca(functional_data, train_mask)
@@ -312,8 +310,8 @@ def construct_population_graph(size=None,
     train_mask, validate_mask, test_mask = get_subject_split(features, labels, stratify)
 
     # Transform features based on the training set.
-    features = get_transformed_features(functional_data, structural_data, euler_data,
-                                        functional, pca, structural, euler, train_mask)
+    features = transform_features(functional_data, structural_data, euler_data,
+                                  functional, pca, structural, euler, train_mask)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
