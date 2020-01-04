@@ -169,6 +169,17 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
             return train_idx, validate_idx, test_idx
 
 
+def get_subject_split(features, labels, stratify):
+    if stratify:
+        stratified_subject_split = get_stratified_subject_split(features, labels)
+        train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
+    else:
+        subject_split = get_random_subject_split(len(features))
+        train_mask, validate_mask, test_mask = get_subject_split_masks(*subject_split)
+
+    return train_mask, validate_mask, test_mask
+
+
 def get_subject_split_masks(train_index, validate_index, test_index):
     num_subjects = len(train_index) + len(validate_index) + len(test_index)
 
@@ -230,17 +241,6 @@ def remove_low_age_occurrence_instances(phenotypes, functional_data, structural_
     phenotypes = phenotypes.iloc[age_index]
 
     return phenotypes, functional_data, structural_data, euler_data, subject_ids
-
-
-def get_subject_split(features, labels, stratify):
-    if stratify:
-        stratified_subject_split = get_stratified_subject_split(features, labels)
-        train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
-    else:
-        subject_split = get_random_subject_split(len(features))
-        train_mask, validate_mask, test_mask = get_subject_split_masks(*subject_split)
-
-    return train_mask, validate_mask, test_mask
 
 
 def transform_features(functional_data, structural_data, euler_data, functional, pca, structural, euler, train_mask):
