@@ -1,8 +1,9 @@
 from phenotype import Phenotype
 
+
 def sex_similarity(phenotypes, subject_i, subject_j):
     """
-    Computes the similarity score between two subjects.
+    Computes the sex similarity score, defined as an indicator whether the two subjects have the same sex.
 
     Args:
         phenotypes: Dataframe with phenotype values.

@@ -11,3 +11,4 @@ class Phenotype(enum.Enum):
     BIPOLAR_DISORDER_STATUS = '20122-0.0'  # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=20122
     NEUROTICISM_SCORE = '20127-0.0'  # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=20127
     SMOKING_STATUS = '20116-2.0'  # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=20116
+
