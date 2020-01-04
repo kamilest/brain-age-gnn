@@ -16,7 +16,7 @@ def sex_similarity(phenotypes, subject_i, subject_j):
     Returns:
         Similarity score.
     """
-    return int(phenotypes.loc[subject_i, Phenotype.SEX[0]] == phenotypes.loc[subject_j, Phenotype.SEX[0]])
+    return int(phenotypes.loc[subject_i, Phenotype.SEX.value[0]] == phenotypes.loc[subject_j, Phenotype.SEX.value[0]])
 
 
 def custom_similarity(feature_list):
