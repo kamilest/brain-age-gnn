@@ -212,7 +212,7 @@ def get_graph_name(size, functional, pca, structural, euler):
 
 
 def collect_graph_data(subject_ids, functional, structural, euler):
-    phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
+    phenotypes = precompute.extract_phenotypes(subject_ids)
     assert len(np.intersect1d(subject_ids, phenotypes.index)) == len(subject_ids)
 
     if functional:
