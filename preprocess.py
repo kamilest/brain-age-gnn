@@ -280,7 +280,7 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
                                pca=False, structural=True, euler=True, stratify=True, save=True, save_dir=graph_root,
                                name=None):
     if name is None:
-        name = get_graph_name(size, functional, pca, structural, euler)
+        name = get_graph_name(size, functional, pca, structural, euler, similarity_feature_set)
 
     subject_ids = sorted(get_subject_ids(size))
 
@@ -354,4 +354,4 @@ def load_population_graph(graph_root, name):
 if __name__ == '__main__':
     feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE,
                    Phenotype.PROSPECTIVE_MEMORY_RESULT]
-    graph = construct_population_graph(feature_set, size=200, stratify=False)
+    graph = construct_population_graph(feature_set, size=2000, stratify=True)

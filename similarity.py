@@ -1,5 +1,3 @@
-import numpy as np
-
 from phenotype import Phenotype
 
 
@@ -46,7 +44,7 @@ def custom_similarity_function(feature_list):
         # TODO assert the feature set contains only Phenotype enum values.
         for feature in feature_list:
             biobank_feature = Phenotype.get_biobank_codes(feature)
-            if np.array_equal(biobank_feature, Phenotype.MENTAL_HEALTH.value):
+            if feature == Phenotype.MENTAL_HEALTH.value:
                 # TODO compare the rest of the categories
                 # First value in the mental health feature array gives the overall diagnosis as string.
                 total_score += int(phenotypes.loc[subject_i, biobank_feature[0]] ==
