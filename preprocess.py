@@ -30,8 +30,8 @@ data_phenotype = 'data/phenotype.csv'
 graph_root = 'data/graph'
 
 # Graph construction phenotypic parameters.
-SEX_UID = Phenotype.SEX.value[0]
-AGE_UID = Phenotype.AGE.value[0]
+SEX_UID = Phenotype.get_biobank_codes(Phenotype.SEX)[0]
+AGE_UID = Phenotype.get_biobank_codes(Phenotype.AGE)[0]
 
 
 def get_subject_ids(num_subjects=None, randomise=True, seed=0):
@@ -200,15 +200,17 @@ def get_subject_split_masks(train_index, validate_index, test_index):
     return train_mask, validate_mask, test_mask
 
 
-# TODO account for similarity features/similarity function in graph description.
-def get_graph_name(size, functional, pca, structural, euler):
+def get_graph_name(size, functional, pca, structural, euler, similarity_feature_set):
+    separator = '_'
+    similarity_feature_string = separator.join([feature.value for feature in similarity_feature_set])
     return 'population_graph_' \
-               + (str(size) if size is not None else 'all') \
-               + ('_functional' if functional else '') \
-               + ('_PCA' if functional and pca else '') \
-               + ('_structural' if structural else '') \
-               + ('_euler' if euler else '') \
-               + '.pt'
+           + (str(size) + '_' if size is not None else 'all_') \
+           + similarity_feature_string \
+           + ('_functional' if functional else '') \
+           + ('_PCA' if functional and pca else '') \
+           + ('_structural' if structural else '') \
+           + ('_euler' if euler else '') \
+           + '.pt'
 
 
 def collect_graph_data(subject_ids, functional, structural, euler):
@@ -274,7 +276,7 @@ def transform_features(functional_data, structural_data, euler_data, functional,
     return features
 
 
-def construct_population_graph(similarity_function, similarity_threshold=0.5, size=None, functional=False,
+def construct_population_graph(similarity_feature_set, similarity_threshold=0.5, size=None, functional=False,
                                pca=False, structural=True, euler=True, stratify=True, save=True, save_dir=graph_root,
                                name=None):
     if name is None:
@@ -317,6 +319,7 @@ def construct_population_graph(similarity_function, similarity_threshold=0.5, si
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
 
     # Construct the edge index.
+    similarity_function = similarity.custom_similarity_function(similarity_feature_set)
     edge_index_tensor = torch.tensor(
         construct_edge_list(phenotypes,
                             similarity_function=similarity_function,
@@ -351,5 +354,4 @@ def load_population_graph(graph_root, name):
 if __name__ == '__main__':
     feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE,
                    Phenotype.PROSPECTIVE_MEMORY_RESULT]
-    similarity_function = similarity.custom_similarity_function(feature_set)
-    graph = construct_population_graph(similarity_function, size=200, stratify=False)
+    graph = construct_population_graph(feature_set, size=200, stratify=False)
