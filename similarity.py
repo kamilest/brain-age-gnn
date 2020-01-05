@@ -42,6 +42,7 @@ def custom_similarity_function(feature_list):
         if len(feature_list) == 0:
             return 0
         # TODO assert the feature set contains only Phenotype enum values.
+        # TODO move this to precompute section to increase speed of pairwise comparisons.
         for feature in feature_list:
             biobank_feature = Phenotype.get_biobank_codes(feature)
             if feature == Phenotype.MENTAL_HEALTH.value:
