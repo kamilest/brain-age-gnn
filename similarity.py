@@ -42,6 +42,7 @@ def custom_similarity_function(feature_list):
         total_score = 0
         if len(feature_list) == 0:
             return 0
+        # TODO assert the feature set contains only Phenotype enum values.
         for feature_set in feature_list:
             feature = feature_set.value
             if np.array_equal(feature, Phenotype.MENTAL_HEALTH.value):
