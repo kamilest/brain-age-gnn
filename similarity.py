@@ -2,25 +2,21 @@ from phenotype import Phenotype
 
 
 def sex_similarity(phenotypes, subject_i, subject_j):
-    """
-    Computes the sex similarity score, defined as an indicator whether the two subjects have the same sex.
+    """Computes the sex similarity score.
+    Score defined as an indicator whether the two subjects have the same sex.
 
-    Args:
-        phenotypes: Dataframe with phenotype values.
-        subject_i: First subject.
-        subject_j: Second subject.
-
-    Returns:
-        Similarity score.
+    :param phenotypes: dataframe with phenotype values.
+    :param subject_i: first subject.
+    :param subject_j: second subject.
+    :return: sex similarity score.
     """
+
     return int(phenotypes.loc[subject_i, Phenotype.get_biobank_codes(Phenotype.SEX)[0]] ==
                phenotypes.loc[subject_j, Phenotype.get_biobank_codes(Phenotype.SEX)[0]])
 
 
 def custom_similarity_function(feature_list):
-    """
-    Creates the similarity metric based on the phenotype feature list.
-
+    """Creates the similarity metric based on the phenotype feature list.
     If a feature has several entries in the UK Biobank, take either the most recent available estimate or, if the
     entries correspond to categories, consider the matching category values.
 
@@ -29,14 +25,12 @@ def custom_similarity_function(feature_list):
     creation then depends on the similarity threshold defined in graph construction.
 
     If both features are unknown, assume there is no match.
+
+    :param feature_list: list of features taken as Phenotype enumerated values.
+    :return: similarity function taking in the phenotype list and returning the similarity score.
+    """
     # TODO support some deviations, e.g. if the values are in the same percentile range etc.
 
-    Args:
-        feature_list: list of features taken as Phenotype enumerated values.
-
-    Returns:
-        The similarity function taking in the phenotype list and returning the similarity score.
-    """
     def get_similarity(phenotypes, subject_i, subject_j):
         total_score = 0
         if len(feature_list) == 0:
