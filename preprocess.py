@@ -20,7 +20,7 @@ from torch_geometric.data import Data
 
 import precompute
 import similarity
-from phenotype import Phenotype, biobank_features
+from phenotype import Phenotype
 
 # Data sources.
 data_root = 'data'
@@ -30,8 +30,8 @@ data_phenotype = 'data/phenotype.csv'
 graph_root = 'data/graph'
 
 # Graph construction phenotypic parameters.
-SEX_UID = biobank_features[Phenotype.SEX][0]
-AGE_UID = biobank_features[Phenotype.AGE][0]
+SEX_UID = Phenotype.get_biobank_codes(Phenotype.SEX)[0]
+AGE_UID = Phenotype.get_biobank_codes(Phenotype.AGE)[0]
 
 
 def get_subject_ids(num_subjects=None, randomise=True, seed=0):

@@ -1,6 +1,6 @@
 import numpy as np
 
-from phenotype import Phenotype, biobank_features
+from phenotype import Phenotype
 
 
 def sex_similarity(phenotypes, subject_i, subject_j):
@@ -15,8 +15,8 @@ def sex_similarity(phenotypes, subject_i, subject_j):
     Returns:
         Similarity score.
     """
-    return int(phenotypes.loc[subject_i, biobank_features[Phenotype.SEX][0]] ==
-               phenotypes.loc[subject_j, biobank_features[Phenotype.SEX][0]])
+    return int(phenotypes.loc[subject_i, Phenotype.get_biobank_codes(Phenotype.SEX)[0]] ==
+               phenotypes.loc[subject_j, Phenotype.get_biobank_codes(Phenotype.SEX)[0]])
 
 
 def custom_similarity_function(feature_list):
@@ -45,7 +45,7 @@ def custom_similarity_function(feature_list):
             return 0
         # TODO assert the feature set contains only Phenotype enum values.
         for feature in feature_list:
-            biobank_feature = biobank_features[feature]
+            biobank_feature = Phenotype.get_biobank_codes(feature)
             if np.array_equal(biobank_feature, Phenotype.MENTAL_HEALTH.value):
                 # TODO compare the rest of the categories
                 # First value in the mental health feature array gives the overall diagnosis as string.
