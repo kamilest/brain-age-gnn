@@ -200,15 +200,17 @@ def get_subject_split_masks(train_index, validate_index, test_index):
     return train_mask, validate_mask, test_mask
 
 
-# TODO account for similarity features/similarity function in graph description.
 def get_graph_name(size, functional, pca, structural, euler, similarity_feature_set):
+    separator = '_'
+    similarity_feature_string = separator.join([feature.value for feature in similarity_feature_set])
     return 'population_graph_' \
-               + (str(size) if size is not None else 'all') \
-               + ('_functional' if functional else '') \
-               + ('_PCA' if functional and pca else '') \
-               + ('_structural' if structural else '') \
-               + ('_euler' if euler else '') \
-               + '.pt'
+           + (str(size) + '_' if size is not None else 'all_') \
+           + similarity_feature_string \
+           + ('_functional' if functional else '') \
+           + ('_PCA' if functional and pca else '') \
+           + ('_structural' if structural else '') \
+           + ('_euler' if euler else '') \
+           + '.pt'
 
 
 def collect_graph_data(subject_ids, functional, structural, euler):
