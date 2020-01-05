@@ -1,5 +1,3 @@
-import math
-
 import numpy as np
 
 from phenotype import Phenotype
@@ -20,7 +18,7 @@ def sex_similarity(phenotypes, subject_i, subject_j):
     return int(phenotypes.loc[subject_i, Phenotype.SEX.value[0]] == phenotypes.loc[subject_j, Phenotype.SEX.value[0]])
 
 
-def create_custom_similarity_function(feature_list):
+def custom_similarity_function(feature_list):
     """
     Creates the similarity metric based on the phenotype feature list.
 
@@ -42,6 +40,9 @@ def create_custom_similarity_function(feature_list):
     """
     def get_similarity(phenotypes, subject_i, subject_j):
         total_score = 0
+        if len(feature_list) == 0:
+            return 0
+        # TODO assert the feature set contains only Phenotype enum values.
         for feature_set in feature_list:
             feature = feature_set.value
             if np.array_equal(feature, Phenotype.MENTAL_HEALTH.value):
@@ -52,17 +53,17 @@ def create_custom_similarity_function(feature_list):
                 # handle the more/less recent values
                 instance_i = feature[0]
                 for f in reversed(feature):
-                    if not math.isnan(phenotypes.loc[subject_i, f]):
+                    if phenotypes.loc[subject_i, f] != 'NaN':
                         instance_i = f
                         break
                 instance_j = feature[0]
                 for f in reversed(feature):
-                    if not math.isnan(phenotypes.loc[subject_j, f]):
+                    if not phenotypes.loc[subject_j, f] != 'NaN':
                         instance_j = f
                         break
                 total_score += int(phenotypes.loc[subject_i, instance_i] == phenotypes.loc[subject_j, instance_j])
             else:
                 total_score += int(phenotypes.loc[subject_i, feature[0]] == phenotypes.loc[subject_j, feature[0]])
-        return total_score / len(feature_list)
+        return total_score * 1.0 / len(feature_list)
 
     return get_similarity

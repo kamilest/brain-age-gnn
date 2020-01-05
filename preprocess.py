@@ -95,7 +95,7 @@ def functional_connectivities_pca(connectivities, train_idx, random_state=0):
     return connectivity_pca.transform(connectivities)
 
 
-def construct_edge_list(phenotypes, similarity_function=similarity.sex_similarity, similarity_threshold=0.5):
+def construct_edge_list(phenotypes, similarity_function, similarity_threshold=0.5):
     """
     Constructs the adjacency list of the population graph based on a similarity metric provided.
   
@@ -141,9 +141,9 @@ def get_random_subject_split(num_subjects, test=0.1, seed=0):
     num_validate = int(num_subjects * validate)
 
     train_val_idx = np.random.choice(range(num_subjects), num_train + num_validate, replace=False)
-    train_idx = np.random.choice(train_val_idx, num_train, replace=False)
-    validate_idx = list(set(train_val_idx) - set(train_idx))
-    test_idx = list(set(range(num_subjects)) - set(train_val_idx))
+    train_idx = np.sort(np.random.choice(train_val_idx, num_train, replace=False))
+    validate_idx = np.sort(list(set(train_val_idx) - set(train_idx)))
+    test_idx = np.sort(list(set(range(num_subjects)) - set(train_val_idx)))
 
     test_subject_split(train_idx, validate_idx, test_idx)
     return train_idx, validate_idx, test_idx
@@ -153,6 +153,8 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
     train_test_split = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
 
     for train_validate_index, test_index in train_test_split.split(features, labels):
+        train_validate_index = np.sort(train_validate_index)
+        test_index = np.sort(test_index)
         features_train = features[train_validate_index]
         labels_train = labels[train_validate_index]
 
@@ -161,6 +163,9 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
 
         train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
         for train_index, validate_index in train_validate_split.split(features_train, labels_train):
+            train_index = np.sort(train_index)
+            validate_index = np.sort(validate_index)
+
             train_idx = train_validate_index[train_index]
             validate_idx = train_validate_index[validate_index]
             test_idx = test_index
@@ -195,6 +200,7 @@ def get_subject_split_masks(train_index, validate_index, test_index):
     return train_mask, validate_mask, test_mask
 
 
+# TODO account for similarity features/similarity function in graph description.
 def get_graph_name(size, functional, pca, structural, euler):
     return 'population_graph_' \
                + (str(size) if size is not None else 'all') \
@@ -206,7 +212,7 @@ def get_graph_name(size, functional, pca, structural, euler):
 
 
 def collect_graph_data(subject_ids, functional, structural, euler):
-    phenotypes = precompute.extract_phenotypes([SEX_UID, AGE_UID], subject_ids)
+    phenotypes = precompute.extract_phenotypes(subject_ids)
     assert len(np.intersect1d(subject_ids, phenotypes.index)) == len(subject_ids)
 
     if functional:
@@ -268,14 +274,8 @@ def transform_features(functional_data, structural_data, euler_data, functional,
     return features
 
 
-def construct_population_graph(size=None,
-                               functional=False,
-                               pca=False,
-                               structural=True,
-                               euler=True,
-                               stratify=True,
-                               save=True,
-                               save_dir=graph_root,
+def construct_population_graph(similarity_function, similarity_threshold=0.5, size=None, functional=False,
+                               pca=False, structural=True, euler=True, stratify=True, save=True, save_dir=graph_root,
                                name=None):
     if name is None:
         name = get_graph_name(size, functional, pca, structural, euler)
@@ -304,7 +304,7 @@ def construct_population_graph(size=None,
     features = np.concatenate([functional_data,
                                structural_data,
                                euler_data], axis=1)
-    labels = phenotypes[AGE_UID].tolist()
+    labels = phenotypes[AGE_UID].to_numpy()
 
     # Split subjects into train, validation and test sets.
     train_mask, validate_mask, test_mask = get_subject_split(features, labels, stratify)
@@ -318,7 +318,9 @@ def construct_population_graph(size=None,
 
     # Construct the edge index.
     edge_index_tensor = torch.tensor(
-        construct_edge_list(phenotypes),
+        construct_edge_list(phenotypes,
+                            similarity_function=similarity_function,
+                            similarity_threshold=similarity_threshold),
         dtype=torch.long)
 
     train_mask_tensor = torch.tensor(train_mask, dtype=torch.bool)
@@ -347,4 +349,7 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    graph = construct_population_graph(5, stratify=False)
+    feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE,
+                   Phenotype.PROSPECTIVE_MEMORY_RESULT]
+    similarity_function = similarity.custom_similarity_function(feature_set)
+    graph = construct_population_graph(similarity_function, size=200, stratify=False)

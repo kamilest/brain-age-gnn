@@ -1,9 +1,9 @@
+import os
+from functools import reduce
+
 import numpy as np
 import pandas as pd
-import os
-
 from nilearn.connectome import ConnectivityMeasure
-from functools import reduce
 
 data_root = 'data'
 data_timeseries = 'data/raw_ts'
@@ -78,8 +78,11 @@ def precompute_subject_ids():
 
 
 # extract_phenotypes(['31-0.0', '21003-2.0'], ['UKB1000028', 'UKB1000133'])
-def extract_phenotypes(uid_list, subject_ids):
-    uid_list.append('eid')
+def extract_phenotypes(subject_ids, uid_list=None):
+    if uid_list is None:
+        uid_list = ['eid']
+    else:
+        uid_list.append('eid')
     phenotype = pd.read_csv(data_phenotype, sep=',')
     subject_ids_no_UKB = [int(i[3:]) for i in subject_ids]
 
@@ -90,7 +93,8 @@ def extract_phenotypes(uid_list, subject_ids):
         print('{} entries had phenotypic data missing.'.format(len(subject_ids) - len(subject_phenotype)))
 
     # Extract relevant UIDs.
-    subject_phenotype = subject_phenotype[uid_list]
+    if len(uid_list) > 1:
+        subject_phenotype = subject_phenotype[uid_list]
 
     # Add UKB prefix back to the index.
     subject_phenotype.index = ['UKB' + str(eid) for eid in subject_phenotype['eid']]
