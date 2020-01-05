@@ -5,6 +5,8 @@ import numpy as np
 import pandas as pd
 from nilearn.connectome import ConnectivityMeasure
 
+from phenotype import Phenotype
+
 data_root = 'data'
 data_timeseries = 'data/raw_ts'
 data_phenotype = 'data/phenotype.csv'
@@ -81,9 +83,31 @@ def precompute_similarity_feautres():
     """Precomputes the columns of the phenotype dataset for faster subject comparison.
     Saves the copy of the precomputed features in the phenotype dataset.
 
-    :return: Saves the modified dataset under phenotype_precomputed.csv.
+    :return: Saves the modified dataset under phenotype_processed.csv.
     """
-    pass
+    phenotypes = pd.read_csv(data_phenotype, sep=',')
+    phenotypes.index = ['UKB' + str(eid) for eid in phenotypes['eid']]
+
+    phenotype_processed = phenotypes.copy()
+
+    def get_most_recent(biobank_feature, subject_id):
+        instance = biobank_feature[0]
+        for f in reversed(biobank_feature):
+            if phenotypes.loc[subject_id, f] != 'NaN':
+                instance = f
+                break
+        return instance
+
+    for feature in Phenotype:
+        biobank_feature = Phenotype.get_biobank_codes(feature)
+        if feature == Phenotype.MENTAL_HEALTH.value:
+            # TODO compare the rest of the categories
+            # First value in the mental health feature array gives the overall diagnosis as string.
+            phenotype_processed[feature.value] = phenotype_processed[biobank_feature[0]]
+        elif len(biobank_feature) > 1:
+            # handle the more/less recent values
+            si = pd.Index.to_series(phenotype_processed)
+            phenotype_processed[feature.value] = si.apply(lambda s: get_most_recent(biobank_feature, s))
 
 
 # extract_phenotypes(['31-0.0', '21003-2.0'], ['UKB1000028', 'UKB1000133'])
