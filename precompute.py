@@ -17,15 +17,11 @@ EXCLUDED_UKB_IDS = ['UKB2203847', 'UKB2208238', 'UKB2697888']
 
 
 def precompute_fcm(subject_id=None):
-    """
-    Derives the correlation matrices for the parcellated timeseries data.
+    """ Derives the correlation matrices for the parcellated timeseries data.
 
-    Args:
-        subject_id: Optional, if only one connectivity matrix needs to be precomputed.
-
-    Returns:
-        The flattened lower triangle of the correlation matrices for the parcellated timeseries data. Saved as a binary
-        numpy array with the name of patient ID in the preprocessed timeseries directory.
+    :param subject_id: subject ID if only one connectivity matrix needs to be precomputed
+    :return: the flattened lower triangle of the correlation matrices for the parcellated timeseries data.
+    Saved as a binary numpy array with the name of patient ID in the preprocessed timeseries directory.
     """
 
     conn_measure = ConnectivityMeasure(

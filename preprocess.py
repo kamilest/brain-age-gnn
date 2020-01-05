@@ -30,23 +30,19 @@ data_phenotype = 'data/phenotype.csv'
 graph_root = 'data/graph'
 
 # Graph construction phenotypic parameters.
-SEX_UID = Phenotype.SEX.value[0]
-AGE_UID = Phenotype.AGE.value[0]
+SEX_UID = Phenotype.get_biobank_codes(Phenotype.SEX)[0]
+AGE_UID = Phenotype.get_biobank_codes(Phenotype.AGE)[0]
 
 
 def get_subject_ids(num_subjects=None, randomise=True, seed=0):
-    """
-    Gets the list of subject IDs for a spcecified number of subjects. If the number of subjects is not specified, all
-    IDs are returned.
-  
-    Args:
-        num_subjects: The number of subjects.
-        randomise: Indicates whether to use a random seed for selection of subjects.
-        seed: Seed value.
+    """Gets the list of subject IDs for a spcecified number of subjects.
 
-    Returns:
-        List of subject IDs.
+    :param num_subjects: number of subjects.
+    :param randomise: indicates whether to use a random seed for selection of subjects.
+    :param seed: seed value.
+    :return: list of subject IDs.
     """
+
     if not os.path.isfile(os.path.join(data_root, 'subject_ids.npy')):
         precompute.precompute_subject_ids()
 
@@ -64,15 +60,13 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
 
 # TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)
 def get_functional_connectivity(subject_id):
-    """
-    Returns the correlation matrix for the parcellated timeseries data, precomputing if necessary.
+    """Returns the correlation matrix for the parcellated timeseries data.
+    If necessary precomputes the matrix.
 
-    Args:
-        subject_id: ID of subject.
-
-    Returns:
-        The flattened lower triangle of the correlation matrix for the parcellated timeseries data.
+    :param subject_id: subject ID.
+    :return: the flattened lower triangle of the correlation matrix for the parcellated timeseries data.
     """
+
     if subject_id + '.npy' not in os.listdir(data_precomputed_fcms):
         precompute.precompute_fcm(subject_id)
 
@@ -96,19 +90,15 @@ def functional_connectivities_pca(connectivities, train_idx, random_state=0):
 
 
 def construct_edge_list(phenotypes, similarity_function, similarity_threshold=0.5):
-    """
-    Constructs the adjacency list of the population graph based on a similarity metric provided.
-  
-    Args:
-        phenotypes: Dataframe with phenotype values.
-        similarity_function: Function which is returns similarity between two subjects according to some metric.
-        similarity_threshold: The threshold above which the edge should be added.
+    """Constructs the adjacency list of the population graph based on a similarity metric provided.
 
-    Returns:
-        Graph connectivity in coordinate format of shape [2, num_edges]. The
-        same edge (v, w) appears twice as (v, w) and (w, v) to represent
-        bidirectionality.
+    :param phenotypes: dataframe with phenotype values.
+    :param similarity_function: function which is returns similarity between two subjects according to some metric.
+    :param similarity_threshold: the threshold above which the edge should be added.
+    :return: graph connectivity in coordinate format of shape [2, num_edges].
+    The same edge (v, w) appears twice as (v, w) and (w, v) to represent bidirectionality.
     """
+
     v_list = []
     w_list = []
 
@@ -200,15 +190,17 @@ def get_subject_split_masks(train_index, validate_index, test_index):
     return train_mask, validate_mask, test_mask
 
 
-# TODO account for similarity features/similarity function in graph description.
-def get_graph_name(size, functional, pca, structural, euler):
+def get_graph_name(size, functional, pca, structural, euler, similarity_feature_set):
+    separator = '_'
+    similarity_feature_string = separator.join([feature.value for feature in similarity_feature_set])
     return 'population_graph_' \
-               + (str(size) if size is not None else 'all') \
-               + ('_functional' if functional else '') \
-               + ('_PCA' if functional and pca else '') \
-               + ('_structural' if structural else '') \
-               + ('_euler' if euler else '') \
-               + '.pt'
+           + (str(size) + '_' if size is not None else 'all_') \
+           + similarity_feature_string \
+           + ('_functional' if functional else '') \
+           + ('_PCA' if functional and pca else '') \
+           + ('_structural' if structural else '') \
+           + ('_euler' if euler else '') \
+           + '.pt'
 
 
 def collect_graph_data(subject_ids, functional, structural, euler):
@@ -274,11 +266,11 @@ def transform_features(functional_data, structural_data, euler_data, functional,
     return features
 
 
-def construct_population_graph(similarity_function, similarity_threshold=0.5, size=None, functional=False,
+def construct_population_graph(similarity_feature_set, similarity_threshold=0.5, size=None, functional=False,
                                pca=False, structural=True, euler=True, stratify=True, save=True, save_dir=graph_root,
                                name=None):
     if name is None:
-        name = get_graph_name(size, functional, pca, structural, euler)
+        name = get_graph_name(size, functional, pca, structural, euler, similarity_feature_set)
 
     subject_ids = sorted(get_subject_ids(size))
 
@@ -317,6 +309,7 @@ def construct_population_graph(similarity_function, similarity_threshold=0.5, si
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
 
     # Construct the edge index.
+    similarity_function = similarity.custom_similarity_function(similarity_feature_set)
     edge_index_tensor = torch.tensor(
         construct_edge_list(phenotypes,
                             similarity_function=similarity_function,
@@ -351,5 +344,4 @@ def load_population_graph(graph_root, name):
 if __name__ == '__main__':
     feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE,
                    Phenotype.PROSPECTIVE_MEMORY_RESULT]
-    similarity_function = similarity.custom_similarity_function(feature_set)
-    graph = construct_population_graph(similarity_function, size=200, stratify=False)
+    graph = construct_population_graph(feature_set, size=2000, stratify=True)
