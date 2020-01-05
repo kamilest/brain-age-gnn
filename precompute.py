@@ -77,6 +77,15 @@ def precompute_subject_ids():
     np.save(os.path.join(data_root, 'subject_ids'), intersected_ids)
 
 
+def precompute_similarity_feautres():
+    """Precomputes the columns of the phenotype dataset for faster subject comparison.
+    Saves the copy of the precomputed features in the phenotype dataset.
+
+    :return: Saves the modified dataset under phenotype_precomputed.csv.
+    """
+    pass
+
+
 # extract_phenotypes(['31-0.0', '21003-2.0'], ['UKB1000028', 'UKB1000133'])
 def extract_phenotypes(subject_ids, uid_list=None):
     if uid_list is None:
