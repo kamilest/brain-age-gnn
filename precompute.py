@@ -75,7 +75,7 @@ def precompute_subject_ids():
     np.save(os.path.join(data_root, 'subject_ids'), intersected_ids)
 
 
-def precompute_similarity_feautres():
+def precompute_similarity_features():
     """Precomputes the columns of the phenotype dataset for faster subject comparison.
     Saves the copy of the precomputed features in the phenotype dataset.
 
