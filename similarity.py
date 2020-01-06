@@ -1,4 +1,8 @@
+import pandas as pd
+
 from phenotype import Phenotype
+
+data_phenotype = 'data/phenotype.csv'
 
 
 def sex_similarity(phenotypes, subject_i, subject_j):
@@ -13,6 +17,40 @@ def sex_similarity(phenotypes, subject_i, subject_j):
 
     return int(phenotypes.loc[subject_i, Phenotype.get_biobank_codes(Phenotype.SEX)[0]] ==
                phenotypes.loc[subject_j, Phenotype.get_biobank_codes(Phenotype.SEX)[0]])
+
+
+def precompute_similarity_features(feature_list):
+    """Precomputes the columns of the phenotype dataset for faster subject comparison.
+
+    :return: dataframe containing the values used for similarity comparison, row-indexed by subject ID and
+    column-indexed by phenotype code name (e.g. 'AGE', 'FTE' etc.)
+    """
+    # TODO create a dataframe containing all relevamnt similarity features and directly look them up
+    # TODO without referring to the phenotype in get_similarity, just the subjects.
+
+    phenotypes = pd.read_csv(data_phenotype, sep=',')
+    phenotypes.index = ['UKB' + str(eid) for eid in phenotypes['eid']]
+
+    phenotype_processed = phenotypes.copy()
+
+    def get_most_recent(ukb_feature, subject_id):
+        instance = ukb_feature[0]
+        for f in reversed(ukb_feature):
+            if phenotypes.loc[subject_id, f] != 'NaN':
+                instance = f
+                break
+        return instance
+
+    for feature in Phenotype:
+        biobank_feature = Phenotype.get_biobank_codes(feature)
+        if feature == Phenotype.MENTAL_HEALTH.value:
+            # TODO compare the rest of the categories
+            # First value in the mental health feature array gives the overall diagnosis as string.
+            phenotype_processed[feature.value] = phenotype_processed[biobank_feature[0]]
+        elif len(biobank_feature) > 1:
+            # handle the more/less recent values
+            si = pd.Index.to_series(phenotype_processed)
+            phenotype_processed[feature.value] = si.apply(lambda s: get_most_recent(biobank_feature, s))
 
 
 def custom_similarity_function(feature_list):
