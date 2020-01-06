@@ -5,20 +5,6 @@ from phenotype import Phenotype
 data_phenotype = 'data/phenotype.csv'
 
 
-def sex_similarity(phenotypes, subject_i, subject_j):
-    """Computes the sex similarity score.
-    Score defined as an indicator whether the two subjects have the same sex.
-
-    :param phenotypes: dataframe with phenotype values.
-    :param subject_i: first subject.
-    :param subject_j: second subject.
-    :return: sex similarity score.
-    """
-
-    return int(phenotypes.loc[subject_i, Phenotype.get_biobank_codes(Phenotype.SEX)[0]] ==
-               phenotypes.loc[subject_j, Phenotype.get_biobank_codes(Phenotype.SEX)[0]])
-
-
 def get_similarity_lookup(feature_list):
     """Precomputes the columns of the phenotype dataset for faster subject comparison.
 
