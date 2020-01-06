@@ -19,19 +19,22 @@ def sex_similarity(phenotypes, subject_i, subject_j):
                phenotypes.loc[subject_j, Phenotype.get_biobank_codes(Phenotype.SEX)[0]])
 
 
-def precompute_similarity_features(feature_list):
+def get_similarity_lookup(feature_list):
     """Precomputes the columns of the phenotype dataset for faster subject comparison.
 
     :return: dataframe containing the values used for similarity comparison, row-indexed by subject ID and
     column-indexed by phenotype code name (e.g. 'AGE', 'FTE' etc.)
     """
-    # TODO create a dataframe containing all relevamnt similarity features and directly look them up
     # TODO without referring to the phenotype in get_similarity, just the subjects.
 
     phenotypes = pd.read_csv(data_phenotype, sep=',')
     phenotypes.index = ['UKB' + str(eid) for eid in phenotypes['eid']]
 
-    phenotype_processed = phenotypes.copy()
+    biobank_feature_list = []
+    for feature in feature_list:
+        biobank_feature_list.extend(Phenotype.get_biobank_codes(feature))
+
+    phenotype_processed = phenotypes[biobank_feature_list]
 
     def get_most_recent(ukb_feature, subject_id):
         instance = ukb_feature[0]
@@ -39,18 +42,22 @@ def precompute_similarity_features(feature_list):
             if phenotypes.loc[subject_id, f] != 'NaN':
                 instance = f
                 break
-        return instance
+        return phenotypes.loc[subject_id, instance]
 
-    for feature in Phenotype:
+    for feature in feature_list:
         biobank_feature = Phenotype.get_biobank_codes(feature)
-        if feature == Phenotype.MENTAL_HEALTH.value:
+        if feature == Phenotype.MENTAL_HEALTH:
             # TODO compare the rest of the categories
             # First value in the mental health feature array gives the overall diagnosis as string.
             phenotype_processed[feature.value] = phenotype_processed[biobank_feature[0]]
         elif len(biobank_feature) > 1:
             # handle the more/less recent values
-            si = pd.Index.to_series(phenotype_processed)
+            si = phenotype_processed.index.to_series()
             phenotype_processed[feature.value] = si.apply(lambda s: get_most_recent(biobank_feature, s))
+
+    # Return only the final feature columns (indexed by code names).
+    phenotype_processed.drop(biobank_feature_list, axis=1, inplace=True)
+    return phenotype_processed
 
 
 def custom_similarity_function(feature_list):
