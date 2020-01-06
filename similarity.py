@@ -50,13 +50,13 @@ def get_similarity_lookup(feature_list):
             if feature == Phenotype.MENTAL_HEALTH:
                 # TODO compare the rest of the categories
                 # First value in the mental health feature array gives the overall diagnosis as string.
-                phenotype_processed[feature.value] = phenotype_processed[biobank_feature[0]]
+                phenotype_processed.loc[:, feature.value] = phenotype_processed[biobank_feature[0]].copy()
             elif len(biobank_feature) > 1:
                 # handle the more/less recent values
-                si = phenotype_processed.index.to_series()
-                phenotype_processed[feature.value] = si.apply(lambda s: get_most_recent(biobank_feature, s))
+                si = phenotype_processed.index.to_series().copy()
+                phenotype_processed.loc[:, feature.value] = si.apply(lambda s: get_most_recent(biobank_feature, s))
             else:
-                phenotype_processed[feature.value] = phenotype_processed[biobank_feature[0]]
+                phenotype_processed.loc[:, feature.value] = phenotype_processed[biobank_feature[0]].copy()
 
     # Return only the final feature columns (indexed by code names).
     phenotype_processed.drop(biobank_feature_list, axis=1, inplace=True)

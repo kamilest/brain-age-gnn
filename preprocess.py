@@ -11,6 +11,7 @@ connects nodes into a graph, assigning collected features
 
 import csv
 import os
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -90,10 +91,10 @@ def functional_connectivities_pca(connectivities, train_idx, random_state=0):
     return connectivity_pca.transform(connectivities)
 
 
-def construct_edge_list(phenotypes, similarity_function, similarity_threshold=0.5, save=False, graph_name=None):
+def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0.5, save=False, graph_name=None):
     """Constructs the adjacency list of the population graph based on a similarity metric provided.
 
-    :param phenotypes: dataframe with phenotype values.
+    :param subject_ids: subject IDs.
     :param similarity_function: function which is returns similarity between two subjects according to some metric.
     :param similarity_threshold: the threshold above which the edge should be added.
     :param save: inidicates whether to save the graph in the logs directory.
@@ -111,21 +112,21 @@ def construct_edge_list(phenotypes, similarity_function, similarity_threshold=0.
 
         with open(os.path.join('logs', graph_name), 'w+', newline='') as csvfile:
             wr = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
-            for i, id_i in enumerate(phenotypes.index):
+            for i, id_i in enumerate(subject_ids):
                 wr.writerow([i, i])  # ensure singletons appear in the graph adjacency list.
-                iter_j = iter(enumerate(phenotypes.index))
+                iter_j = iter(enumerate(subject_ids))
                 [next(iter_j) for _ in range(i + 1)]
                 for j, id_j in iter_j:
-                    if similarity_function(phenotypes, id_i, id_j) > similarity_threshold:
+                    if similarity_function(id_i, id_j) > similarity_threshold:
                         wr.writerow([i, j])
                         v_list.extend([i, j])
                         w_list.extend([j, i])
     else:
-        for i, id_i in enumerate(phenotypes.index):
-            iter_j = iter(enumerate(phenotypes.index))
+        for i, id_i in enumerate(subject_ids):
+            iter_j = iter(enumerate(subject_ids))
             [next(iter_j) for _ in range(i + 1)]
             for j, id_j in iter_j:
-                if similarity_function(phenotypes, id_i, id_j) > similarity_threshold:
+                if similarity_function(id_i, id_j) > similarity_threshold:
                     v_list.extend([i, j])
                     w_list.extend([j, i])
 
@@ -286,7 +287,7 @@ def transform_features(functional_data, structural_data, euler_data, functional,
 
 
 def construct_population_graph(similarity_feature_set, similarity_threshold=0.5, size=None, functional=False,
-                               pca=False, structural=True, euler=True, stratify=True, save=True, logs=False,
+                               pca=False, structural=True, euler=True, stratify=True, save=True, logs=True,
                                save_dir=graph_root, name=None):
     if name is None:
         name = get_graph_name(size, functional, pca, structural, euler, similarity_feature_set)
@@ -330,11 +331,11 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     # Construct the edge index.
     similarity_function = similarity.custom_similarity_function(similarity_feature_set)
     edge_index_tensor = torch.tensor(
-        construct_edge_list(phenotypes,
+        construct_edge_list(subject_ids=subject_ids,
                             similarity_function=similarity_function,
                             similarity_threshold=similarity_threshold,
                             save=logs,
-                            graph_name=name.replace('.pt', '.csv')),
+                            graph_name=name.replace('.pt', datetime.now().strftime("_%H_%M_%S") + '.csv')),
         dtype=torch.long)
 
     train_mask_tensor = torch.tensor(train_mask, dtype=torch.bool)
@@ -365,4 +366,4 @@ def load_population_graph(graph_root, name):
 if __name__ == '__main__':
     feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE,
                    Phenotype.PROSPECTIVE_MEMORY_RESULT]
-    graph = construct_population_graph(feature_set, size=2000, stratify=True)
+    graph = construct_population_graph(feature_set, size=2000, stratify=True, logs=True)
