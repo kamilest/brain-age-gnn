@@ -55,6 +55,8 @@ def get_similarity_lookup(feature_list):
                 # handle the more/less recent values
                 si = phenotype_processed.index.to_series()
                 phenotype_processed[feature.value] = si.apply(lambda s: get_most_recent(biobank_feature, s))
+            else:
+                phenotype_processed[feature.value] = phenotype_processed[biobank_feature[0]]
 
     # Return only the final feature columns (indexed by code names).
     phenotype_processed.drop(biobank_feature_list, axis=1, inplace=True)
