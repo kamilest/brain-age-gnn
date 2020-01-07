@@ -32,7 +32,6 @@ data_phenotype = 'data/phenotype.csv'
 graph_root = 'data/graph'
 
 # Graph construction phenotypic parameters.
-SEX_UID = Phenotype.get_biobank_codes(Phenotype.SEX)[0]
 AGE_UID = Phenotype.get_biobank_codes(Phenotype.AGE)[0]
 
 
