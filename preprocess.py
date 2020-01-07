@@ -163,6 +163,10 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
             test_subject_split(train_idx, validate_idx, test_idx)
             return train_idx, validate_idx, test_idx
 
+def get_cv_subject_split(features, labels, cv_folds=5, test_size=0.1, random_state=0):
+    # TODO use StratifiedKFold to split the dataset into cv_folds number of folds.
+    # TODO use StratifiedShuffleSplit to further split every train set into train/validation sets.
+    pass
 
 def get_subject_split(features, labels, stratify):
     if stratify:
@@ -278,13 +282,6 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     phenotypes, functional_data, structural_data, euler_data = \
         collect_graph_data(subject_ids, functional, structural, euler)
 
-    # sex = OneHotEncoder().fit_transform(phenotypes[SEX_UID].to_numpy().reshape(-1, 1))
-    # ct_sex = np.concatenate((ct.to_numpy(), sex.toarray()), axis=1)
-    # if euler:
-    #
-    # else:
-    # connectivities = ct_sex
-
     # Remove subjects with too few instances of the label for stratification.
     if stratify:
         phenotypes, functional_data, structural_data, euler_data, subject_ids = \
@@ -302,6 +299,10 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     train_mask, validate_mask, test_mask = get_subject_split(features, labels, stratify)
 
     # Transform features based on the training set.
+
+    # TODO either make transformation optional/transform manually or only when there is no cross-validation used.
+    # Finda a way to enable separate fit_transform depending on the cross validation fold.
+
     features = transform_features(functional_data, structural_data, euler_data,
                                   functional, pca, structural, euler, train_mask)
 
