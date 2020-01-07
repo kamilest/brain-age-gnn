@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import sklearn
 import torch
-from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 from torch_geometric.data import Data
 
 import precompute
@@ -168,9 +168,6 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
         features_train = features[train_validate_index]
         labels_train = labels[train_validate_index]
 
-        train_validate_index = np.array(train_validate_index)
-        test_index = np.array(test_index)
-
         train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
         for train_index, validate_index in train_validate_split.split(features_train, labels_train):
             train_index = np.sort(train_index)
@@ -182,6 +179,30 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
 
             test_subject_split(train_idx, validate_idx, test_idx)
             return train_idx, validate_idx, test_idx
+
+
+def get_cv_subject_split(features, labels, n_folds=5, random_state=0):
+    train_test_split = StratifiedKFold(n_splits=n_folds, random_state=random_state)
+    # folds = []
+    for train_validate_index, test_index in train_test_split.split(features, labels):
+        train_validate_index = np.sort(train_validate_index)
+        test_index = np.sort(test_index)
+        features_train = features[train_validate_index]
+        labels_train = labels[train_validate_index]
+
+        train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
+        for train_index, validate_index in train_validate_split.split(features_train, labels_train):
+            train_index = np.sort(train_index)
+            validate_index = np.sort(validate_index)
+
+            train_idx = train_validate_index[train_index]
+            validate_idx = train_validate_index[validate_index]
+            test_idx = test_index
+            test_subject_split(train_idx, validate_idx, test_idx)
+
+            folds.append([train_idx, validate_idx, test_idx])
+
+    return folds
 
 
 def get_subject_split(features, labels, stratify):
@@ -298,13 +319,6 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     phenotypes, functional_data, structural_data, euler_data = \
         collect_graph_data(subject_ids, functional, structural, euler)
 
-    # sex = OneHotEncoder().fit_transform(phenotypes[SEX_UID].to_numpy().reshape(-1, 1))
-    # ct_sex = np.concatenate((ct.to_numpy(), sex.toarray()), axis=1)
-    # if euler:
-    #
-    # else:
-    # connectivities = ct_sex
-
     # Remove subjects with too few instances of the label for stratification.
     if stratify:
         phenotypes, functional_data, structural_data, euler_data, subject_ids = \
@@ -322,6 +336,10 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     train_mask, validate_mask, test_mask = get_subject_split(features, labels, stratify)
 
     # Transform features based on the training set.
+
+    # TODO either make transformation optional/transform manually or only when there is no cross-validation used.
+    # Finda a way to enable separate fit_transform depending on the cross validation fold.
+
     features = transform_features(functional_data, structural_data, euler_data,
                                   functional, pca, structural, euler, train_mask)
 
