@@ -35,7 +35,7 @@ def get_similarity_lookup(feature_list):
             biobank_feature = Phenotype.get_biobank_codes(feature)
             if feature == Phenotype.MENTAL_HEALTH:
                 mental_to_code = Phenotype.get_mental_to_code()
-                # column names for 18 possible condidions + summary: MEN0, MEN1, ..., MEN18.
+                # column names for summary + 18 possible condidions: MEN0, MEN1, ..., MEN18.
                 mental_feature_codes = [Phenotype.MENTAL_HEALTH.value + str(i) for i in range(19)]
                 # Replace string descriptions with their codes for consistency.
                 phenotype_processed.loc[:, biobank_feature[0]] = phenotype_processed[biobank_feature[0]].apply(
@@ -44,7 +44,7 @@ def get_similarity_lookup(feature_list):
                 si = phenotype_processed.index.to_series()
                 for i in range(1, len(mental_feature_codes)):
                     phenotype_processed.loc[:, Phenotype.MENTAL_HEALTH.value + str(i)] = si.apply(
-                        lambda s: 1 if i in phenotype_processed.loc[s, biobank_feature].to_numpy() else 0)
+                        lambda s: int(i in phenotype_processed.loc[s, biobank_feature].to_numpy()))
                 phenotype_processed.loc[:, mental_feature_codes[0]] = si.apply(
                     lambda s: int(np.sum(phenotype_processed.loc[s, mental_feature_codes[1:]]) > 0))
 
@@ -89,8 +89,9 @@ def custom_similarity_function(feature_list):
             if feature == Phenotype.MENTAL_HEALTH:
                 total_score += int(np.dot(similarity_lookup.loc[subject_i, mental_feature_codes],
                                           similarity_lookup.loc[subject_j, mental_feature_codes]) != 1)
-            total_score += int(similarity_lookup.loc[subject_i, feature.value] ==
-                               similarity_lookup.loc[subject_j, feature.value])
+            else:
+                total_score += int(similarity_lookup.loc[subject_i, feature.value] ==
+                                   similarity_lookup.loc[subject_j, feature.value])
         return total_score * 1.0 / len(feature_list)
 
     return get_similarity
