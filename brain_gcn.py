@@ -3,21 +3,20 @@
     https://pytorch-geometric.readthedocs.io/en/latest/notes/introduction.html
 
 """
-import preprocess
+import numpy as np
 import torch
 import torch.nn.functional as F
-from torch.nn import Linear
-from torch_geometric.nn import GCNConv
-
-import numpy as np
 from scipy.stats import pearsonr
 from sklearn.metrics import r2_score
 from sklearn.model_selection import StratifiedKFold
-
+from torch.nn import Linear
 from torch.utils.tensorboard import SummaryWriter
+from torch_geometric.nn import GCNConv
+
+import preprocess
 
 graph_root = 'data/graph'
-graph_name = 'population_graph_all_structural_euler_no_edges_sex.pt'
+graph_name = 'population_graph_2000_SEX_FTE_FI_MEM_structural_euler.pt'
 population_graph = preprocess.load_population_graph(graph_root, graph_name)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -50,14 +49,19 @@ def gcn_train_cv(data, folds=5):
 
 
 def gcn_train(data):
+    epochs = 350
+    lr = 0.005
+    weight_decay = 1e-5
+
     writer = SummaryWriter(
-        log_dir='runs/all_structural_euler_sex_fc3_362_1024_512_1_tanh_epochs=450_lr=0.005_weight_decay=1e-5')
+        log_dir='runs/{}_gcn1_fc3_362__512_1_tanh_epochs={}_lr={}_weight_decay={}'.format(
+            graph_name.replace('population_graph_', '').replace('.pt', ''), epochs, lr, weight_decay))
 
     model = BrainGCN().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=1e-5)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     model.train()
-    for epoch in range(450):
+    for epoch in range(epochs):
         optimizer.zero_grad()
         out = model(data)
         loss = F.mse_loss(out[data.train_mask], data.y[data.train_mask])
@@ -118,15 +122,17 @@ def gcn_train(data):
 class BrainGCN(torch.nn.Module):
     def __init__(self):
         super(BrainGCN, self).__init__()
-        # self.conv1 = GCNConv(population_graph.num_node_features, 1024)
-        self.fc_1 = Linear(population_graph.num_node_features, 1024)
+        self.conv1 = GCNConv(population_graph.num_node_features, 1024)
+        # self.fc_1 = Linear(512, 1024)
         self.fc_2 = Linear(1024, 512)
         self.fc_3 = Linear(512, 1)
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
-        x = self.fc_1(x)
+        x = self.conv1(x, edge_index)
         x = torch.tanh(x)
+        # x = self.fc_1(x)
+        # x = torch.tanh(x)
         x = self.fc_2(x)
         x = torch.tanh(x)
         x = self.fc_3(x)
