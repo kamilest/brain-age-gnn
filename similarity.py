@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 from phenotype import Phenotype
@@ -11,7 +12,6 @@ def get_similarity_lookup(feature_list):
     :return: dataframe containing the values used for similarity comparison, row-indexed by subject ID and
     column-indexed by phenotype code name (e.g. 'AGE', 'FTE' etc.)
     """
-    # TODO without referring to the phenotype in get_similarity, just the subjects.
 
     phenotypes = pd.read_csv(data_phenotype, sep=',')
     phenotypes.index = ['UKB' + str(eid) for eid in phenotypes['eid']]
@@ -34,9 +34,20 @@ def get_similarity_lookup(feature_list):
         if feature in Phenotype:
             biobank_feature = Phenotype.get_biobank_codes(feature)
             if feature == Phenotype.MENTAL_HEALTH:
-                # TODO compare the rest of the categories
-                # First value in the mental health feature array gives the overall diagnosis as string.
-                phenotype_processed.loc[:, feature.value] = phenotype_processed[biobank_feature[0]].copy()
+                mental_to_code = Phenotype.get_mental_to_code()
+                # column names for 18 possible condidions + summary: MEN0, MEN1, ..., MEN18.
+                mental_feature_codes = [Phenotype.MENTAL_HEALTH.value + str(i) for i in range(19)]
+                # Replace string descriptions with their codes for consistency.
+                phenotype_processed.loc[:, biobank_feature[0]] = phenotype_processed[biobank_feature[0]].apply(
+                    lambda x: mental_to_code[x] if x in mental_to_code.keys() else None)
+                # Determine if the the patient have the occurrence of a particular disease.
+                si = phenotype_processed.index.to_series()
+                for i in range(1, len(mental_feature_codes)):
+                    phenotype_processed.loc[:, Phenotype.MENTAL_HEALTH.value + str(i)] = si.apply(
+                        lambda s: 1 if i in phenotype_processed.loc[s, biobank_feature].to_numpy() else 0)
+                phenotype_processed.loc[:, mental_feature_codes[0]] = si.apply(
+                    lambda s: int(np.sum(phenotype_processed.loc[s, mental_feature_codes[1:]]) > 0))
+
             elif len(biobank_feature) > 1:
                 # handle the more/less recent values
                 si = phenotype_processed.index.to_series().copy()
@@ -70,10 +81,14 @@ def custom_similarity_function(feature_list):
 
     # Create look-up table of similarity features for all subjects.
     similarity_lookup = get_similarity_lookup(feature_list)
+    mental_feature_codes = [Phenotype.MENTAL_HEALTH.value + str(i) for i in range(19)]
 
     def get_similarity(subject_i, subject_j):
         total_score = 0
         for feature in feature_list:
+            if feature == Phenotype.MENTAL_HEALTH:
+                total_score += int(np.dot(similarity_lookup.loc[subject_i, mental_feature_codes],
+                                          similarity_lookup.loc[subject_j, mental_feature_codes]) != 1)
             total_score += int(similarity_lookup.loc[subject_i, feature.value] ==
                                similarity_lookup.loc[subject_j, feature.value])
         return total_score * 1.0 / len(feature_list)

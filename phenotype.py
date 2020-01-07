@@ -1,5 +1,24 @@
 import enum
 
+# http://biobank.ndph.ox.ac.uk/showcase/coding.cgi?id=1401
+MENTAL_TO_CODE = {'Anxiety, nerves or GAD': 15,
+                  'Panic attacks': 6,
+                  'Social Anxiety or phobia': 1,
+                  'Other phobia': 5,
+                  'OCD': 7,
+                  'Other type of Psychosis or psychotic ilness': 3,
+                  'Mania, hypomania, bipolar or manic-depression': 10,
+                  'Anorexia nervosa': 16,
+                  'Prefer not to answer(Group B)': -819,
+                  'Other personality disorder': 4,
+                  'Prefer not to answer(Group A)': -818,
+                  'Bulimia nervosa': 12,
+                  'Schizophrenia': 2,
+                  'Autism, Asperger or binge-eating': 14,
+                  'Agoraphobia': 17,
+                  'Psychological over-eating or binge-eating': 13,
+                  'ADD/ADHD': 18}
+
 
 class Phenotype(enum.Enum):
     SEX = 'SEX'
@@ -12,7 +31,7 @@ class Phenotype(enum.Enum):
     NEUROTICISM_SCORE = 'NEU'
     SMOKING_STATUS = 'SMO'
 
-    # noinspection PyMethodParameters
+    @staticmethod
     def get_biobank_codes(feature):
         biobank_features = {
             Phenotype.SEX: ['31-0.0'],  # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=31
@@ -27,3 +46,8 @@ class Phenotype(enum.Enum):
         }
 
         return biobank_features[feature]
+
+    @staticmethod
+    def get_mental_to_code():
+        return MENTAL_TO_CODE
+
