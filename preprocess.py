@@ -17,7 +17,7 @@ import numpy as np
 import pandas as pd
 import sklearn
 import torch
-from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 from torch_geometric.data import Data
 
 import precompute
@@ -168,9 +168,6 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
         features_train = features[train_validate_index]
         labels_train = labels[train_validate_index]
 
-        train_validate_index = np.array(train_validate_index)
-        test_index = np.array(test_index)
-
         train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
         for train_index, validate_index in train_validate_split.split(features_train, labels_train):
             train_index = np.sort(train_index)
@@ -183,10 +180,30 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
             test_subject_split(train_idx, validate_idx, test_idx)
             return train_idx, validate_idx, test_idx
 
-def get_cv_subject_split(features, labels, cv_folds=5, test_size=0.1, random_state=0):
-    # TODO use StratifiedKFold to split the dataset into cv_folds number of folds.
-    # TODO use StratifiedShuffleSplit to further split every train set into train/validation sets.
-    pass
+
+def get_cv_subject_split(features, labels, n_folds=5, random_state=0):
+    train_test_split = StratifiedKFold(n_splits=n_folds, random_state=random_state)
+    # folds = []
+    for train_validate_index, test_index in train_test_split.split(features, labels):
+        train_validate_index = np.sort(train_validate_index)
+        test_index = np.sort(test_index)
+        features_train = features[train_validate_index]
+        labels_train = labels[train_validate_index]
+
+        train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
+        for train_index, validate_index in train_validate_split.split(features_train, labels_train):
+            train_index = np.sort(train_index)
+            validate_index = np.sort(validate_index)
+
+            train_idx = train_validate_index[train_index]
+            validate_idx = train_validate_index[validate_index]
+            test_idx = test_index
+            test_subject_split(train_idx, validate_idx, test_idx)
+
+            folds.append([train_idx, validate_idx, test_idx])
+
+    return folds
+
 
 def get_subject_split(features, labels, stratify):
     if stratify:
