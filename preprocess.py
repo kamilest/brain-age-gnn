@@ -183,7 +183,7 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
 
 def get_cv_subject_split(features, labels, n_folds=5, random_state=0):
     train_test_split = StratifiedKFold(n_splits=n_folds, random_state=random_state)
-    # folds = []
+    folds = []
     for train_validate_index, test_index in train_test_split.split(features, labels):
         train_validate_index = np.sort(train_validate_index)
         test_index = np.sort(test_index)
@@ -382,6 +382,6 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE,
-                   Phenotype.PROSPECTIVE_MEMORY_RESULT]
-    graph = construct_population_graph(feature_set, size=2000, stratify=True, logs=True)
+    # feature_set = [Phenotype.SEX, Phenotype.MENTAL_HEALTH, Phenotype.FLUID_INTELLIGENCE]
+    # graph = construct_population_graph(feature_set, similarity_threshold=0.7, size=2000, stratify=True, logs=True)
+    graph = load_population_graph(graph_root, 'population_graph_2000_SEX_MEN_FI_structural_euler.pt')
