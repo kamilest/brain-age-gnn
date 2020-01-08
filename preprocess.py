@@ -91,48 +91,6 @@ def functional_connectivities_pca(connectivities, train_idx, random_state=0):
     return connectivity_pca.transform(connectivities)
 
 
-def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0.5, save=False, graph_name=None):
-    """Constructs the adjacency list of the population graph based on a similarity metric provided.
-
-    :param subject_ids: subject IDs.
-    :param similarity_function: function which is returns similarity between two subjects according to some metric.
-    :param similarity_threshold: the threshold above which the edge should be added.
-    :param save: inidicates whether to save the graph in the logs directory.
-    :param graph_name: graph name for saved file if graph edges are logged.
-    :return: graph connectivity in coordinate format of shape [2, num_edges].
-    The same edge (v, w) appears twice as (v, w) and (w, v) to represent bidirectionality.
-    """
-
-    v_list = []
-    w_list = []
-
-    if save:
-        if graph_name is None:
-            graph_name = 'graph.csv'
-
-        with open(os.path.join('logs', graph_name), 'w+', newline='') as csvfile:
-            wr = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
-            for i, id_i in enumerate(subject_ids):
-                wr.writerow([i, i])  # ensure singletons appear in the graph adjacency list.
-                iter_j = iter(enumerate(subject_ids))
-                [next(iter_j) for _ in range(i + 1)]
-                for j, id_j in iter_j:
-                    if similarity_function(id_i, id_j) > similarity_threshold:
-                        wr.writerow([i, j])
-                        v_list.extend([i, j])
-                        w_list.extend([j, i])
-    else:
-        for i, id_i in enumerate(subject_ids):
-            iter_j = iter(enumerate(subject_ids))
-            [next(iter_j) for _ in range(i + 1)]
-            for j, id_j in iter_j:
-                if similarity_function(id_i, id_j) > similarity_threshold:
-                    v_list.extend([i, j])
-                    w_list.extend([j, i])
-
-    return [v_list, w_list]
-
-
 def test_subject_split(train_idx, validate_idx, test_idx):
     assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
     assert (len(np.intersect1d(train_idx, test_idx)) == 0)
@@ -280,6 +238,48 @@ def remove_low_age_occurrence_instances(phenotypes, functional_data, structural_
     phenotypes = phenotypes.iloc[age_index]
 
     return phenotypes, functional_data, structural_data, euler_data, subject_ids
+
+
+def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0.5, save=False, graph_name=None):
+    """Constructs the adjacency list of the population graph based on a similarity metric provided.
+
+    :param subject_ids: subject IDs.
+    :param similarity_function: function which is returns similarity between two subjects according to some metric.
+    :param similarity_threshold: the threshold above which the edge should be added.
+    :param save: inidicates whether to save the graph in the logs directory.
+    :param graph_name: graph name for saved file if graph edges are logged.
+    :return: graph connectivity in coordinate format of shape [2, num_edges].
+    The same edge (v, w) appears twice as (v, w) and (w, v) to represent bidirectionality.
+    """
+
+    v_list = []
+    w_list = []
+
+    if save:
+        if graph_name is None:
+            graph_name = 'graph.csv'
+
+        with open(os.path.join('logs', graph_name), 'w+', newline='') as csvfile:
+            wr = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+            for i, id_i in enumerate(subject_ids):
+                wr.writerow([i, i])  # ensure singletons appear in the graph adjacency list.
+                iter_j = iter(enumerate(subject_ids))
+                [next(iter_j) for _ in range(i + 1)]
+                for j, id_j in iter_j:
+                    if similarity_function(id_i, id_j) > similarity_threshold:
+                        wr.writerow([i, j])
+                        v_list.extend([i, j])
+                        w_list.extend([j, i])
+    else:
+        for i, id_i in enumerate(subject_ids):
+            iter_j = iter(enumerate(subject_ids))
+            [next(iter_j) for _ in range(i + 1)]
+            for j, id_j in iter_j:
+                if similarity_function(id_i, id_j) > similarity_threshold:
+                    v_list.extend([i, j])
+                    w_list.extend([j, i])
+
+    return [v_list, w_list]
 
 
 def transform_features(functional_data, structural_data, euler_data, functional, pca, structural, euler, train_mask):
