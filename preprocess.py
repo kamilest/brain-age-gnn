@@ -282,19 +282,19 @@ def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0
     return [v_list, w_list]
 
 
-def transform_features(functional_data, structural_data, euler_data, functional, pca, structural, euler, train_mask):
+def feature_transform(train_mask, functional_data=None, structural_data=None, euler_data=None):
     # Optional functional data preprocessing (PCA) based on the traning index.
-    if functional and pca:
+    if functional_data is not None:
         functional_data = functional_connectivities_pca(functional_data, train_mask)
 
     # Scaling structural data based on training index.
-    if structural:
+    if structural_data is not None:
         structural_scaler = sklearn.preprocessing.StandardScaler()
         structural_scaler.fit(structural_data[train_mask])
         structural_data = structural_scaler.transform(structural_data)
 
     # Scaling Euler index data based on training index.
-    if euler:
+    if euler_data is not None:
         euler_scaler = sklearn.preprocessing.StandardScaler()
         euler_scaler.fit(euler_data[train_mask])
         euler_data = euler_scaler.transform(euler_data)
@@ -340,8 +340,7 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     # TODO either make transformation optional/transform manually or only when there is no cross-validation used.
     # Finda a way to enable separate fit_transform depending on the cross validation fold.
 
-    features = transform_features(functional_data, structural_data, euler_data,
-                                  functional, pca, structural, euler, train_mask)
+    features = feature_transform(train_mask, functional_data, structural_data, euler_data)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
