@@ -3,6 +3,8 @@
     https://pytorch-geometric.readthedocs.io/en/latest/notes/introduction.html
 
 """
+from datetime import datetime
+
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -48,14 +50,17 @@ def gcn_train_cv(data, folds=5):
     return np.mean(cv_scores)
 
 
+# TODO (make logging optional)
+# TODO automatic layer parameteristaion through arrays of layer sizes
 def gcn_train(data):
     epochs = 350
     lr = 0.005
     weight_decay = 1e-5
 
     writer = SummaryWriter(
-        log_dir='runs/{}_gcn1_fc3_362__512_1_tanh_epochs={}_lr={}_weight_decay={}'.format(
-            graph_name.replace('population_graph_', '').replace('.pt', ''), epochs, lr, weight_decay))
+        log_dir='runs/{}_gcn1_fc3_{}_1024_512_256_1_tanh_epochs={}_lr={}_weight_decay={}_{}'.format(
+            graph_name.replace('population_graph_', '').replace('.pt', ''),
+            data.num_node_features, epochs, lr, weight_decay, datetime.now().strftime("_%H_%M_%S")))
 
     model = BrainGCN().to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
@@ -123,16 +128,17 @@ class BrainGCN(torch.nn.Module):
     def __init__(self):
         super(BrainGCN, self).__init__()
         self.conv1 = GCNConv(population_graph.num_node_features, 1024)
-        # self.fc_1 = Linear(512, 1024)
-        self.fc_2 = Linear(1024, 512)
-        self.fc_3 = Linear(512, 1)
+        # self.fc_0 = Linear(population_graph.num_node_features, 1024)
+        self.fc_1 = Linear(1024, 512)
+        self.fc_2 = Linear(512, 256)
+        self.fc_3 = Linear(256, 1)
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
         x = self.conv1(x, edge_index)
         x = torch.tanh(x)
-        # x = self.fc_1(x)
-        # x = torch.tanh(x)
+        x = self.fc_1(x)
+        x = torch.tanh(x)
         x = self.fc_2(x)
         x = torch.tanh(x)
         x = self.fc_3(x)
