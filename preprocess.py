@@ -90,48 +90,6 @@ def functional_connectivities_pca(connectivities, train_idx, random_state=0):
     return connectivity_pca.transform(connectivities)
 
 
-def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0.5, save=False, graph_name=None):
-    """Constructs the adjacency list of the population graph based on a similarity metric provided.
-
-    :param subject_ids: subject IDs.
-    :param similarity_function: function which is returns similarity between two subjects according to some metric.
-    :param similarity_threshold: the threshold above which the edge should be added.
-    :param save: inidicates whether to save the graph in the logs directory.
-    :param graph_name: graph name for saved file if graph edges are logged.
-    :return: graph connectivity in coordinate format of shape [2, num_edges].
-    The same edge (v, w) appears twice as (v, w) and (w, v) to represent bidirectionality.
-    """
-
-    v_list = []
-    w_list = []
-
-    if save:
-        if graph_name is None:
-            graph_name = 'graph.csv'
-
-        with open(os.path.join('logs', graph_name), 'w+', newline='') as csvfile:
-            wr = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
-            for i, id_i in enumerate(subject_ids):
-                wr.writerow([i, i])  # ensure singletons appear in the graph adjacency list.
-                iter_j = iter(enumerate(subject_ids))
-                [next(iter_j) for _ in range(i + 1)]
-                for j, id_j in iter_j:
-                    if similarity_function(id_i, id_j) > similarity_threshold:
-                        wr.writerow([i, j])
-                        v_list.extend([i, j])
-                        w_list.extend([j, i])
-    else:
-        for i, id_i in enumerate(subject_ids):
-            iter_j = iter(enumerate(subject_ids))
-            [next(iter_j) for _ in range(i + 1)]
-            for j, id_j in iter_j:
-                if similarity_function(id_i, id_j) > similarity_threshold:
-                    v_list.extend([i, j])
-                    w_list.extend([j, i])
-
-    return [v_list, w_list]
-
-
 def test_subject_split(train_idx, validate_idx, test_idx):
     assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
     assert (len(np.intersect1d(train_idx, test_idx)) == 0)
@@ -182,7 +140,7 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
 
 def get_cv_subject_split(features, labels, n_folds=5, random_state=0):
     train_test_split = StratifiedKFold(n_splits=n_folds, random_state=random_state)
-    # folds = []
+    folds = []
     for train_validate_index, test_index in train_test_split.split(features, labels):
         train_validate_index = np.sort(train_validate_index)
         test_index = np.sort(test_index)
@@ -281,19 +239,61 @@ def remove_low_age_occurrence_instances(phenotypes, functional_data, structural_
     return phenotypes, functional_data, structural_data, euler_data, subject_ids
 
 
-def transform_features(functional_data, structural_data, euler_data, functional, pca, structural, euler, train_mask):
+def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0.5, save=False, graph_name=None):
+    """Constructs the adjacency list of the population graph based on a similarity metric provided.
+
+    :param subject_ids: subject IDs.
+    :param similarity_function: function which is returns similarity between two subjects according to some metric.
+    :param similarity_threshold: the threshold above which the edge should be added.
+    :param save: inidicates whether to save the graph in the logs directory.
+    :param graph_name: graph name for saved file if graph edges are logged.
+    :return: graph connectivity in coordinate format of shape [2, num_edges].
+    The same edge (v, w) appears twice as (v, w) and (w, v) to represent bidirectionality.
+    """
+
+    v_list = []
+    w_list = []
+
+    if save:
+        if graph_name is None:
+            graph_name = 'graph.csv'
+
+        with open(os.path.join('logs', graph_name), 'w+', newline='') as csvfile:
+            wr = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+            for i, id_i in enumerate(subject_ids):
+                wr.writerow([i, i])  # ensure singletons appear in the graph adjacency list.
+                iter_j = iter(enumerate(subject_ids))
+                [next(iter_j) for _ in range(i + 1)]
+                for j, id_j in iter_j:
+                    if similarity_function(id_i, id_j) > similarity_threshold:
+                        wr.writerow([i, j])
+                        v_list.extend([i, j])
+                        w_list.extend([j, i])
+    else:
+        for i, id_i in enumerate(subject_ids):
+            iter_j = iter(enumerate(subject_ids))
+            [next(iter_j) for _ in range(i + 1)]
+            for j, id_j in iter_j:
+                if similarity_function(id_i, id_j) > similarity_threshold:
+                    v_list.extend([i, j])
+                    w_list.extend([j, i])
+
+    return [v_list, w_list]
+
+
+def feature_transform(train_mask, functional_data=None, structural_data=None, euler_data=None):
     # Optional functional data preprocessing (PCA) based on the traning index.
-    if functional and pca:
+    if functional_data is not None:
         functional_data = functional_connectivities_pca(functional_data, train_mask)
 
     # Scaling structural data based on training index.
-    if structural:
+    if structural_data is not None:
         structural_scaler = sklearn.preprocessing.StandardScaler()
         structural_scaler.fit(structural_data[train_mask])
         structural_data = structural_scaler.transform(structural_data)
 
     # Scaling Euler index data based on training index.
-    if euler:
+    if euler_data is not None:
         euler_scaler = sklearn.preprocessing.StandardScaler()
         euler_scaler.fit(euler_data[train_mask])
         euler_data = euler_scaler.transform(euler_data)
@@ -339,8 +339,7 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     # TODO either make transformation optional/transform manually or only when there is no cross-validation used.
     # Finda a way to enable separate fit_transform depending on the cross validation fold.
 
-    features = transform_features(functional_data, structural_data, euler_data,
-                                  functional, pca, structural, euler, train_mask)
+    features = feature_transform(train_mask, functional_data, structural_data, euler_data)
 
     feature_tensor = torch.tensor(features, dtype=torch.float32)
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
@@ -385,3 +384,4 @@ if __name__ == '__main__':
                    Phenotype.PROSPECTIVE_MEMORY_RESULT]
     # TODO restrict similarity threshold.
     graph = construct_population_graph(feature_set, similarity_threshold=0.9, stratify=True, logs=True)
+
