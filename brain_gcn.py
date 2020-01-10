@@ -3,86 +3,84 @@
     https://pytorch-geometric.readthedocs.io/en/latest/notes/introduction.html
 
 """
-import preprocess
-import torch
-import torch.nn.functional as F
-from torch.nn import Linear
-from torch_geometric.nn import GCNConv
+import os
+from datetime import datetime
+from pathlib import Path
 
 import numpy as np
+import torch
+import torch.nn.functional as F
 from scipy.stats import pearsonr
 from sklearn.metrics import r2_score
-from sklearn.model_selection import StratifiedKFold
-
+from torch.nn import Linear
 from torch.utils.tensorboard import SummaryWriter
+from torch_geometric.nn import GCNConv
+
+import preprocess
 
 graph_root = 'data/graph'
-graph_name = 'population_graph_all_structural_euler_no_edges_sex.pt'
+graph_name = 'population_graph_all_SEX_FTE_FI_MEM_structural_euler.pt'
 population_graph = preprocess.load_population_graph(graph_root, graph_name)
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+logdir = './runs/{}'.format(datetime.now().strftime('%Y-%m-%d'))
+Path(logdir).mkdir(parents=True, exist_ok=True)
+
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 data = population_graph.to(device)
 
 
-def gcn_train_cv(data, folds=5):
-    train_idx = np.argwhere(data.train_mask.cpu().numpy())
+def gcn_train(data, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005, weight_decay=1e-5, log=True):
+    assert n_conv_layers >= 0
 
-    X = data.x[train_idx].cpu().numpy()
-    y = np.squeeze(data.y[train_idx].cpu().numpy(), axis=(2,))
-    print(data.y[train_idx].shape)
-    print(y.shape)
+    if layer_sizes is None:
+        layer_sizes = []
 
-    skf = StratifiedKFold(n_splits=folds, random_state=0)
-    skf.get_n_splits()
+    if log:
+        log_name = '{}_{}_gcn{}_fc{}_{}_{}_epochs={}_lr={}_weight_decay={}'.format(
+            datetime.now().strftime("%H_%M_%S"),
+            graph_name.replace('population_graph_', '').replace('.pt', ''),
+            n_conv_layers,
+            len(layer_sizes) - n_conv_layers,
+            data.num_node_features,
+            '_'.join(map(str, layer_sizes)),
+            epochs,
+            lr,
+            weight_decay)
+        writer = SummaryWriter(log_dir=os.path.join(logdir, log_name))
+    else:
+        writer = None
 
-    cv_scores = []
-    for fold, (tr, te) in enumerate(skf.split(X, y)):
-        train_index = np.take(train_idx, tr)
-        test_index = np.take(train_idx, te)
-
-        # assert(len(np.intersect1d(train_index, np.argwhere(data.test_mask.cpu().numpy()))) == 0)
-        # assert(len(np.intersect1d(test_index, np.argwhere(data.test_mask.cpu().numpy()))) == 0)
-
-        print('Training fold {}'.format(fold))
-        cv_scores.append(gcn_train(data))
-
-    return np.mean(cv_scores)
-
-
-def gcn_train(data):
-    writer = SummaryWriter(
-        log_dir='runs/all_structural_euler_sex_fc3_362_1024_512_1_tanh_epochs=450_lr=0.005_weight_decay=1e-5')
-
-    model = BrainGCN().to(device)
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=1e-5)
+    model = BrainGCN(n_conv_layers, layer_sizes).to(device)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     model.train()
-    for epoch in range(450):
+    for epoch in range(epochs):
         optimizer.zero_grad()
         out = model(data)
         loss = F.mse_loss(out[data.train_mask], data.y[data.train_mask])
-        writer.add_scalar('Train/MSE',
-                          loss.item(),
-                          epoch)
-        writer.add_scalar('Train/R2',
-                          r2_score(data.y[data.train_mask].cpu().detach().numpy(),
-                                   out[data.train_mask].cpu().detach().numpy()),
-                          epoch)
-        writer.add_scalar('Train/R',
-                          pearsonr(data.y[data.train_mask].cpu().detach().numpy().flatten(),
-                                   out[data.train_mask].cpu().detach().numpy().flatten())[0],
-                          epoch)
-        writer.add_scalar('Validation/MSE',
-                          F.mse_loss(out[data.validate_mask], data.y[data.validate_mask]).item(),
-                          epoch)
-        writer.add_scalar('Validation/R2',
-                          r2_score(data.y[data.validate_mask].cpu().detach().numpy(),
-                                   out[data.validate_mask].cpu().detach().numpy()),
-                          epoch)
-        writer.add_scalar('Validation/R',
-                          pearsonr(data.y[data.validate_mask].cpu().detach().numpy().flatten(),
-                                   out[data.validate_mask].cpu().detach().numpy().flatten())[0],
-                          epoch)
+        if log:
+            writer.add_scalar('Train/MSE',
+                              loss.item(),
+                              epoch)
+            writer.add_scalar('Train/R2',
+                              r2_score(data.y[data.train_mask].cpu().detach().numpy(),
+                                       out[data.train_mask].cpu().detach().numpy()),
+                              epoch)
+            writer.add_scalar('Train/R',
+                              pearsonr(data.y[data.train_mask].cpu().detach().numpy().flatten(),
+                                       out[data.train_mask].cpu().detach().numpy().flatten())[0],
+                              epoch)
+            writer.add_scalar('Validation/MSE',
+                              F.mse_loss(out[data.validate_mask], data.y[data.validate_mask]).item(),
+                              epoch)
+            writer.add_scalar('Validation/R2',
+                              r2_score(data.y[data.validate_mask].cpu().detach().numpy(),
+                                       out[data.validate_mask].cpu().detach().numpy()),
+                              epoch)
+            writer.add_scalar('Validation/R',
+                              pearsonr(data.y[data.validate_mask].cpu().detach().numpy().flatten(),
+                                       out[data.validate_mask].cpu().detach().numpy().flatten())[0],
+                              epoch)
         print(epoch,
               loss.item(),
               r2_score(data.y[data.train_mask].cpu().detach().numpy(),
@@ -100,7 +98,9 @@ def gcn_train(data):
 
         loss.backward()
         optimizer.step()
-    writer.close()
+
+    if log:
+        writer.close()
 
     model.eval()
     final_model = model(data)
@@ -116,25 +116,33 @@ def gcn_train(data):
 
 
 class BrainGCN(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, n_conv_layers, layer_sizes):
         super(BrainGCN, self).__init__()
-        # self.conv1 = GCNConv(population_graph.num_node_features, 1024)
-        self.fc_1 = Linear(population_graph.num_node_features, 1024)
-        self.fc_2 = Linear(1024, 512)
-        self.fc_3 = Linear(512, 1)
+        self.conv = torch.nn.ModuleList()
+        self.fc = torch.nn.ModuleList()
+        size = population_graph.num_node_features
+        self.params = torch.nn.ParameterList([size].extend(layer_sizes))
+        for i in range(n_conv_layers):
+            self.conv.append(GCNConv(size, layer_sizes[i]))
+            size = layer_sizes[i]
+        for i in range(len(layer_sizes) - n_conv_layers):
+            self.fc.append(Linear(size, layer_sizes[n_conv_layers+i]))
+            size = layer_sizes[n_conv_layers+i]
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
-        x = self.fc_1(x)
-        x = torch.tanh(x)
-        x = self.fc_2(x)
-        x = torch.tanh(x)
-        x = self.fc_3(x)
+        for i in range(len(self.conv)):
+            x = self.conv[i](x, edge_index)
+            x = torch.tanh(x)
+        for i in range(len(self.fc) - 1):
+            x = self.fc[i](x)
+            x = torch.tanh(x)
 
+        x = self.fc[-1](x)
         return x
 
 
-# torch.manual_seed(0)
-# np.random.seed(0)
+torch.manual_seed(99)
+np.random.seed(0)
 
-r2, predicted, actual = gcn_train(data)
+r2, predicted, actual = gcn_train(data, n_conv_layers=2, layer_sizes=[364, 364, 512, 256, 1], epochs=500)
