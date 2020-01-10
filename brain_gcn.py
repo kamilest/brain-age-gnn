@@ -7,12 +7,10 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-import numpy as np
 import torch
 import torch.nn.functional as F
 from scipy.stats import pearsonr
 from sklearn.metrics import r2_score
-from sklearn.model_selection import StratifiedKFold
 from torch.nn import Linear
 from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.nn import GCNConv
@@ -28,31 +26,6 @@ Path(logdir).mkdir(parents=True, exist_ok=True)
 
 device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 data = population_graph.to(device)
-
-
-def gcn_train_cv(data, folds=5):
-    train_idx = np.argwhere(data.train_mask.cpu().numpy())
-
-    X = data.x[train_idx].cpu().numpy()
-    y = np.squeeze(data.y[train_idx].cpu().numpy(), axis=(2,))
-    print(data.y[train_idx].shape)
-    print(y.shape)
-
-    skf = StratifiedKFold(n_splits=folds, random_state=0)
-    skf.get_n_splits()
-
-    cv_scores = []
-    for fold, (tr, te) in enumerate(skf.split(X, y)):
-        train_index = np.take(train_idx, tr)
-        test_index = np.take(train_idx, te)
-
-        # assert(len(np.intersect1d(train_index, np.argwhere(data.test_mask.cpu().numpy()))) == 0)
-        # assert(len(np.intersect1d(test_index, np.argwhere(data.test_mask.cpu().numpy()))) == 0)
-
-        print('Training fold {}'.format(fold))
-        cv_scores.append(gcn_train(data))
-
-    return np.mean(cv_scores)
 
 
 # TODO automatic layer parameteristaion through arrays of layer sizes
