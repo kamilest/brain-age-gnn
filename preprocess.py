@@ -32,7 +32,6 @@ data_phenotype = 'data/phenotype.csv'
 graph_root = 'data/graph'
 
 # Graph construction phenotypic parameters.
-SEX_UID = Phenotype.get_biobank_codes(Phenotype.SEX)[0]
 AGE_UID = Phenotype.get_biobank_codes(Phenotype.AGE)[0]
 
 
@@ -381,6 +380,8 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    # feature_set = [Phenotype.SEX, Phenotype.MENTAL_HEALTH, Phenotype.FLUID_INTELLIGENCE]
-    # graph = construct_population_graph(feature_set, similarity_threshold=0.7, size=2000, stratify=True, logs=True)
-    graph = load_population_graph(graph_root, 'population_graph_2000_SEX_MEN_FI_structural_euler.pt')
+    feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE,
+                   Phenotype.PROSPECTIVE_MEMORY_RESULT]
+    # TODO restrict similarity threshold.
+    graph = construct_population_graph(feature_set, similarity_threshold=0.9, stratify=True, logs=True)
+
