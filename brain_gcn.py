@@ -4,6 +4,7 @@
 
 """
 from datetime import datetime
+from pathlib import Path
 
 import numpy as np
 import torch
@@ -21,7 +22,10 @@ graph_root = 'data/graph'
 graph_name = 'population_graph_2000_SEX_FTE_FI_MEM_structural_euler.pt'
 population_graph = preprocess.load_population_graph(graph_root, graph_name)
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+logdir = 'runs/{}'.format(datetime.now().strftime('%Y-%m-%d'))
+Path(logdir).mkdir(parents=True, exist_ok=True)
+
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 data = population_graph.to(device)
 
 
