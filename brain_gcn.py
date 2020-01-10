@@ -29,21 +29,28 @@ device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 data = population_graph.to(device)
 
 
-# TODO automatic layer parameteristaion through arrays of layer sizes
-def gcn_train(data, conv=None, fc=None, epochs=350, lr=0.005, weight_decay=1e-5, log=True):
-    if conv is None:
-        gcn = []
-    if fc is None:
-        fc = []
+def gcn_train(data, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005, weight_decay=1e-5, log=True):
+    assert n_conv_layers >= 0
+
+    if layer_sizes is None:
+        layer_sizes = []
+
     if log:
-        log_name = '{}_nogcn_fc3_{}_1024_512_256_1_tanh_epochs={}_lr={}_weight_decay={}_{}'.format(
+        log_name = '{}_{}_gcn{}_fc{}_{}_{}_epochs={}_lr={}_weight_decay={}'.format(
+            datetime.now().strftime("%H_%M_%S"),
             graph_name.replace('population_graph_', '').replace('.pt', ''),
-            data.num_node_features, epochs, lr, weight_decay, datetime.now().strftime("_%H_%M_%S"))
+            n_conv_layers,
+            len(layer_sizes) - n_conv_layers,
+            data.num_node_features,
+            '_'.join(map(str, layer_sizes)),
+            epochs,
+            lr,
+            weight_decay)
         writer = SummaryWriter(log_dir=os.path.join(logdir, log_name))
     else:
         writer = None
 
-    model = BrainGCN(conv, fc).to(device)
+    model = BrainGCN(n_conv_layers, layer_sizes).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     model.train()
@@ -109,17 +116,18 @@ def gcn_train(data, conv=None, fc=None, epochs=350, lr=0.005, weight_decay=1e-5,
 
 
 class BrainGCN(torch.nn.Module):
-    def __init__(self, conv_sizes, fc_sizes):
+    def __init__(self, n_conv_layers, layer_sizes):
         super(BrainGCN, self).__init__()
-        self.conv = []
-        self.fc = []
+        self.conv = torch.nn.ModuleList()
+        self.fc = torch.nn.ModuleList()
         size = population_graph.num_node_features
-        for size_next in conv_sizes:
-            self.conv.append(GCNConv(size, size_next))
-            size = size_next
-        for size_next in fc_sizes:
-            self.fc.append(Linear(size, size_next))
-            size = size_next
+        self.params = torch.nn.ParameterList([size].extend(layer_sizes))
+        for i in range(n_conv_layers):
+            self.conv.append(GCNConv(size, layer_sizes[i]))
+            size = layer_sizes[i]
+        for i in range(len(layer_sizes) - n_conv_layers):
+            self.fc.append(Linear(size, layer_sizes[n_conv_layers+i]))
+            size = layer_sizes[n_conv_layers+i]
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
@@ -134,7 +142,7 @@ class BrainGCN(torch.nn.Module):
         return x
 
 
-torch.manual_seed(0)
+torch.manual_seed(99)
 np.random.seed(0)
 
-r2, predicted, actual = gcn_train(data)
+r2, predicted, actual = gcn_train(data, n_conv_layers=2, layer_sizes=[364, 364, 512, 256, 1], epochs=500)
