@@ -29,19 +29,20 @@ data = population_graph.to(device)
 
 
 # TODO automatic layer parameteristaion through arrays of layer sizes
-def gcn_train(data, log=True):
-    epochs = 350
-    lr = 0.005
-    weight_decay = 1e-5
-    writer = None
-
+def gcn_train(data, conv=None, fc=None, epochs=350, lr=0.005, weight_decay=1e-5, log=True):
+    if conv is None:
+        gcn = []
+    if fc is None:
+        fc = []
     if log:
         log_name = '{}_nogcn_fc3_{}_1024_512_256_1_tanh_epochs={}_lr={}_weight_decay={}_{}'.format(
             graph_name.replace('population_graph_', '').replace('.pt', ''),
             data.num_node_features, epochs, lr, weight_decay, datetime.now().strftime("_%H_%M_%S"))
         writer = SummaryWriter(log_dir=os.path.join(logdir, log_name))
+    else:
+        writer = None
 
-    model = BrainGCN().to(device)
+    model = BrainGCN(conv, fc).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     model.train()
@@ -107,25 +108,28 @@ def gcn_train(data, log=True):
 
 
 class BrainGCN(torch.nn.Module):
-    def __init__(self):
+    def __init__(self, conv_sizes, fc_sizes):
         super(BrainGCN, self).__init__()
-        self.conv1 = GCNConv(population_graph.num_node_features, 1024)
-        self.fc_0 = Linear(population_graph.num_node_features, 1024)
-        self.fc_1 = Linear(1024, 512)
-        self.fc_2 = Linear(512, 256)
-        self.fc_3 = Linear(256, 1)
+        self.conv = []
+        self.fc = []
+        size = population_graph.num_node_features
+        for size_next in conv_sizes:
+            self.conv.append(GCNConv(size, size_next))
+            size = size_next
+        for size_next in fc_sizes:
+            self.fc.append(Linear(size, size_next))
+            size = size_next
 
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
-        # x = self.conv1(x, edge_index)
-        x = self.fc_0(x)
-        x = torch.tanh(x)
-        x = self.fc_1(x)
-        x = torch.tanh(x)
-        x = self.fc_2(x)
-        x = torch.tanh(x)
-        x = self.fc_3(x)
+        for i in range(len(self.conv)):
+            x = self.conv[i](x, edge_index)
+            x = torch.tanh(x)
+        for i in range(len(self.fc) - 1):
+            x = self.fc[i](x)
+            x = torch.tanh(x)
 
+        x = self.fc[-1](x)
         return x
 
 
