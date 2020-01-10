@@ -7,6 +7,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
+import numpy as np
 import torch
 import torch.nn.functional as F
 from scipy.stats import pearsonr
@@ -133,7 +134,7 @@ class BrainGCN(torch.nn.Module):
         return x
 
 
-# torch.manual_seed(0)
-# np.random.seed(0)
+torch.manual_seed(0)
+np.random.seed(0)
 
 r2, predicted, actual = gcn_train(data)
