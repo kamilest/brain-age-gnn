@@ -60,7 +60,6 @@ def get_similarity_lookup(feature_list):
     return phenotype_processed
 
 
-# TODO include similarity threshold as part of similarity function
 def custom_similarity_function(feature_list):
     """Creates the similarity metric based on the phenotype feature list.
     If a feature has several entries in the UK Biobank, take either the most recent available estimate or, if the
