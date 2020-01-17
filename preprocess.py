@@ -239,6 +239,7 @@ def remove_low_age_occurrence_instances(phenotypes, functional_data, structural_
     return phenotypes, functional_data, structural_data, euler_data, subject_ids
 
 
+# TODO remove similarity threshold from here
 def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0.5, save=False, graph_name=None):
     """Constructs the adjacency list of the population graph based on a similarity metric provided.
 
@@ -375,6 +376,16 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     return population_graph
 
 
+def graph_preprocess(similarity_feature_set, similarity_threshold, size=None, functional=False, structural=True,
+                     euler=True, save=True, logs=True, save_dir=graph_root, name=None):
+    # TODO return a graph object with no tensors or transformed features
+    pass
+
+
+def graph_transform(graph, pca=True, save=True, save_dir=graph_root):
+    pass
+
+
 def load_population_graph(graph_root, name):
     return torch.load(os.path.join(graph_root, name))
 
@@ -383,5 +394,5 @@ if __name__ == '__main__':
     feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE,
                    Phenotype.PROSPECTIVE_MEMORY_RESULT]
     # TODO restrict similarity threshold.
-    graph = construct_population_graph(feature_set, similarity_threshold=0.9, stratify=True, logs=True)
+    graph = construct_population_graph(feature_set, stratify=True, logs=True)
 
