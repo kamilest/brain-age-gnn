@@ -306,6 +306,32 @@ def feature_transform(train_mask, functional_data=None, structural_data=None, eu
     return features
 
 
+def graph_feature_transform(graph, train_mask):
+    functional_data, structural_data, euler_data = None, None, None
+    # Optional functional data preprocessing (PCA) based on the traning index.
+    if graph.functional_data is not None:
+        functional_data = functional_connectivities_pca(graph.functional_data, train_mask)
+
+    # Scaling structural data based on training index.
+    if graph.structural_data is not None:
+        structural_scaler = sklearn.preprocessing.StandardScaler()
+        structural_scaler.fit(graph.structural_data[train_mask])
+        structural_data = structural_scaler.transform(graph.structural_data)
+
+    # Scaling Euler index data based on training index.
+    if graph.euler_data is not None:
+        euler_scaler = sklearn.preprocessing.StandardScaler()
+        euler_scaler.fit(graph.euler_data[train_mask])
+        euler_data = euler_scaler.transform(graph.euler_data)
+
+    # Unify feature sets into one feature vector.
+    features = np.concatenate([functional_data,
+                               structural_data,
+                               euler_data], axis=1)
+
+    graph.x = torch.tensor(features, dtype=torch.float32)
+
+
 def construct_population_graph(similarity_feature_set, similarity_threshold=0.5, size=None, functional=False,
                                pca=False, structural=True, euler=True, stratify=True, save=True, logs=True,
                                save_dir=graph_root, name=None):
@@ -373,6 +399,10 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
         torch.save(population_graph, os.path.join(save_dir, name))
 
     return population_graph
+
+
+def transform_population_graph(population_graph):
+    pass
 
 
 def load_population_graph(graph_root, name):
