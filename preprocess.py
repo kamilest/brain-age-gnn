@@ -352,22 +352,7 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     num_subjects = len(subject_ids)
     print('{} subjects remaining for graph construction.'.format(num_subjects))
 
-    features = np.concatenate([functional_data,
-                               structural_data,
-                               euler_data], axis=1)
     labels = phenotypes[AGE_UID].to_numpy()
-
-    # Split subjects into train, validation and test sets.
-    train_mask, validate_mask, test_mask = get_subject_split(features, labels, stratify)
-
-    # Transform features based on the training set.
-
-    # TODO either make transformation optional/transform manually or only when there is no cross-validation used.
-    # Finda a way to enable separate fit_transform depending on the cross validation fold.
-
-    features = feature_transform(train_mask, functional_data, structural_data, euler_data)
-
-    feature_tensor = torch.tensor(features, dtype=torch.float32)
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
 
     # Construct the edge index.
@@ -380,22 +365,15 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
                             graph_name=name.replace('.pt', datetime.now().strftime("_%H_%M_%S") + '.csv')),
         dtype=torch.long)
 
-    train_mask_tensor = torch.tensor(train_mask, dtype=torch.bool)
-    validate_mask_tensor = torch.tensor(validate_mask, dtype=torch.bool)
-    test_mask_tensor = torch.tensor(test_mask, dtype=torch.bool)
-
     population_graph = Data(
         edge_index=edge_index_tensor,
         y=label_tensor,
-        train_mask=train_mask_tensor,
-        test_mask=test_mask_tensor
     )
 
     population_graph.functional_data = functional_data
     population_graph.structural_data = structural_data
     population_graph.euler_data = euler_data
 
-    population_graph.validate_mask = validate_mask_tensor
     population_graph.subject_index = subject_ids
 
     if save:
