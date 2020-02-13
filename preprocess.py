@@ -385,12 +385,15 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     test_mask_tensor = torch.tensor(test_mask, dtype=torch.bool)
 
     population_graph = Data(
-        x=feature_tensor,
         edge_index=edge_index_tensor,
         y=label_tensor,
         train_mask=train_mask_tensor,
         test_mask=test_mask_tensor
     )
+
+    population_graph.functional_data = functional_data
+    population_graph.structural_data = structural_data
+    population_graph.euler_data = euler_data
 
     population_graph.validate_mask = validate_mask_tensor
     population_graph.subject_index = subject_ids
