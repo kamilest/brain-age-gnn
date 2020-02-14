@@ -138,7 +138,7 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
             return train_idx, validate_idx, test_idx
 
 
-def get_cv_subject_split(features, labels, n_folds=5, random_state=0):
+def get_cv_subject_split(features, labels, n_folds=10, random_state=0):
     train_test_split = StratifiedKFold(n_splits=n_folds, random_state=random_state)
     folds = []
     for train_validate_index, test_index in train_test_split.split(features, labels):
@@ -211,10 +211,18 @@ def collect_graph_data(subject_ids, functional, structural, euler):
         functional_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
     if structural:
-        structural_data = precompute.extract_cortical_thickness(subject_ids)
-        assert len(np.intersect1d(subject_ids, structural_data.index)) == len(subject_ids)
+        cortical_thickness_data = precompute.extract_structural(subject_ids, type='cortical_thickness')
+        assert len(np.intersect1d(subject_ids, cortical_thickness_data.index)) == len(subject_ids)
+
+        surface_area_data = precompute.extract_structural(subject_ids, type='surface_area')
+        assert len(np.intersect1d(subject_ids, surface_area_data.index)) == len(subject_ids)
+
+        volume_data = precompute.extract_structural(subject_ids, type='volume')
+        assert len(np.intersect1d(subject_ids, volume_data.index)) == len(subject_ids)
     else:
-        structural_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
+        cortical_thickness_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
+        surface_area_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
+        volume_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
     if euler:
         euler_data = precompute.extract_euler(subject_ids)
@@ -222,32 +230,30 @@ def collect_graph_data(subject_ids, functional, structural, euler):
     else:
         euler_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
-    return phenotypes, functional_data, structural_data, euler_data
+    return {'phenotypes': phenotypes,
+            'functional': functional_data,
+            'cortical_thickness': cortical_thickness_data,
+            'surface_area': surface_area_data,
+            'volume': volume_data,
+            'euler': euler_data}
 
 
-def remove_low_age_occurrence_instances(phenotypes, functional_data, structural_data, euler_data):
+def get_sufficient_age_occurrence_index(phenotypes):
     age_counts = phenotypes[AGE_UID].value_counts()
     ages = age_counts.iloc[np.argwhere(age_counts >= 3).flatten()].index.tolist()
     age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
-    subject_ids = sorted(phenotypes.iloc[age_index].index.tolist())
-
-    functional_data = functional_data.iloc[age_index]
-    structural_data = structural_data.iloc[age_index]
-    euler_data = euler_data.iloc[age_index]
-    phenotypes = phenotypes.iloc[age_index]
-
-    return phenotypes, functional_data, structural_data, euler_data, subject_ids
+    return age_index
 
 
 def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0.5, save=False, graph_name=None):
-    """Constructs the adjacency list of the population graph based on a similarity metric provided.
+    """Constructs the adjacency list of the population population_graph based on a similarity metric provided.
 
     :param subject_ids: subject IDs.
     :param similarity_function: function which is returns similarity between two subjects according to some metric.
     :param similarity_threshold: the threshold above which the edge should be added.
-    :param save: inidicates whether to save the graph in the logs directory.
-    :param graph_name: graph name for saved file if graph edges are logged.
-    :return: graph connectivity in coordinate format of shape [2, num_edges].
+    :param save: inidicates whether to save the population_graph in the logs directory.
+    :param graph_name: population_graph name for saved file if population_graph edges are logged.
+    :return: population_graph connectivity in coordinate format of shape [2, num_edges].
     The same edge (v, w) appears twice as (v, w) and (w, v) to represent bidirectionality.
     """
 
@@ -256,12 +262,12 @@ def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0
 
     if save:
         if graph_name is None:
-            graph_name = 'graph.csv'
+            graph_name = 'population_graph.csv'
 
         with open(os.path.join('logs', graph_name), 'w+', newline='') as csvfile:
             wr = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
             for i, id_i in enumerate(subject_ids):
-                wr.writerow([i, i])  # ensure singletons appear in the graph adjacency list.
+                wr.writerow([i, i])  # ensure singletons appear in the population_graph adjacency list.
                 iter_j = iter(enumerate(subject_ids))
                 [next(iter_j) for _ in range(i + 1)]
                 for j, id_j in iter_j:
@@ -281,33 +287,37 @@ def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0
     return [v_list, w_list]
 
 
-def feature_transform(train_mask, functional_data=None, structural_data=None, euler_data=None):
+def graph_feature_transform(population_graph, train_mask):
+    functional_data, structural_data, euler_data = None, None, None
+
     # Optional functional data preprocessing (PCA) based on the traning index.
-    if functional_data is not None:
-        functional_data = functional_connectivities_pca(functional_data, train_mask)
+    if population_graph.functional_data is not None:
+        functional_data = functional_connectivities_pca(population_graph.functional_data, train_mask)
 
     # Scaling structural data based on training index.
-    if structural_data is not None:
-        structural_scaler = sklearn.preprocessing.StandardScaler()
-        structural_scaler.fit(structural_data[train_mask])
-        structural_data = structural_scaler.transform(structural_data)
+    # Transforming multiple structural data modalities.
+    for structural_feature in population_graph.structural_data.keys():
+        if population_graph.structural_data[structural_feature] is not None:
+            structural_scaler = sklearn.preprocessing.StandardScaler()
+            structural_scaler.fit(population_graph.structural_data[structural_feature][train_mask])
+            structural_data = structural_scaler.transform(population_graph.structural_data[structural_feature])
 
     # Scaling Euler index data based on training index.
-    if euler_data is not None:
+    if population_graph.euler_data is not None:
         euler_scaler = sklearn.preprocessing.StandardScaler()
-        euler_scaler.fit(euler_data[train_mask])
-        euler_data = euler_scaler.transform(euler_data)
+        euler_scaler.fit(population_graph.euler_data[train_mask])
+        euler_data = euler_scaler.transform(population_graph.euler_data)
 
     # Unify feature sets into one feature vector.
     features = np.concatenate([functional_data,
                                structural_data,
                                euler_data], axis=1)
 
-    return features
+    population_graph.x = torch.tensor(features, dtype=torch.float32)
 
 
 def construct_population_graph(similarity_feature_set, similarity_threshold=0.5, size=None, functional=False,
-                               pca=False, structural=True, euler=True, stratify=True, save=True, logs=True,
+                               pca=False, structural=True, euler=True, save=True, logs=True,
                                save_dir=graph_root, name=None):
     if name is None:
         name = get_graph_name(size, functional, pca, structural, euler, similarity_feature_set)
@@ -315,33 +325,19 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     subject_ids = sorted(get_subject_ids(size))
 
     # Collect the required data.
-    phenotypes, functional_data, structural_data, euler_data = \
-        collect_graph_data(subject_ids, functional, structural, euler)
+    graph_data = collect_graph_data(subject_ids, functional, structural, euler)
 
     # Remove subjects with too few instances of the label for stratification.
-    if stratify:
-        phenotypes, functional_data, structural_data, euler_data, subject_ids = \
-            remove_low_age_occurrence_instances(phenotypes, functional_data, structural_data, euler_data)
+    age_index = get_sufficient_age_occurrence_index(graph_data['phenotypes'])
+    subject_ids = sorted(graph_data['phenotypes'].iloc[age_index].index.tolist())
+    for feature in graph_data.keys():
+        if graph_data[feature] is not None:
+            graph_data[feature] = graph_data[feature].iloc[age_index]
 
     num_subjects = len(subject_ids)
-    print('{} subjects remaining for graph construction.'.format(num_subjects))
+    print('{} subjects remaining for population_graph construction.'.format(num_subjects))
 
-    features = np.concatenate([functional_data,
-                               structural_data,
-                               euler_data], axis=1)
-    labels = phenotypes[AGE_UID].to_numpy()
-
-    # Split subjects into train, validation and test sets.
-    train_mask, validate_mask, test_mask = get_subject_split(features, labels, stratify)
-
-    # Transform features based on the training set.
-
-    # TODO either make transformation optional/transform manually or only when there is no cross-validation used.
-    # Finda a way to enable separate fit_transform depending on the cross validation fold.
-
-    features = feature_transform(train_mask, functional_data, structural_data, euler_data)
-
-    feature_tensor = torch.tensor(features, dtype=torch.float32)
+    labels = graph_data['phenotypes'][AGE_UID].to_numpy()
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
 
     # Construct the edge index.
@@ -354,20 +350,18 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
                             graph_name=name.replace('.pt', datetime.now().strftime("_%H_%M_%S") + '.csv')),
         dtype=torch.long)
 
-    train_mask_tensor = torch.tensor(train_mask, dtype=torch.bool)
-    validate_mask_tensor = torch.tensor(validate_mask, dtype=torch.bool)
-    test_mask_tensor = torch.tensor(test_mask, dtype=torch.bool)
+    population_graph = Data()
 
-    population_graph = Data(
-        x=feature_tensor,
-        edge_index=edge_index_tensor,
-        y=label_tensor,
-        train_mask=train_mask_tensor,
-        test_mask=test_mask_tensor
-    )
+    population_graph.edge_index = edge_index_tensor
+    population_graph.y = label_tensor
 
-    population_graph.validate_mask = validate_mask_tensor
     population_graph.subject_index = subject_ids
+
+    population_graph.functional_data = graph_data['functional']
+    population_graph.structural_data = {'cortical_thickness': graph_data['cortical_thickness'],
+                                        'surface_area': graph_data['surface_area'],
+                                        'volume': graph_data['volume']}
+    population_graph.euler_data = graph_data['euler']
 
     if save:
         torch.save(population_graph, os.path.join(save_dir, name))
