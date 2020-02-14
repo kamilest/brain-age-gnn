@@ -138,7 +138,7 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
             return train_idx, validate_idx, test_idx
 
 
-def get_cv_subject_split(features, labels, n_folds=5, random_state=0):
+def get_cv_subject_split(features, labels, n_folds=10, random_state=0):
     train_test_split = StratifiedKFold(n_splits=n_folds, random_state=random_state)
     folds = []
     for train_validate_index, test_index in train_test_split.split(features, labels):
@@ -211,10 +211,18 @@ def collect_graph_data(subject_ids, functional, structural, euler):
         functional_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
     if structural:
-        structural_data = precompute.extract_cortical_thickness(subject_ids)
-        assert len(np.intersect1d(subject_ids, structural_data.index)) == len(subject_ids)
+        cortical_thickness_data = precompute.extract_structural(subject_ids, type='cortical_thickness')
+        assert len(np.intersect1d(subject_ids, cortical_thickness_data.index)) == len(subject_ids)
+
+        surface_area_data = precompute.extract_structural(subject_ids, type='surface_area')
+        assert len(np.intersect1d(subject_ids, surface_area_data.index)) == len(subject_ids)
+
+        volume_data = precompute.extract_structural(subject_ids, type='volume')
+        assert len(np.intersect1d(subject_ids, volume_data.index)) == len(subject_ids)
     else:
-        structural_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
+        cortical_thickness_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
+        surface_area_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
+        volume_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
     if euler:
         euler_data = precompute.extract_euler(subject_ids)
@@ -222,9 +230,15 @@ def collect_graph_data(subject_ids, functional, structural, euler):
     else:
         euler_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
-    return phenotypes, functional_data, structural_data, euler_data
+    return {'phenotypes': phenotypes,
+            'functional': functional_data,
+            'cortical_thickness': cortical_thickness_data,
+            'surface_area': surface_area_data,
+            'volume': volume_data,
+            'euler': euler_data}
 
 
+# TODO account for multiple structural data modalities
 def remove_low_age_occurrence_instances(phenotypes, functional_data, structural_data, euler_data):
     age_counts = phenotypes[AGE_UID].value_counts()
     ages = age_counts.iloc[np.argwhere(age_counts >= 3).flatten()].index.tolist()
@@ -281,6 +295,7 @@ def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0
     return [v_list, w_list]
 
 
+# TODO transform multiple structural data modalities.
 def graph_feature_transform(population_graph, train_mask):
     functional_data, structural_data, euler_data = None, None, None
 
@@ -317,18 +332,18 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     subject_ids = sorted(get_subject_ids(size))
 
     # Collect the required data.
-    phenotypes, functional_data, structural_data, euler_data = \
-        collect_graph_data(subject_ids, functional, structural, euler)
+    graph_data = collect_graph_data(subject_ids, functional, structural, euler)
 
+    # TODO multiple modalities in low age occurrence instances
     # Remove subjects with too few instances of the label for stratification.
-    if stratify:
-        phenotypes, functional_data, structural_data, euler_data, subject_ids = \
-            remove_low_age_occurrence_instances(phenotypes, functional_data, structural_data, euler_data)
+    # if stratify:
+    #     phenotypes, functional_data, structural_data, euler_data, subject_ids = \
+    #         remove_low_age_occurrence_instances(phenotypes, functional_data, structural_data, euler_data)
 
     num_subjects = len(subject_ids)
     print('{} subjects remaining for population_graph construction.'.format(num_subjects))
 
-    labels = phenotypes[AGE_UID].to_numpy()
+    labels = graph_data['phenotypes'][AGE_UID].to_numpy()
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
 
     # Construct the edge index.
@@ -348,9 +363,11 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
 
     population_graph.subject_index = subject_ids
 
-    population_graph.functional_data = functional_data
-    population_graph.structural_data = structural_data
-    population_graph.euler_data = euler_data
+    population_graph.functional_data = graph_data['functional']
+    population_graph.structural_data = {'cortical_thickness': graph_data['cortical_thickness'],
+                                        'surface_area': graph_data['surface_area'],
+                                        'volume': graph_data['volume']}
+    population_graph.euler_data = graph_data['euler']
 
     if save:
         torch.save(population_graph, os.path.join(save_dir, name))

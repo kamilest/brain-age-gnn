@@ -9,6 +9,8 @@ data_root = 'data'
 data_timeseries = 'data/raw_ts'
 data_phenotype = 'data/phenotype.csv'
 data_ct = 'data/CT.csv'
+data_sa = 'data/SA.csv'
+data_vol = 'data/Vol.csv'
 data_euler = 'data/Euler.csv'
 data_computed_fcms = 'data/processed_ts'
 
@@ -99,15 +101,23 @@ def extract_phenotypes(subject_ids, uid_list=None):
     return subject_phenotype
 
 
-def extract_cortical_thickness(subject_ids):
-    ct = pd.read_csv(data_ct, sep=',', quotechar='\"')
+# TODO implement 2020-02-14
+def extract_structural(subject_ids, type):
+    if type == 'cortical_thickness':
+        data = data_ct
+    elif type == 'surface_area':
+        data = data_sa
+    else:  # type == 'volume'
+        data = data_vol
+
+    ct = pd.read_csv(data, sep=',', quotechar='\"')
 
     # Extract data for relevant subject IDs.
     subject_ct = ct[ct['NewID'].isin(subject_ids)]
 
     assert(len(subject_ids) - len(subject_ct) == 0)
     if len(subject_ct) != len(subject_ids):
-        print('{} entries had cortical thickness data missing.'.format(len(subject_ids) - len(subject_ct)))
+        print('{} entries had {} data missing.'.format(len(subject_ids) - len(subject_ct), type))
 
     subject_ct = subject_ct.drop(subject_ct.columns[0], axis=1)
     subject_ct = subject_ct.drop(['lh_???', 'rh_???'], axis=1)
