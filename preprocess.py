@@ -377,5 +377,5 @@ if __name__ == '__main__':
     feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE,
                    Phenotype.PROSPECTIVE_MEMORY_RESULT]
     # TODO restrict similarity threshold.
-    graph = construct_population_graph(feature_set, similarity_threshold=0.9, stratify=True, logs=True)
+    graph = construct_population_graph(feature_set, similarity_threshold=0.9, logs=True)
 
