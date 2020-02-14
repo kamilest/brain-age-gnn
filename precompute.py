@@ -101,14 +101,15 @@ def extract_phenotypes(subject_ids, uid_list=None):
     return subject_phenotype
 
 
-# TODO implement 2020-02-14
 def extract_structural(subject_ids, type):
     if type == 'cortical_thickness':
         data = data_ct
     elif type == 'surface_area':
         data = data_sa
-    else:  # type == 'volume'
+    elif type == 'volume':
         data = data_vol
+    else:
+        return pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
     ct = pd.read_csv(data, sep=',', quotechar='\"')
 

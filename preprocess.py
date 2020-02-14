@@ -238,19 +238,11 @@ def collect_graph_data(subject_ids, functional, structural, euler):
             'euler': euler_data}
 
 
-# TODO account for multiple structural data modalities
-def remove_low_age_occurrence_instances(phenotypes, functional_data, structural_data, euler_data):
+def get_sufficient_age_occurrence_index(phenotypes):
     age_counts = phenotypes[AGE_UID].value_counts()
     ages = age_counts.iloc[np.argwhere(age_counts >= 3).flatten()].index.tolist()
     age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
-    subject_ids = sorted(phenotypes.iloc[age_index].index.tolist())
-
-    functional_data = functional_data.iloc[age_index]
-    structural_data = structural_data.iloc[age_index]
-    euler_data = euler_data.iloc[age_index]
-    phenotypes = phenotypes.iloc[age_index]
-
-    return phenotypes, functional_data, structural_data, euler_data, subject_ids
+    return age_index
 
 
 def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0.5, save=False, graph_name=None):
@@ -295,7 +287,6 @@ def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0
     return [v_list, w_list]
 
 
-# TODO transform multiple structural data modalities.
 def graph_feature_transform(population_graph, train_mask):
     functional_data, structural_data, euler_data = None, None, None
 
@@ -304,10 +295,12 @@ def graph_feature_transform(population_graph, train_mask):
         functional_data = functional_connectivities_pca(population_graph.functional_data, train_mask)
 
     # Scaling structural data based on training index.
-    if population_graph.structural_data is not None:
-        structural_scaler = sklearn.preprocessing.StandardScaler()
-        structural_scaler.fit(population_graph.structural_data[train_mask])
-        structural_data = structural_scaler.transform(population_graph.structural_data)
+    # Transforming multiple structural data modalities.
+    for structural_feature in population_graph.structural_data.keys():
+        if population_graph.structural_data[structural_feature] is not None:
+            structural_scaler = sklearn.preprocessing.StandardScaler()
+            structural_scaler.fit(population_graph.structural_data[structural_feature][train_mask])
+            structural_data = structural_scaler.transform(population_graph.structural_data[structural_feature])
 
     # Scaling Euler index data based on training index.
     if population_graph.euler_data is not None:
@@ -324,7 +317,7 @@ def graph_feature_transform(population_graph, train_mask):
 
 
 def construct_population_graph(similarity_feature_set, similarity_threshold=0.5, size=None, functional=False,
-                               pca=False, structural=True, euler=True, stratify=True, save=True, logs=True,
+                               pca=False, structural=True, euler=True, save=True, logs=True,
                                save_dir=graph_root, name=None):
     if name is None:
         name = get_graph_name(size, functional, pca, structural, euler, similarity_feature_set)
@@ -334,11 +327,12 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     # Collect the required data.
     graph_data = collect_graph_data(subject_ids, functional, structural, euler)
 
-    # TODO multiple modalities in low age occurrence instances
     # Remove subjects with too few instances of the label for stratification.
-    # if stratify:
-    #     phenotypes, functional_data, structural_data, euler_data, subject_ids = \
-    #         remove_low_age_occurrence_instances(phenotypes, functional_data, structural_data, euler_data)
+    age_index = get_sufficient_age_occurrence_index(graph_data['phenotypes'])
+    subject_ids = sorted(graph_data['phenotypes'].iloc[age_index].index.tolist())
+    for feature in graph_data.keys():
+        if graph_data[feature] is not None:
+            graph_data[feature] = graph_data[feature].iloc[age_index]
 
     num_subjects = len(subject_ids)
     print('{} subjects remaining for population_graph construction.'.format(num_subjects))
