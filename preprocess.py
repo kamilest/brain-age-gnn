@@ -288,25 +288,33 @@ def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0
 
 
 def graph_feature_transform(population_graph, train_mask):
-    functional_data, structural_data, euler_data = None, None, None
-
     # Optional functional data preprocessing (PCA) based on the traning index.
-    if population_graph.functional_data is not None:
+    if not population_graph.functional_data.empty:
         functional_data = functional_connectivities_pca(population_graph.functional_data, train_mask)
+    else:
+        functional_data = population_graph.functional_data
 
     # Scaling structural data based on training index.
     # Transforming multiple structural data modalities.
+    transformed_structural_features = []
     for structural_feature in population_graph.structural_data.keys():
-        if population_graph.structural_data[structural_feature] is not None:
+        if not population_graph.structural_data[structural_feature].empty:
             structural_scaler = sklearn.preprocessing.StandardScaler()
             structural_scaler.fit(population_graph.structural_data[structural_feature][train_mask])
-            structural_data = structural_scaler.transform(population_graph.structural_data[structural_feature])
+            transformed_structural_features.append(structural_scaler.transform(
+                population_graph.structural_data[structural_feature]))
+        else:
+            transformed_structural_features.append(population_graph.structural_data[structural_feature])
+
+    structural_data = np.concatenate(transformed_structural_features, axis=1)
 
     # Scaling Euler index data based on training index.
-    if population_graph.euler_data is not None:
+    if not population_graph.euler_data.empty:
         euler_scaler = sklearn.preprocessing.StandardScaler()
         euler_scaler.fit(population_graph.euler_data[train_mask])
         euler_data = euler_scaler.transform(population_graph.euler_data)
+    else:
+        euler_data = population_graph.euler_data
 
     # Unify feature sets into one feature vector.
     features = np.concatenate([functional_data,
@@ -357,8 +365,6 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     population_graph.edge_index = edge_index_tensor
     population_graph.y = label_tensor
 
-    population_graph.subject_index = subject_ids
-
     population_graph.functional_data = graph_data['functional']
     population_graph.structural_data = {'cortical_thickness': graph_data['cortical_thickness'],
                                         'surface_area': graph_data['surface_area'],
@@ -379,5 +385,6 @@ if __name__ == '__main__':
     feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE,
                    Phenotype.PROSPECTIVE_MEMORY_RESULT]
     # TODO restrict similarity threshold.
-    graph = construct_population_graph(feature_set, similarity_threshold=0.9, logs=True)
-
+    graph = construct_population_graph(feature_set, similarity_threshold=0.9, logs=True, size=1000)
+    train_mask, val_mask, test_mask = get_subject_split_masks(*get_random_subject_split(graph.num_nodes))
+    graph_feature_transform(graph, train_mask)
