@@ -230,12 +230,12 @@ def collect_graph_data(subject_ids, functional, structural, euler):
     else:
         euler_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
-    return {'phenotypes': phenotypes,
-            'functional': functional_data,
-            'cortical_thickness': cortical_thickness_data,
-            'surface_area': surface_area_data,
-            'volume': volume_data,
-            'euler': euler_data}
+    return subject_ids, {'phenotypes': phenotypes,
+                         'functional': functional_data,
+                         'cortical_thickness': cortical_thickness_data,
+                         'surface_area': surface_area_data,
+                         'volume': volume_data,
+                         'euler': euler_data}
 
 
 def get_sufficient_age_occurrence_index(phenotypes):
@@ -325,19 +325,19 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     subject_ids = sorted(get_subject_ids(size))
 
     # Collect the required data.
-    graph_data = collect_graph_data(subject_ids, functional, structural, euler)
+    subject_ids, graph_data = collect_graph_data(subject_ids, functional, structural, euler)
 
     # Remove subjects with too few instances of the label for stratification.
     age_index = get_sufficient_age_occurrence_index(graph_data['phenotypes'])
     subject_ids = sorted(graph_data['phenotypes'].iloc[age_index].index.tolist())
     for feature in graph_data.keys():
         if graph_data[feature] is not None:
-            graph_data[feature] = graph_data[feature].iloc[age_index]
+            graph_data[feature] = graph_data[feature].iloc[age_index].copy()
 
     num_subjects = len(subject_ids)
     print('{} subjects remaining for population_graph construction.'.format(num_subjects))
 
-    labels = graph_data['phenotypes'][AGE_UID].to_numpy()
+    labels = graph_data['phenotypes'].loc[subject_ids, AGE_UID].to_numpy()
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
 
     # Construct the edge index.
@@ -351,6 +351,8 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
         dtype=torch.long)
 
     population_graph = Data()
+    population_graph.num_nodes = len(subject_ids)
+    population_graph.subject_index = subject_ids
 
     population_graph.edge_index = edge_index_tensor
     population_graph.y = label_tensor
