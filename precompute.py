@@ -85,7 +85,7 @@ def extract_phenotypes(subject_ids, uid_list=None):
     subject_ids_no_UKB = [int(i[3:]) for i in subject_ids]
 
     # Extract data for relevant subject IDs.
-    subject_phenotype = phenotype[phenotype['eid'].isin(subject_ids_no_UKB)]
+    subject_phenotype = phenotype[phenotype['eid'].isin(subject_ids_no_UKB)].copy()
 
     if len(subject_phenotype) != len(subject_ids):
         print('{} entries had phenotypic data missing.'.format(len(subject_ids) - len(subject_phenotype)))
@@ -114,7 +114,7 @@ def extract_structural(subject_ids, type):
     ct = pd.read_csv(data, sep=',', quotechar='\"')
 
     # Extract data for relevant subject IDs.
-    subject_ct = ct[ct['NewID'].isin(subject_ids)]
+    subject_ct = ct[ct['NewID'].isin(subject_ids)].copy()
 
     assert(len(subject_ids) - len(subject_ct) == 0)
     if len(subject_ct) != len(subject_ids):
@@ -134,7 +134,7 @@ def extract_euler(subject_ids):
     euler = pd.read_csv(data_euler, sep=',', quotechar='\"')
 
     # Extract data for relevant subject IDs.
-    subject_euler = euler[euler['eid'].isin(subject_ids)]
+    subject_euler = euler[euler['eid'].isin(subject_ids)].copy()
     assert (len(subject_ids) - len(subject_euler) == 0)
 
     subject_euler.index = subject_euler['eid']
