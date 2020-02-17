@@ -87,13 +87,11 @@ def custom_similarity_function(feature_list):
     :param feature_list: list of features taken as Phenotype enumerated values.
     :return: similarity function taking in the phenotype list and returning the similarity score.
     """
-    # TODO support some deviations, e.g. if the values are in the same percentile range etc.
 
     if len(feature_list) == 0:
         return lambda x: 0
 
-    # Create look-up table of similarity features for all subjects.
-    similarity_lookup = create_similarity_lookup()
+    similarity_lookup = pd.read_pickle(SIMILARITY_LOOKUP)
     mental_feature_codes = [Phenotype.MENTAL_HEALTH.value + str(i) for i in range(19)]
 
     def get_similarity(subject_i, subject_j):
@@ -124,6 +122,7 @@ def precompute_similarities():
                 id_i = subject_ids[i]
                 for j in range(i):
                     id_j = subject_ids[j]
+                    # TODO define mental health similarity.
                     sm[i, j] = sm[j, i] = int(np.dot(similarity_lookup.loc[id_i, mental_feature_codes],
                                                      similarity_lookup.loc[id_j, mental_feature_codes]) != 1)
         else:
@@ -134,12 +133,4 @@ def precompute_similarities():
                     sm[i, j] = sm[j, i] = (similarity_lookup.loc[id_i, p.value] ==
                                            similarity_lookup.loc[id_j, p.value])
 
-        # Mask for lower triangle values.
-        # mask = np.invert(np.tri(sm.shape[0], k=-1, dtype=bool))
-        # m = np.ma.masked_where(mask == 1, mask)
-        # lower_tri_sm = np.ma.masked_where(m, sm)
-        #
-        # # Flatten the similarity matrix.
-        # flat_sm = lower_tri_sm.compressed()
-        # assert flat_sm.size == (sm.shape[0] * (sm.shape[0] - 1)) * 0.5
         np.save(os.path.join(similarity_root, '{}_similarity'.format(p.value)), sm)
