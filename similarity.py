@@ -10,6 +10,9 @@ data_root = 'data'
 data_phenotype = 'data/phenotype.csv'
 similarity_root = 'data/similarity'
 
+SIMILARITY_LOOKUP = 'data/similarity_lookup.pkl'
+SUBJECT_IDS = 'data/subject_ids.npy'
+
 
 def create_similarity_lookup():
     """Precomputes the columns of the phenotype dataset for faster subject comparison.
@@ -66,7 +69,7 @@ def create_similarity_lookup():
     phenotype_processed.drop(biobank_feature_list, axis=1, inplace=True)
     phenotype_processed = phenotype_processed.sort_index()
 
-    np.save(os.path.join(data_root, 'similarity_lookup'), phenotype_processed)
+    phenotype_processed.to_pickle(SIMILARITY_LOOKUP)
     return phenotype_processed
 
 
@@ -108,8 +111,9 @@ def custom_similarity_function(feature_list):
 
 
 def precompute_similarities():
-    subject_ids = precompute_subject_ids()
-    similarity_lookup = get_similarity_lookup([p for p in Phenotype])
+    p_list = [Phenotype.AGE]
+    subject_ids = np.load(SUBJECT_IDS, allow_pickle=True)
+    similarity_lookup = pd.read_pickle(SIMILARITY_LOOKUP)
 
     for p in Phenotype:
         sm = np.zeros((len(subject_ids), len(subject_ids)), dtype=np.int)
