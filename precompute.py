@@ -66,12 +66,20 @@ def precompute_subject_ids():
     ct = pd.read_csv(data_ct, sep=',', quotechar='\"')
     ct_ids = ct['NewID'].to_numpy()
 
+    # Surface area IDs.
+    sa = pd.read_csv(data_sa, sep=',', quotechar='\"')
+    sa_ids = sa['NewID'].to_numpy()
+
+    # Grey matter volume IDs.
+    gmv = pd.read_csv(data_vol, sep=',', quotechar='\"')
+    gmv_ids = gmv['NewID'].to_numpy()
+
     # Euler index IDs.
     euler = pd.read_csv(data_euler, sep=',', quotechar='\"')
     euler_ids = euler['eid'].to_numpy()
 
     # Save intersection of the subject IDs present in all datasets.
-    intersected_ids = reduce(np.intersect1d, (timeseries_ids, phenotype_ids, ct_ids, euler_ids))
+    intersected_ids = reduce(np.intersect1d, (timeseries_ids, phenotype_ids, ct_ids, sa_ids, gmv_ids, euler_ids))
     np.save(os.path.join(data_root, 'subject_ids'), intersected_ids)
 
 
