@@ -115,8 +115,8 @@ def precompute_similarities():
     subject_ids = np.load(SUBJECT_IDS, allow_pickle=True)
     similarity_lookup = pd.read_pickle(SIMILARITY_LOOKUP)
 
-    for p in Phenotype:
-        sm = np.zeros((len(subject_ids), len(subject_ids)), dtype=np.int)
+    for p in p_list:
+        sm = np.zeros((len(subject_ids), len(subject_ids)), dtype=np.bool)
 
         if p == Phenotype.MENTAL_HEALTH:
             mental_feature_codes = [Phenotype.MENTAL_HEALTH.value + str(i) for i in range(19)]
@@ -131,8 +131,8 @@ def precompute_similarities():
                 id_i = subject_ids[i]
                 for j in range(i):
                     id_j = subject_ids[j]
-                    sm[i, j] = sm[j, i] = int(similarity_lookup.loc[id_i, p.value] ==
-                                              similarity_lookup.loc[id_j, p.value])
+                    sm[i, j] = sm[j, i] = (similarity_lookup.loc[id_i, p.value] ==
+                                           similarity_lookup.loc[id_j, p.value])
 
         # Mask for lower triangle values.
         # mask = np.invert(np.tri(sm.shape[0], k=-1, dtype=bool))
