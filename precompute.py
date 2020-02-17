@@ -81,6 +81,7 @@ def precompute_subject_ids():
     # Save intersection of the subject IDs present in all datasets.
     intersected_ids = reduce(np.intersect1d, (timeseries_ids, phenotype_ids, ct_ids, sa_ids, gmv_ids, euler_ids))
     np.save(os.path.join(data_root, 'subject_ids'), intersected_ids)
+    return intersected_ids
 
 
 # extract_phenotypes(['31-0.0', '21003-2.0'], ['UKB1000028', 'UKB1000133'])

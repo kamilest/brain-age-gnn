@@ -1,9 +1,14 @@
+import os
+
 import numpy as np
 import pandas as pd
 
 from phenotype import Phenotype
+from precompute import precompute_subject_ids
 
+data_root = 'data'
 data_phenotype = 'data/phenotype.csv'
+similarity_root = 'data/similarity'
 
 
 def get_similarity_lookup(feature_list):
@@ -57,6 +62,8 @@ def get_similarity_lookup(feature_list):
 
     # Return only the final feature columns (indexed by code names).
     phenotype_processed.drop(biobank_feature_list, axis=1, inplace=True)
+
+    np.save(os.path.join(data_root, 'similarity_lookup'), phenotype_processed)
     return phenotype_processed
 
 
@@ -95,3 +102,37 @@ def custom_similarity_function(feature_list):
         return total_score * 1.0 / len(feature_list)
 
     return get_similarity
+
+
+def precompute_similarities():
+    subject_ids = precompute_subject_ids()
+    similarity_lookup = get_similarity_lookup([p for p in Phenotype])
+
+    for p in Phenotype:
+        sm = np.zeros((len(subject_ids), len(subject_ids)), dtype=np.int)
+
+        if p == Phenotype.MENTAL_HEALTH:
+            mental_feature_codes = [Phenotype.MENTAL_HEALTH.value + str(i) for i in range(19)]
+            for i in range(len(subject_ids)):
+                id_i = subject_ids[i]
+                for j in range(i):
+                    id_j = subject_ids[j]
+                    sm[i, j] = sm[j, i] = int(np.dot(similarity_lookup.loc[id_i, mental_feature_codes],
+                                                     similarity_lookup.loc[id_j, mental_feature_codes]) != 1)
+        else:
+            for i in range(len(subject_ids)):
+                id_i = subject_ids[i]
+                for j in range(i):
+                    id_j = subject_ids[j]
+                    sm[i, j] = sm[j, i] = int(similarity_lookup.loc[id_i, p.value] ==
+                                              similarity_lookup.loc[id_j, p.value])
+
+        # Mask for lower triangle values.
+        # mask = np.invert(np.tri(sm.shape[0], k=-1, dtype=bool))
+        # m = np.ma.masked_where(mask == 1, mask)
+        # lower_tri_sm = np.ma.masked_where(m, sm)
+        #
+        # # Flatten the similarity matrix.
+        # flat_sm = lower_tri_sm.compressed()
+        # assert flat_sm.size == (sm.shape[0] * (sm.shape[0] - 1)) * 0.5
+        np.save(os.path.join(similarity_root, '{}_similarity'.format(p.value)), sm)
