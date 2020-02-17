@@ -11,7 +11,6 @@ connects nodes into a graph, assigning collected features
 
 import csv
 import os
-from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -30,6 +29,9 @@ data_timeseries = 'data/raw_ts'
 data_precomputed_fcms = 'data/processed_ts'
 data_phenotype = 'data/phenotype.csv'
 graph_root = 'data/graph'
+similarity_root = 'data/similarity'
+
+SUBJECT_IDS = 'data/subject_ids.npy'
 
 # Graph construction phenotypic parameters.
 AGE_UID = Phenotype.get_biobank_codes(Phenotype.AGE)[0]
@@ -245,7 +247,7 @@ def get_sufficient_age_occurrence_index(phenotypes):
     return age_index
 
 
-def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0.5, save=False, graph_name=None):
+def construct_edge_list_from_function(subject_ids, similarity_function, similarity_threshold=0.5, save=False, graph_name=None):
     """Constructs the adjacency list of the population population_graph based on a similarity metric provided.
 
     :param subject_ids: subject IDs.
@@ -285,6 +287,25 @@ def construct_edge_list(subject_ids, similarity_function, similarity_threshold=0
                     w_list.extend([j, i])
 
     return [v_list, w_list]
+
+
+def construct_edge_list(subject_ids, phenotypes, similarity_threshold=0.5):
+    # Get the similarity matrices for subject_ids and phenotype_features provided.
+    # Add up the matrices (possibly weighting).
+    similarities = np.zeros((subject_ids, subject_ids), dtype=np.int32)
+
+    full_subject_ids = np.load(SUBJECT_IDS, allow_pickle=True)
+    id_mask = np.isin(subject_ids, full_subject_ids)
+
+    for ph in phenotypes:
+        ph_similarity = np.load(os.path.join(similarity_root, '{}_similarity.npy'.format(ph.value)))
+        similarities += ph_similarity[id_mask][:, id_mask]
+
+    # Take the average
+    similarities /= len(phenotypes)
+
+    # Filter values above threshold with np.argwhere
+    return np.argwhere(similarities > similarity_threshold)
 
 
 def graph_feature_transform(population_graph, train_mask):
@@ -351,12 +372,12 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     # Construct the edge index.
     similarity_function = similarity.custom_similarity_function(similarity_feature_set)
     edge_index_tensor = torch.tensor(
-        construct_edge_list(subject_ids=subject_ids,
-                            similarity_function=similarity_function,
-                            similarity_threshold=similarity_threshold,
-                            save=logs,
-                            graph_name=name.replace('.pt', datetime.now().strftime("_%H_%M_%S") + '.csv')),
+        construct_edge_list(subject_ids=subject_ids, phenotypes=similarity_feature_set,
+                            similarity_threshold=similarity_threshold),
         dtype=torch.long)
+    # construct_edge_list_from_function(subject_ids=subject_ids, similarity_function=similarity_function,
+    # similarity_threshold=similarity_threshold, save=logs, graph_name=name.replace('.pt', datetime.now(
+    # ).strftime("_%H_%M_%S") + '.csv')), dtype=torch.long)
 
     population_graph = Data()
     population_graph.num_nodes = len(subject_ids)
