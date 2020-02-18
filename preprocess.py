@@ -193,14 +193,15 @@ def construct_edge_list_from_function(subject_ids, similarity_function, similari
 def construct_edge_list(subject_ids, phenotypes, similarity_threshold=0.5):
     # Get the similarity matrices for subject_ids and phenotype_features provided.
     # Add up the matrices (possibly weighting).
-    similarities = np.zeros((subject_ids, subject_ids), dtype=np.int32)
+    num_subjects = len(subject_ids)
+    similarities = np.zeros((num_subjects, num_subjects), dtype=np.float32)
 
     full_subject_ids = np.load(SUBJECT_IDS, allow_pickle=True)
-    id_mask = np.isin(subject_ids, full_subject_ids)
+    id_mask = np.isin(full_subject_ids, subject_ids)
 
     for ph in phenotypes:
         ph_similarity = np.load(os.path.join(similarity_root, '{}_similarity.npy'.format(ph.value)))
-        similarities += ph_similarity[id_mask][:, id_mask]
+        similarities += ph_similarity[id_mask][:, id_mask].astype(np.float32)
 
     # Take the average
     similarities /= len(phenotypes)
@@ -316,7 +317,5 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE,
-                   Phenotype.PROSPECTIVE_MEMORY_RESULT]
-    # TODO restrict similarity threshold.
+    feature_set = [Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE]
     graph = construct_population_graph(feature_set, similarity_threshold=0.9, logs=True, size=1000)
