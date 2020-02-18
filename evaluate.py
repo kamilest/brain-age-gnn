@@ -1,3 +1,104 @@
+import numpy as np
+from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
+
+
+def test_subject_split(train_idx, validate_idx, test_idx):
+    assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
+    assert (len(np.intersect1d(train_idx, test_idx)) == 0)
+    assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
+
+
+def get_random_subject_split(num_subjects, test=0.1, seed=0):
+    np.random.seed(seed)
+
+    assert 0 <= test <= 1
+    train_validate = 1 - test
+    train = 0.9 * train_validate
+    validate = 0.1 * train_validate
+
+    num_train = int(num_subjects * train)
+    num_validate = int(num_subjects * validate)
+
+    train_val_idx = np.random.choice(range(num_subjects), num_train + num_validate, replace=False)
+    train_idx = np.sort(np.random.choice(train_val_idx, num_train, replace=False))
+    validate_idx = np.sort(list(set(train_val_idx) - set(train_idx)))
+    test_idx = np.sort(list(set(range(num_subjects)) - set(train_val_idx)))
+
+    test_subject_split(train_idx, validate_idx, test_idx)
+    return train_idx, validate_idx, test_idx
+
+
+def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0):
+    train_test_split = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
+
+    for train_validate_index, test_index in train_test_split.split(features, labels):
+        train_validate_index = np.sort(train_validate_index)
+        test_index = np.sort(test_index)
+        features_train = features[train_validate_index]
+        labels_train = labels[train_validate_index]
+
+        train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
+        for train_index, validate_index in train_validate_split.split(features_train, labels_train):
+            train_index = np.sort(train_index)
+            validate_index = np.sort(validate_index)
+
+            train_idx = train_validate_index[train_index]
+            validate_idx = train_validate_index[validate_index]
+            test_idx = test_index
+
+            test_subject_split(train_idx, validate_idx, test_idx)
+            return train_idx, validate_idx, test_idx
+
+
+def get_cv_subject_split(features, labels, n_folds=10, random_state=0):
+    train_test_split = StratifiedKFold(n_splits=n_folds, random_state=random_state)
+    folds = []
+    for train_validate_index, test_index in train_test_split.split(features, labels):
+        train_validate_index = np.sort(train_validate_index)
+        test_index = np.sort(test_index)
+        features_train = features[train_validate_index]
+        labels_train = labels[train_validate_index]
+
+        train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
+        for train_index, validate_index in train_validate_split.split(features_train, labels_train):
+            train_index = np.sort(train_index)
+            validate_index = np.sort(validate_index)
+
+            train_idx = train_validate_index[train_index]
+            validate_idx = train_validate_index[validate_index]
+            test_idx = test_index
+            test_subject_split(train_idx, validate_idx, test_idx)
+
+            folds.append([train_idx, validate_idx, test_idx])
+
+    return folds
+
+
+def get_subject_split(features, labels, stratify):
+    if stratify:
+        stratified_subject_split = get_stratified_subject_split(features, labels)
+        train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
+    else:
+        subject_split = get_random_subject_split(len(features))
+        train_mask, validate_mask, test_mask = get_subject_split_masks(*subject_split)
+
+    return train_mask, validate_mask, test_mask
+
+
+def get_subject_split_masks(train_index, validate_index, test_index):
+    num_subjects = len(train_index) + len(validate_index) + len(test_index)
+
+    train_mask = np.zeros(num_subjects, dtype=bool)
+    train_mask[train_index] = True
+
+    validate_mask = np.zeros(num_subjects, dtype=bool)
+    validate_mask[validate_index] = True
+
+    test_mask = np.zeros(num_subjects, dtype=bool)
+    test_mask[test_index] = True
+
+    return train_mask, validate_mask, test_mask
+
 
 def add_population_graph_noise(graph, p, noise_amplitude):
     """Adds white Gaussian noise to the nodes of the population graph.
