@@ -16,7 +16,6 @@ import numpy as np
 import pandas as pd
 import sklearn
 import torch
-from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 from torch_geometric.data import Data
 
 import precompute
@@ -90,104 +89,6 @@ def functional_connectivities_pca(connectivities, train_idx, random_state=0):
     connectivity_pca = sklearn.decomposition.PCA(random_state=random_state)
     connectivity_pca.fit(connectivities[train_idx])
     return connectivity_pca.transform(connectivities)
-
-
-def test_subject_split(train_idx, validate_idx, test_idx):
-    assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
-    assert (len(np.intersect1d(train_idx, test_idx)) == 0)
-    assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
-
-
-def get_random_subject_split(num_subjects, test=0.1, seed=0):
-    np.random.seed(seed)
-
-    assert 0 <= test <= 1
-    train_validate = 1 - test
-    train = 0.9 * train_validate
-    validate = 0.1 * train_validate
-
-    num_train = int(num_subjects * train)
-    num_validate = int(num_subjects * validate)
-
-    train_val_idx = np.random.choice(range(num_subjects), num_train + num_validate, replace=False)
-    train_idx = np.sort(np.random.choice(train_val_idx, num_train, replace=False))
-    validate_idx = np.sort(list(set(train_val_idx) - set(train_idx)))
-    test_idx = np.sort(list(set(range(num_subjects)) - set(train_val_idx)))
-
-    test_subject_split(train_idx, validate_idx, test_idx)
-    return train_idx, validate_idx, test_idx
-
-
-def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0):
-    train_test_split = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
-
-    for train_validate_index, test_index in train_test_split.split(features, labels):
-        train_validate_index = np.sort(train_validate_index)
-        test_index = np.sort(test_index)
-        features_train = features[train_validate_index]
-        labels_train = labels[train_validate_index]
-
-        train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
-        for train_index, validate_index in train_validate_split.split(features_train, labels_train):
-            train_index = np.sort(train_index)
-            validate_index = np.sort(validate_index)
-
-            train_idx = train_validate_index[train_index]
-            validate_idx = train_validate_index[validate_index]
-            test_idx = test_index
-
-            test_subject_split(train_idx, validate_idx, test_idx)
-            return train_idx, validate_idx, test_idx
-
-
-def get_cv_subject_split(features, labels, n_folds=10, random_state=0):
-    train_test_split = StratifiedKFold(n_splits=n_folds, random_state=random_state)
-    folds = []
-    for train_validate_index, test_index in train_test_split.split(features, labels):
-        train_validate_index = np.sort(train_validate_index)
-        test_index = np.sort(test_index)
-        features_train = features[train_validate_index]
-        labels_train = labels[train_validate_index]
-
-        train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
-        for train_index, validate_index in train_validate_split.split(features_train, labels_train):
-            train_index = np.sort(train_index)
-            validate_index = np.sort(validate_index)
-
-            train_idx = train_validate_index[train_index]
-            validate_idx = train_validate_index[validate_index]
-            test_idx = test_index
-            test_subject_split(train_idx, validate_idx, test_idx)
-
-            folds.append([train_idx, validate_idx, test_idx])
-
-    return folds
-
-
-def get_subject_split(features, labels, stratify):
-    if stratify:
-        stratified_subject_split = get_stratified_subject_split(features, labels)
-        train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
-    else:
-        subject_split = get_random_subject_split(len(features))
-        train_mask, validate_mask, test_mask = get_subject_split_masks(*subject_split)
-
-    return train_mask, validate_mask, test_mask
-
-
-def get_subject_split_masks(train_index, validate_index, test_index):
-    num_subjects = len(train_index) + len(validate_index) + len(test_index)
-
-    train_mask = np.zeros(num_subjects, dtype=bool)
-    train_mask[train_index] = True
-
-    validate_mask = np.zeros(num_subjects, dtype=bool)
-    validate_mask[validate_index] = True
-
-    test_mask = np.zeros(num_subjects, dtype=bool)
-    test_mask[test_index] = True
-
-    return train_mask, validate_mask, test_mask
 
 
 def get_graph_name(size, functional, pca, structural, euler, similarity_feature_set):
@@ -304,8 +205,20 @@ def construct_edge_list(subject_ids, phenotypes, similarity_threshold=0.5):
     # Take the average
     similarities /= len(phenotypes)
 
-    # Filter values above threshold with np.argwhere
+    # Filter values above threshold
     return np.argwhere(similarities > similarity_threshold)
+
+
+def concatenate_graph_features(population_graph):
+    structural_data = []
+    for structural_feature in population_graph.structural_data.keys():
+        structural_data.append(population_graph.structural_data[structural_feature])
+
+    structural_data = np.concatenate(structural_data, axis=1)
+
+    return np.concatenate([population_graph.functional_data,
+                           structural_data,
+                           population_graph.euler_data], axis=1)
 
 
 def graph_feature_transform(population_graph, train_mask):
@@ -407,5 +320,3 @@ if __name__ == '__main__':
                    Phenotype.PROSPECTIVE_MEMORY_RESULT]
     # TODO restrict similarity threshold.
     graph = construct_population_graph(feature_set, similarity_threshold=0.9, logs=True, size=1000)
-    train_mask, val_mask, test_mask = get_subject_split_masks(*get_random_subject_split(graph.num_nodes))
-    graph_feature_transform(graph, train_mask)
