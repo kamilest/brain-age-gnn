@@ -207,7 +207,7 @@ def construct_edge_list(subject_ids, phenotypes, similarity_threshold=0.5):
     similarities /= len(phenotypes)
 
     # Filter values above threshold
-    return np.argwhere(similarities > similarity_threshold)
+    return np.argwhere(similarities >= similarity_threshold)
 
 
 def concatenate_graph_features(population_graph):
