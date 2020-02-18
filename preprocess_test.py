@@ -2,6 +2,7 @@ import unittest
 
 import numpy as np
 
+import precompute
 import preprocess
 from phenotype import Phenotype
 
@@ -13,6 +14,11 @@ fte = [np.nan, 15, 17, 15, 17, 16, 16, np.nan, np.nan, np.nan]
 fi = [9, 4, 9, 6, 5, 4, 8, 6, 9, 5]
 labels = [63, 71, 60, 75, 54, 60, 61, 58, 61, 65]
 
+# Structural data
+ct = precompute.extract_structural(subject_ids_ukb, 'cortical_thickness')
+sa = precompute.extract_structural(subject_ids_ukb, 'surface_area')
+gmv = precompute.extract_structural(subject_ids_ukb, 'volume')
+euler = precompute.extract_euler(subject_ids_ukb)
 
 class ConstructEdgeListTest(unittest.TestCase):
     def testConstructEdgeList_SexSimilarity(self):
@@ -71,7 +77,7 @@ class ConstructEdgeListTest(unittest.TestCase):
 
 
 class ConstructPopulationGraphTest(unittest.TestCase):
-    def testConstructPopulationGraph_labels(self):
+    def testConstructPopulationGraph_ToyGraph(self):
         graph = preprocess.construct_population_graph([Phenotype.SEX],
                                                       subject_ids=subject_ids_ukb,
                                                       age_filtering=False,
@@ -79,6 +85,17 @@ class ConstructPopulationGraphTest(unittest.TestCase):
         actual_labels = graph.y.numpy().flatten()
         self.assertTrue(np.array_equal(actual_labels, labels))
         self.assertTrue(np.array_equal(graph.subject_index, subject_ids_ukb))
+
+        # Comparing structural data
+        actual_ct = graph.structural_data['cortical_thickness']
+        actual_sa = graph.structural_data['surface_area']
+        actual_gmv = graph.structural_data['volume']
+        actual_euler = graph.euler_data
+
+        self.assertTrue(np.array_equal(actual_ct, ct))
+        self.assertTrue(np.array_equal(actual_sa, sa))
+        self.assertTrue(np.array_equal(actual_gmv, gmv))
+        self.assertTrue(np.array_equal(actual_euler, euler))
 
 
 if __name__ == '__main__':
