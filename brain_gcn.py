@@ -117,6 +117,7 @@ def gcn_train(data, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005, wei
 
 
 class BrainGCN(torch.nn.Module):
+    # noinspection PyUnresolvedReferences
     def __init__(self, n_conv_layers, layer_sizes):
         super(BrainGCN, self).__init__()
         self.conv = torch.nn.ModuleList()
@@ -130,6 +131,7 @@ class BrainGCN(torch.nn.Module):
             self.fc.append(Linear(size, layer_sizes[n_conv_layers+i]))
             size = layer_sizes[n_conv_layers+i]
 
+    # noinspection PyTypeChecker,PyUnresolvedReferences
     def forward(self, data):
         x, edge_index = data.x, data.edge_index
         for i in range(len(self.conv)):
@@ -150,7 +152,7 @@ def gcn_train_with_cross_validation(graph, n_folds=10):
 
     for fold in folds:
         evaluate.set_training_masks(population_graph, *fold)
-        preprocess.graph_feature_transform(population_graph, population_graph.train_mask)
+        preprocess.graph_feature_transform(population_graph)
 
         result = gcn_train(data, n_conv_layers=2, layer_sizes=[364, 364, 512, 256, 1], epochs=500)
         results.append(result)

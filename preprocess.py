@@ -222,8 +222,9 @@ def concatenate_graph_features(population_graph):
                            population_graph.euler_data], axis=1)
 
 
-def graph_feature_transform(population_graph, train_mask):
+def graph_feature_transform(population_graph):
     # Optional functional data preprocessing (PCA) based on the traning index.
+    train_mask = population_graph.train_mask
     if not population_graph.functional_data.empty:
         functional_data = functional_connectivities_pca(population_graph.functional_data, train_mask)
     else:
@@ -260,7 +261,7 @@ def graph_feature_transform(population_graph, train_mask):
 
 
 def construct_population_graph(similarity_feature_set, similarity_threshold=0.5, size=None, functional=False,
-                               pca=False, structural=True, euler=True, save=True, logs=True,
+                               pca=False, structural=True, euler=True, save=True,
                                save_dir=graph_root, name=None):
     if name is None:
         name = get_graph_name(size, functional, pca, structural, euler, similarity_feature_set)
@@ -318,4 +319,4 @@ def load_population_graph(graph_root, name):
 
 if __name__ == '__main__':
     feature_set = [Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE]
-    graph = construct_population_graph(feature_set, similarity_threshold=0.9, logs=True, size=1000)
+    graph = construct_population_graph(feature_set, similarity_threshold=0.9)
