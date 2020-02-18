@@ -19,7 +19,6 @@ import torch
 from torch_geometric.data import Data
 
 import precompute
-import similarity
 from phenotype import Phenotype
 
 # Data sources.
@@ -133,12 +132,12 @@ def collect_graph_data(subject_ids, functional, structural, euler):
     else:
         euler_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
 
-    return subject_ids, {'phenotypes': phenotypes,
-                         'functional': functional_data,
-                         'cortical_thickness': cortical_thickness_data,
-                         'surface_area': surface_area_data,
-                         'volume': volume_data,
-                         'euler': euler_data}
+    return sorted(subject_ids), {'phenotypes': phenotypes,
+                                 'functional': functional_data,
+                                 'cortical_thickness': cortical_thickness_data,
+                                 'surface_area': surface_area_data,
+                                 'volume': volume_data,
+                                 'euler': euler_data}
 
 
 def get_sufficient_age_occurrence_index(phenotypes):
@@ -148,7 +147,8 @@ def get_sufficient_age_occurrence_index(phenotypes):
     return age_index
 
 
-def construct_edge_list_from_function(subject_ids, similarity_function, similarity_threshold=0.5, save=False, graph_name=None):
+def construct_edge_list_from_function(subject_ids, similarity_function, similarity_threshold=0.5, save=False,
+                                      graph_name=None):
     """Constructs the adjacency list of the population population_graph based on a similarity metric provided.
 
     :param subject_ids: subject IDs.
@@ -261,22 +261,24 @@ def graph_feature_transform(population_graph):
 
 
 def construct_population_graph(similarity_feature_set, similarity_threshold=0.5, size=None, functional=False,
-                               pca=False, structural=True, euler=True, save=True,
+                               pca=False, structural=True, euler=True, save=True, subject_ids=None, age_filtering=True,
                                save_dir=graph_root, name=None):
     if name is None:
         name = get_graph_name(size, functional, pca, structural, euler, similarity_feature_set)
 
-    subject_ids = sorted(get_subject_ids(size))
+    if subject_ids is None:
+        subject_ids = sorted(get_subject_ids(size))
 
     # Collect the required data.
     subject_ids, graph_data = collect_graph_data(subject_ids, functional, structural, euler)
 
     # Remove subjects with too few instances of the label for stratification.
-    age_index = get_sufficient_age_occurrence_index(graph_data['phenotypes'])
-    subject_ids = sorted(graph_data['phenotypes'].iloc[age_index].index.tolist())
-    for feature in graph_data.keys():
-        if graph_data[feature] is not None:
-            graph_data[feature] = graph_data[feature].iloc[age_index].copy()
+    if age_filtering:
+        age_index = get_sufficient_age_occurrence_index(graph_data['phenotypes'])
+        subject_ids = sorted(graph_data['phenotypes'].iloc[age_index].index.tolist())
+        for feature in graph_data.keys():
+            if graph_data[feature] is not None:
+                graph_data[feature] = graph_data[feature].iloc[age_index].copy()
 
     num_subjects = len(subject_ids)
     print('{} subjects remaining for population_graph construction.'.format(num_subjects))
@@ -285,11 +287,11 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
 
     # Construct the edge index.
-    similarity_function = similarity.custom_similarity_function(similarity_feature_set)
     edge_index_tensor = torch.tensor(
         construct_edge_list(subject_ids=subject_ids, phenotypes=similarity_feature_set,
                             similarity_threshold=similarity_threshold),
         dtype=torch.long)
+    # similarity_function = similarity.custom_similarity_function(similarity_feature_set)
     # construct_edge_list_from_function(subject_ids=subject_ids, similarity_function=similarity_function,
     # similarity_threshold=similarity_threshold, save=logs, graph_name=name.replace('.pt', datetime.now(
     # ).strftime("_%H_%M_%S") + '.csv')), dtype=torch.long)
