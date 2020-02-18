@@ -209,6 +209,18 @@ def construct_edge_list(subject_ids, phenotypes, similarity_threshold=0.5):
     return np.argwhere(similarities > similarity_threshold)
 
 
+def concatenate_graph_features(population_graph):
+    structural_data = []
+    for structural_feature in population_graph.structural_data.keys():
+        structural_data.append(population_graph.structural_data[structural_feature])
+
+    structural_data = np.concatenate(structural_data, axis=1)
+
+    return np.concatenate([population_graph.functional_data,
+                           structural_data,
+                           population_graph.euler_data], axis=1)
+
+
 def graph_feature_transform(population_graph, train_mask):
     # Optional functional data preprocessing (PCA) based on the traning index.
     if not population_graph.functional_data.empty:

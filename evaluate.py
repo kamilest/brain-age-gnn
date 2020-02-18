@@ -1,6 +1,8 @@
 import numpy as np
 from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 
+from preprocess import concatenate_graph_features
+
 
 def test_subject_split(train_idx, validate_idx, test_idx):
     assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
@@ -8,7 +10,8 @@ def test_subject_split(train_idx, validate_idx, test_idx):
     assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
 
 
-def get_random_subject_split(num_subjects, test=0.1, seed=0):
+def get_random_subject_split(population_graph, test=0.1, seed=0):
+    num_subjects = population_graph.num_nodes
     np.random.seed(seed)
 
     assert 0 <= test <= 1
@@ -28,7 +31,10 @@ def get_random_subject_split(num_subjects, test=0.1, seed=0):
     return train_idx, validate_idx, test_idx
 
 
-def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0):
+def get_stratified_subject_split(population_graph, test_size=0.1, random_state=0):
+    features = concatenate_graph_features(population_graph)
+    labels = population_graph.y.numpy()
+
     train_test_split = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
 
     for train_validate_index, test_index in train_test_split.split(features, labels):
@@ -50,7 +56,10 @@ def get_stratified_subject_split(features, labels, test_size=0.1, random_state=0
             return train_idx, validate_idx, test_idx
 
 
-def get_cv_subject_split(features, labels, n_folds=10, random_state=0):
+def get_cv_subject_split(population_graph, n_folds=10, random_state=0):
+    features = concatenate_graph_features(population_graph)
+    labels = population_graph.y.numpy()
+
     train_test_split = StratifiedKFold(n_splits=n_folds, random_state=random_state)
     folds = []
     for train_validate_index, test_index in train_test_split.split(features, labels):
@@ -72,17 +81,6 @@ def get_cv_subject_split(features, labels, n_folds=10, random_state=0):
             folds.append([train_idx, validate_idx, test_idx])
 
     return folds
-
-
-def get_subject_split(features, labels, stratify):
-    if stratify:
-        stratified_subject_split = get_stratified_subject_split(features, labels)
-        train_mask, validate_mask, test_mask = get_subject_split_masks(*stratified_subject_split)
-    else:
-        subject_split = get_random_subject_split(len(features))
-        train_mask, validate_mask, test_mask = get_subject_split_masks(*subject_split)
-
-    return train_mask, validate_mask, test_mask
 
 
 def get_subject_split_masks(train_index, validate_index, test_index):
