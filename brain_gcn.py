@@ -16,6 +16,7 @@ from torch.nn import Linear
 from torch.utils.tensorboard import SummaryWriter
 from torch_geometric.nn import GCNConv
 
+import evaluate
 import preprocess
 
 graph_root = 'data/graph'
@@ -140,6 +141,21 @@ class BrainGCN(torch.nn.Module):
 
         x = self.fc[-1](x)
         return x
+
+
+def gcn_train_with_cross_validation(graph, n_folds=10):
+    folds = evaluate.get_cv_subject_split(graph, n_folds=n_folds)
+
+    results = []
+
+    for fold in folds:
+        evaluate.set_training_masks(population_graph, *fold)
+        preprocess.graph_feature_transform(population_graph, population_graph.train_mask)
+
+        result = gcn_train(data, n_conv_layers=2, layer_sizes=[364, 364, 512, 256, 1], epochs=500)
+        results.append(result)
+
+    return results
 
 
 torch.manual_seed(99)

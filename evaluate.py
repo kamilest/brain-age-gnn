@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 
 from preprocess import concatenate_graph_features
@@ -81,6 +82,13 @@ def get_cv_subject_split(population_graph, n_folds=10, random_state=0):
             folds.append([train_idx, validate_idx, test_idx])
 
     return folds
+
+
+def set_training_masks(population_graph, train_index, validate_index, test_index):
+    train_mask, validate_mask, test_mask = get_subject_split_masks(train_index, validate_index, test_index)
+    population_graph.train_mask = torch.tensor(train_mask, dtype=torch.bool)
+    population_graph.validate_mask = torch.tensor(validate_mask, dtype=torch.bool)
+    population_graph.test_mask = torch.tensor(test_mask, dtype=torch.bool)
 
 
 def get_subject_split_masks(train_index, validate_index, test_index):
