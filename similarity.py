@@ -14,6 +14,15 @@ SIMILARITY_LOOKUP = 'data/similarity_lookup.pkl'
 SUBJECT_IDS = 'data/subject_ids.npy'
 
 
+def get_most_recent(ukb_feature, subject_id, phenotypes):
+    instance = ukb_feature[0]
+    for f in reversed(ukb_feature):
+        if not np.isnan(phenotypes.loc[subject_id, f]):
+            instance = f
+            break
+    return phenotypes.loc[subject_id, instance]
+
+
 def create_similarity_lookup():
     """Precomputes the columns of the phenotype dataset for faster subject comparison.
 
@@ -29,14 +38,6 @@ def create_similarity_lookup():
         biobank_feature_list.extend(Phenotype.get_biobank_codes(feature))
 
     phenotype_processed = phenotypes[biobank_feature_list]
-
-    def get_most_recent(ukb_feature, subject_id):
-        instance = ukb_feature[0]
-        for f in reversed(ukb_feature):
-            if phenotypes.loc[subject_id, f] != 'NaN':
-                instance = f
-                break
-        return phenotypes.loc[subject_id, instance]
 
     for feature in Phenotype:
         biobank_feature = Phenotype.get_biobank_codes(feature)
@@ -58,7 +59,7 @@ def create_similarity_lookup():
         elif len(biobank_feature) > 1:
             # handle the more/less recent values
             si = phenotype_processed.index.to_series().copy()
-            phenotype_processed.loc[:, feature.value] = si.apply(lambda s: get_most_recent(biobank_feature, s))
+            phenotype_processed.loc[:, feature.value] = si.apply(lambda s: get_most_recent(biobank_feature, s, phenotype_processed))
         else:
             phenotype_processed.loc[:, feature.value] = phenotype_processed[biobank_feature[0]].copy()
 

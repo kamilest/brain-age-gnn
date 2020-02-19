@@ -207,7 +207,7 @@ def construct_edge_list(subject_ids, phenotypes, similarity_threshold=0.5):
     similarities /= len(phenotypes)
 
     # Filter values above threshold
-    return np.argwhere(similarities >= similarity_threshold)
+    return np.transpose(np.argwhere(similarities >= similarity_threshold))
 
 
 def concatenate_graph_features(population_graph):
@@ -224,7 +224,7 @@ def concatenate_graph_features(population_graph):
 
 def graph_feature_transform(population_graph):
     # Optional functional data preprocessing (PCA) based on the traning index.
-    train_mask = population_graph.train_mask
+    train_mask = population_graph.train_mask.numpy()
     if not population_graph.functional_data.empty:
         functional_data = functional_connectivities_pca(population_graph.functional_data, train_mask)
     else:
