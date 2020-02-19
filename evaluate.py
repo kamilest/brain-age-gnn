@@ -106,16 +106,25 @@ def get_subject_split_masks(train_index, validate_index, test_index):
     return train_mask, validate_mask, test_mask
 
 
-def add_population_graph_noise(graph, p, noise_amplitude):
+def add_population_graph_noise(population_graph, p, noise_amplitude=0.05):
     """Adds white Gaussian noise to the nodes of the population graph.
 
-    :param graph: path to the population graph file.
-    :param p: probability of adding noise.
+    :param population_graph: population graph.
+    :param p: proportion of training nodes with added noise.
     :param noise_amplitude: the variance of white noise.
     :return: the modified graph with increased noise.
     """
 
-    pass
+    nodes = population_graph.x.numpy().copy()
+    train_idx = np.where(population_graph.train_mask.numpy())[0]
+    noisy_train_idx = np.random.choice(train_idx, round(len(train_idx) * p), replace=False)
+
+    for i in noisy_train_idx:
+        nodes[i] += np.random.normal(0, noise_amplitude, len(nodes[i]))
+
+    population_graph.x = torch.tensor(nodes)
+
+    return population_graph
 
 
 def remove_population_graph_edges(graph, p):

@@ -20,6 +20,7 @@ sa = precompute.extract_structural(subject_ids_ukb, 'surface_area')
 gmv = precompute.extract_structural(subject_ids_ukb, 'volume')
 euler = precompute.extract_euler(subject_ids_ukb)
 
+
 class ConstructEdgeListTest(unittest.TestCase):
     def testConstructEdgeList_SexSimilarity(self):
         edge_list = preprocess.construct_edge_list(subject_ids_ukb, [Phenotype.SEX])
