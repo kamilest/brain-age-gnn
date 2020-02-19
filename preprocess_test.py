@@ -30,7 +30,7 @@ class ConstructEdgeListTest(unittest.TestCase):
                 if i != j and sex[i] == sex[j]:
                     true_edge_list.append([i, j])
 
-        self.assertTrue(np.array_equal(edge_list, true_edge_list))
+        self.assertTrue(np.array_equal(edge_list, np.transpose(true_edge_list)))
 
     def testConstructEdgeList_FullTimeEducationSimilarity(self):
         edge_list = preprocess.construct_edge_list(subject_ids_ukb, [Phenotype.FULL_TIME_EDUCATION])
@@ -40,7 +40,7 @@ class ConstructEdgeListTest(unittest.TestCase):
                 if i != j and fte[i] == fte[j]:
                     true_edge_list.append([i, j])
 
-        self.assertTrue(np.array_equal(edge_list, true_edge_list))
+        self.assertTrue(np.array_equal(edge_list, np.transpose(true_edge_list)))
 
     def testConstructEdgeList_FluidIntelligenceSimilarity(self):
         edge_list = preprocess.construct_edge_list(subject_ids_ukb, [Phenotype.FLUID_INTELLIGENCE])
@@ -62,7 +62,7 @@ class ConstructEdgeListTest(unittest.TestCase):
                 if i != j and fi[i] == fi[j] and sex[i] == sex[j]:
                     true_edge_list.append([i, j])
 
-        self.assertTrue(np.array_equal(edge_list, true_edge_list))
+        self.assertTrue(np.array_equal(edge_list, np.transpose(true_edge_list)))
 
     def testConstructEdgeList_SexOrFluidIntelligenceSimilarity(self):
         edge_list = preprocess.construct_edge_list(subject_ids_ukb,
@@ -74,7 +74,7 @@ class ConstructEdgeListTest(unittest.TestCase):
                 if i != j and fi[i] == fi[j] or sex[i] == sex[j]:
                     true_edge_list.append([i, j])
 
-        self.assertTrue(np.array_equal(edge_list, true_edge_list))
+        self.assertTrue(np.array_equal(edge_list, np.transpose(true_edge_list)))
 
 
 class ConstructPopulationGraphTest(unittest.TestCase):
