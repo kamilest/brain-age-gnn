@@ -130,19 +130,22 @@ def remove_population_graph_edges(population_graph, p):
     :param population_graph: path to the population graph file.
     :param p: proportion of the edges removed.
     """
+    edges = np.transpose(population_graph.edge_index.numpy().copy())
+    unique_edges = np.unique([list(x) for x in (frozenset(y) for y in edges)], axis=0)
 
-    return population_graph
+    idx = np.random.choice(range(len(unique_edges)), replace=False, size=round(len(unique_edges) * p))
+    unique_edges = np.delete(unique_edges, idx, axis=0)
 
+    v_list, w_list = [], []
+    for edge in unique_edges:
+        v_list.extend([edge[0], edge[1]])
+        w_list.extend([edge[1], edge[0]])
 
-def add_population_graph_edge_errors(graph, p):
-    """Changes the graph connectivity by adding or removing edges.
+    # for i in range(round(len(unique_edges) * p)):
+    #     idx = np.random.randint(0, len(edges))
+    #     unique_edges = np.delete(unique_edges, idx, axis=0)
 
-    :param graph: path to the population graph file.
-    :param p: probability of error (adding or removing an edge).
-    :return: the modified graph with edge errors.
-    """
-
-    pass
+    population_graph.edge_index = torch.tensor([v_list, w_list], dtype=torch.long)
 
 
 def decrease_population_graph_train_set(graph, test_set_sizes):
