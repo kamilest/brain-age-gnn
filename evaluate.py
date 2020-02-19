@@ -141,10 +141,6 @@ def remove_population_graph_edges(population_graph, p):
         v_list.extend([edge[0], edge[1]])
         w_list.extend([edge[1], edge[0]])
 
-    # for i in range(round(len(unique_edges) * p)):
-    #     idx = np.random.randint(0, len(edges))
-    #     unique_edges = np.delete(unique_edges, idx, axis=0)
-
     population_graph.edge_index = torch.tensor([v_list, w_list], dtype=torch.long)
 
 

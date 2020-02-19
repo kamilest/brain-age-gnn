@@ -115,6 +115,7 @@ def precompute_similarities():
     similarity_lookup = pd.read_pickle(SIMILARITY_LOOKUP)
 
     for p in p_list:
+        print(p.value)
         sm = np.zeros((len(subject_ids), len(subject_ids)), dtype=np.bool)
 
         if p == Phenotype.MENTAL_HEALTH:
@@ -123,9 +124,8 @@ def precompute_similarities():
                 id_i = subject_ids[i]
                 for j in range(i):
                     id_j = subject_ids[j]
-                    # TODO define mental health similarity.
                     sm[i, j] = sm[j, i] = int(np.dot(similarity_lookup.loc[id_i, mental_feature_codes],
-                                                     similarity_lookup.loc[id_j, mental_feature_codes]) != 1)
+                                                     similarity_lookup.loc[id_j, mental_feature_codes]) >= 1)
         else:
             for i in range(len(subject_ids)):
                 id_i = subject_ids[i]
