@@ -23,7 +23,7 @@ class CreateSimilarityLookupTest(unittest.TestCase):
         self.assertIsNone(np.testing.assert_array_equal(sex, similarity_lookup.loc[subject_ids_ukb, Phenotype.SEX.value]))
         self.assertIsNone(np.testing.assert_array_equal(fte, similarity_lookup.loc[subject_ids_ukb, Phenotype.FULL_TIME_EDUCATION.value]))
         self.assertIsNone(np.testing.assert_array_equal(fi, similarity_lookup.loc[subject_ids_ukb, Phenotype.FLUID_INTELLIGENCE.value]))
-        self.assertIsNone(np.testing.assert_array_equal(labels, similarity_lookup.loc[subject_ids_ukb, Phenotype.AGE]))
+        self.assertIsNone(np.testing.assert_array_equal(labels, similarity_lookup.loc[subject_ids_ukb, Phenotype.AGE.value]))
 
 
 if __name__ == '__main__':
