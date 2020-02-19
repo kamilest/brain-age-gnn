@@ -28,8 +28,8 @@ def get_random_subject_split(population_graph, test=0.1, seed=0):
     validate_idx = np.sort(list(set(train_val_idx) - set(train_idx)))
     test_idx = np.sort(list(set(range(num_subjects)) - set(train_val_idx)))
 
-    test_subject_split(train_idx, validate_idx, test_idx)
-    return train_idx, validate_idx, test_idx
+    # test_subject_split(train_idx, validate_idx, test_idx)
+    return train_idx.astype(int), validate_idx.astype(int), test_idx.astype(int)
 
 
 def get_stratified_subject_split(population_graph, test_size=0.1, random_state=0):
@@ -112,7 +112,6 @@ def add_population_graph_noise(population_graph, p, noise_amplitude=0.05):
     :param population_graph: population graph.
     :param p: proportion of training nodes with added noise.
     :param noise_amplitude: the variance of white noise.
-    :return: the modified graph with increased noise.
     """
 
     nodes = population_graph.x.numpy().copy()
@@ -124,18 +123,15 @@ def add_population_graph_noise(population_graph, p, noise_amplitude=0.05):
 
     population_graph.x = torch.tensor(nodes)
 
-    return population_graph
 
-
-def remove_population_graph_edges(graph, p):
+def remove_population_graph_edges(population_graph, p):
     """Removes graph edges with probability p.
 
-    :param graph: path to the population graph file.
-    :param p: probability of removing the edge.
-    :return: the modified graph with fewer edges.
+    :param population_graph: path to the population graph file.
+    :param p: proportion of the edges removed.
     """
 
-    pass
+    return population_graph
 
 
 def add_population_graph_edge_errors(graph, p):
