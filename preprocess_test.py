@@ -30,7 +30,7 @@ class ConstructEdgeListTest(unittest.TestCase):
                 if i != j and sex[i] == sex[j]:
                     true_edge_list.append([i, j])
 
-        self.assertTrue(np.array_equal(edge_list, np.transpose(true_edge_list)))
+        self.assertIsNone(np.testing.assert_array_equal(edge_list, np.transpose(true_edge_list)))
 
     def testConstructEdgeList_FullTimeEducationSimilarity(self):
         edge_list = preprocess.construct_edge_list(subject_ids_ukb, [Phenotype.FULL_TIME_EDUCATION])
@@ -40,7 +40,7 @@ class ConstructEdgeListTest(unittest.TestCase):
                 if i != j and fte[i] == fte[j]:
                     true_edge_list.append([i, j])
 
-        self.assertTrue(np.array_equal(edge_list, np.transpose(true_edge_list)))
+        self.assertIsNone(np.testing.assert_allclose(edge_list, np.transpose(true_edge_list), equal_nan=False))
 
     def testConstructEdgeList_FluidIntelligenceSimilarity(self):
         edge_list = preprocess.construct_edge_list(subject_ids_ukb, [Phenotype.FLUID_INTELLIGENCE])
@@ -50,7 +50,7 @@ class ConstructEdgeListTest(unittest.TestCase):
                 if i != j and fi[i] == fi[j]:
                     true_edge_list.append([i, j])
 
-        self.assertTrue(np.array_equal(edge_list, true_edge_list))
+        self.assertIsNone(np.testing.assert_allclose(edge_list, np.transpose(true_edge_list), equal_nan=False))
 
     def testConstructEdgeList_SexAndFluidIntelligenceSimilarity(self):
         edge_list = preprocess.construct_edge_list(subject_ids_ukb,
@@ -62,7 +62,7 @@ class ConstructEdgeListTest(unittest.TestCase):
                 if i != j and fi[i] == fi[j] and sex[i] == sex[j]:
                     true_edge_list.append([i, j])
 
-        self.assertTrue(np.array_equal(edge_list, np.transpose(true_edge_list)))
+        self.assertIsNone(np.testing.assert_allclose(edge_list, np.transpose(true_edge_list), equal_nan=False))
 
     def testConstructEdgeList_SexOrFluidIntelligenceSimilarity(self):
         edge_list = preprocess.construct_edge_list(subject_ids_ukb,
@@ -71,10 +71,10 @@ class ConstructEdgeListTest(unittest.TestCase):
         true_edge_list = []
         for i in range(len(subject_ids)):
             for j in range(len(subject_ids)):
-                if i != j and fi[i] == fi[j] or sex[i] == sex[j]:
+                if i != j and (fi[i] == fi[j] or sex[i] == sex[j]):
                     true_edge_list.append([i, j])
 
-        self.assertTrue(np.array_equal(edge_list, np.transpose(true_edge_list)))
+        self.assertIsNone(np.testing.assert_allclose(edge_list, np.transpose(true_edge_list), equal_nan=False))
 
 
 class ConstructPopulationGraphTest(unittest.TestCase):
