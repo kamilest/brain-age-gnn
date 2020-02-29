@@ -308,6 +308,7 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
                                         'surface_area': graph_data['surface_area'],
                                         'volume': graph_data['volume']}
     population_graph.euler_data = graph_data['euler']
+    population_graph.name = name
 
     if save:
         torch.save(population_graph, os.path.join(save_dir, name))
@@ -320,5 +321,5 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    feature_set = [Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE]
+    feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE]
     graph = construct_population_graph(feature_set, similarity_threshold=0.9)
