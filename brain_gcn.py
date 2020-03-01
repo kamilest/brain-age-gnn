@@ -41,7 +41,15 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
     model = BrainGCN(graph.num_node_features, n_conv_layers, layer_sizes).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
-    wandb.watch(model)
+    if log:
+        wandb.watch(model)
+        wandb.config.update({
+            "graph_name": graph.name,
+            "epochs": epochs,
+            "learning_rate": lr,
+            "weight_decay": weight_decay,
+            "n_conv_layers": n_conv_layers,
+            "layer_sizes": layer_sizes})
     model.train()
 
     for epoch in range(epochs):
@@ -59,11 +67,11 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
         val_r = pearsonr(data.y[data.validate_mask].cpu().detach().numpy().flatten(),
                          out[data.validate_mask].cpu().detach().numpy().flatten())[0]
         if log:
-            wandb.log({"Train MSE": train_mse,
-                       "Train r^2": train_r2,
+            wandb.log({"Train MSE": train_mse[0],
+                       "Train r2": train_r2,
                        "Train r": train_r,
                        "Validation MSE": val_mse,
-                       "Validation r^2": val_r2,
+                       "Validation r2": val_r2[0],
                        "Validation r": val_r})
         print(epoch, train_mse, train_r2, train_r)
         print(epoch, val_mse, val_r2, val_r)
@@ -96,9 +104,10 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
         epochs,
         lr,
         weight_decay)
-    torch.save(model.state_dict(), os.path.join(wandb.run.dir, log_name))
+    if log:
+        torch.save(model.state_dict(), os.path.join(wandb.run.dir, log_name))
 
-    return r2, predicted, actual
+    return final_r2, predicted, actual
 
 
 class BrainGCN(torch.nn.Module):

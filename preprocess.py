@@ -59,7 +59,6 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
         return subject_ids[:num_subjects]
 
 
-# TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)
 def get_functional_connectivity(subject_id):
     """Returns the correlation matrix for the parcellated timeseries data.
     If necessary precomputes the matrix.
@@ -110,7 +109,7 @@ def collect_graph_data(subject_ids, functional, structural, euler):
     if functional:
         functional_data = get_all_functional_connectivities(subject_ids)
     else:
-        functional_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
+        functional_data = pd.DataFrame(np.empty((len(subject_ids), 0)))
 
     if structural:
         cortical_thickness_data = precompute.extract_structural(subject_ids, type='cortical_thickness')
@@ -122,9 +121,9 @@ def collect_graph_data(subject_ids, functional, structural, euler):
         volume_data = precompute.extract_structural(subject_ids, type='volume')
         assert len(np.intersect1d(subject_ids, volume_data.index)) == len(subject_ids)
     else:
-        cortical_thickness_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
-        surface_area_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
-        volume_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
+        cortical_thickness_data = pd.DataFrame(np.empty((len(subject_ids), 0)))
+        surface_area_data = pd.DataFrame(np.empty((len(subject_ids), 0)))
+        volume_data = pd.DataFrame(np.empty((len(subject_ids), 0)))
 
     if euler:
         euler_data = precompute.extract_euler(subject_ids)
@@ -142,7 +141,7 @@ def collect_graph_data(subject_ids, functional, structural, euler):
 
 def get_sufficient_age_occurrence_index(phenotypes):
     age_counts = phenotypes[AGE_UID].value_counts()
-    ages = age_counts.iloc[np.argwhere(age_counts >= 3).flatten()].index.tolist()
+    ages = age_counts[age_counts >= 3].index.tolist()
     age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
     return age_index
 
