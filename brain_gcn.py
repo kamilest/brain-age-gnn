@@ -28,7 +28,7 @@ graph_name = 'population_graph_all_SEX_FTE_FI_structural_euler.pt'
 logdir = './runs/{}'.format(datetime.now().strftime('%Y-%m-%d'))
 Path(logdir).mkdir(parents=True, exist_ok=True)
 
-device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
 def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005, weight_decay=1e-5, log=True):
@@ -47,9 +47,7 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
             "graph_name": graph.name,
             "epochs": epochs,
             "learning_rate": lr,
-            "weight_decay": weight_decay,
-            "n_conv_layers": n_conv_layers,
-            "layer_sizes": layer_sizes})
+            "weight_decay": weight_decay})
     model.train()
 
     for epoch in range(epochs):
@@ -162,4 +160,4 @@ fold = evaluate.get_stratified_subject_split(population_graph)
 evaluate.set_training_masks(population_graph, *fold)
 preprocess.graph_feature_transform(population_graph)
 
-gcn_train(population_graph, device, n_conv_layers=2, layer_sizes=[364, 364, 512, 256, 1], epochs=500)
+gcn_train(population_graph, device, n_conv_layers=2, layer_sizes=[360, 360, 512, 256, 256, 1], lr=1e-4, weight_decay=0, epochs=5000)
