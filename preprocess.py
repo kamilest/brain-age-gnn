@@ -95,7 +95,7 @@ def get_graph_name(size, functional, pca, structural, euler, similarity_feature_
     return 'population_graph_' \
            + (str(size) + '_' if size is not None else 'all_') \
            + similarity_feature_string \
-           + str(similarity_threshold) \
+           + '_{}'.format(similarity_threshold) \
            + ('_functional' if functional else '') \
            + ('_PCA' if functional and pca else '') \
            + ('_structural' if structural else '') \
@@ -321,6 +321,8 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE, Phenotype.PROSPECTIVE_MEMORY_RESULT, Phenotype.NEUROTICISM_SCORE, Phenotype.BIPOLAR_DISORDER_STATUS]
+    feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE,
+                   Phenotype.PROSPECTIVE_MEMORY_RESULT, Phenotype.NEUROTICISM_SCORE,
+                   Phenotype.BIPOLAR_DISORDER_STATUS, Phenotype.SMOKING_STATUS]
     graph = construct_population_graph(feature_set, similarity_threshold=0.5)
     # graph = load_population_graph(graph_root, 'population_graph_all_SEX_FTE_FI_MEM_NEU_structural_euler.pt')
