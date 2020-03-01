@@ -95,7 +95,7 @@ def get_graph_name(size, functional, pca, structural, euler, similarity_feature_
     return 'population_graph_' \
            + (str(size) + '_' if size is not None else 'all_') \
            + similarity_feature_string \
-           + similarity_threshold \
+           + str(similarity_threshold) \
            + ('_functional' if functional else '') \
            + ('_PCA' if functional and pca else '') \
            + ('_structural' if structural else '') \
