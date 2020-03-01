@@ -89,12 +89,13 @@ def functional_connectivities_pca(connectivities, train_idx, random_state=0):
     return connectivity_pca.transform(connectivities)
 
 
-def get_graph_name(size, functional, pca, structural, euler, similarity_feature_set):
+def get_graph_name(size, functional, pca, structural, euler, similarity_feature_set, similarity_threshold):
     separator = '_'
     similarity_feature_string = separator.join([feature.value for feature in similarity_feature_set])
     return 'population_graph_' \
            + (str(size) + '_' if size is not None else 'all_') \
            + similarity_feature_string \
+           + similarity_threshold \
            + ('_functional' if functional else '') \
            + ('_PCA' if functional and pca else '') \
            + ('_structural' if structural else '') \
@@ -263,7 +264,7 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
                                pca=False, structural=True, euler=True, save=True, subject_ids=None, age_filtering=True,
                                save_dir=graph_root, name=None):
     if name is None:
-        name = get_graph_name(size, functional, pca, structural, euler, similarity_feature_set)
+        name = get_graph_name(size, functional, pca, structural, euler, similarity_feature_set, similarity_threshold)
 
     if subject_ids is None:
         subject_ids = sorted(get_subject_ids(size))
@@ -320,5 +321,6 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE]
-    graph = construct_population_graph(feature_set, similarity_threshold=0.9)
+    feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE, Phenotype.PROSPECTIVE_MEMORY_RESULT, Phenotype.NEUROTICISM_SCORE, Phenotype.BIPOLAR_DISORDER_STATUS]
+    graph = construct_population_graph(feature_set, similarity_threshold=0.5)
+    # graph = load_population_graph(graph_root, 'population_graph_all_SEX_FTE_FI_MEM_NEU_structural_euler.pt')
