@@ -76,6 +76,8 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
         print()
 
         loss.backward()
+
+        torch.nn.utils.clip_grad_norm_(model.parameters(), 10)
         optimizer.step()
 
     model.eval()
@@ -160,4 +162,4 @@ fold = evaluate.get_stratified_subject_split(population_graph)
 evaluate.set_training_masks(population_graph, *fold)
 preprocess.graph_feature_transform(population_graph)
 
-gcn_train(population_graph, device, n_conv_layers=2, layer_sizes=[360, 360, 512, 256, 256, 1], lr=1e-4, weight_decay=0, epochs=5000)
+gcn_train(population_graph, device, n_conv_layers=0, layer_sizes=[360, 256, 128, 1], lr=5e-4, weight_decay=0, epochs=5000)
