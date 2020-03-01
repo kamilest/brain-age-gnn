@@ -54,22 +54,22 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
         optimizer.zero_grad()
         out = model(data)
         loss = F.mse_loss(out[data.train_mask], data.y[data.train_mask])
-        train_mse = loss.item(),
+        train_mse = loss.item()[0],
         train_r2 = r2_score(data.y[data.train_mask].cpu().detach().numpy(),
                             out[data.train_mask].cpu().detach().numpy())
         train_r = pearsonr(data.y[data.train_mask].cpu().detach().numpy().flatten(),
                            out[data.train_mask].cpu().detach().numpy().flatten())[0]
         val_mse = F.mse_loss(out[data.validate_mask], data.y[data.validate_mask]).item()
         val_r2 = r2_score(data.y[data.validate_mask].cpu().detach().numpy(),
-                          out[data.validate_mask].cpu().detach().numpy()),
+                          out[data.validate_mask].cpu().detach().numpy())[0],
         val_r = pearsonr(data.y[data.validate_mask].cpu().detach().numpy().flatten(),
                          out[data.validate_mask].cpu().detach().numpy().flatten())[0]
         if log:
-            wandb.log({"Train MSE": train_mse[0],
+            wandb.log({"Train MSE": train_mse,
                        "Train r2": train_r2,
                        "Train r": train_r,
                        "Validation MSE": val_mse,
-                       "Validation r2": val_r2[0],
+                       "Validation r2": val_r2,
                        "Validation r": val_r})
         print(epoch, train_mse, train_r2, train_r)
         print(epoch, val_mse, val_r2, val_r)
