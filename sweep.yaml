@@ -1,0 +1,11 @@
+program: train.py
+method: bayes
+metric:
+  name: val_loss
+  goal: minimize
+parameters:
+  learning_rate:
+    min: 0.001
+    max: 0.1
+  optimizer:
+    values: ["adam", "sgd"]

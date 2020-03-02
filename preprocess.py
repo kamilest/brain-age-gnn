@@ -59,7 +59,6 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
         return subject_ids[:num_subjects]
 
 
-# TODO: include the argument for the kind of connectivity matrix (partial correlation, correlation, lasso,...)
 def get_functional_connectivity(subject_id):
     """Returns the correlation matrix for the parcellated timeseries data.
     If necessary precomputes the matrix.
@@ -90,12 +89,13 @@ def functional_connectivities_pca(connectivities, train_idx, random_state=0):
     return connectivity_pca.transform(connectivities)
 
 
-def get_graph_name(size, functional, pca, structural, euler, similarity_feature_set):
+def get_graph_name(size, functional, pca, structural, euler, similarity_feature_set, similarity_threshold):
     separator = '_'
     similarity_feature_string = separator.join([feature.value for feature in similarity_feature_set])
     return 'population_graph_' \
            + (str(size) + '_' if size is not None else 'all_') \
            + similarity_feature_string \
+           + '_{}'.format(similarity_threshold) \
            + ('_functional' if functional else '') \
            + ('_PCA' if functional and pca else '') \
            + ('_structural' if structural else '') \
@@ -110,7 +110,7 @@ def collect_graph_data(subject_ids, functional, structural, euler):
     if functional:
         functional_data = get_all_functional_connectivities(subject_ids)
     else:
-        functional_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
+        functional_data = pd.DataFrame(np.empty((len(subject_ids), 0)))
 
     if structural:
         cortical_thickness_data = precompute.extract_structural(subject_ids, type='cortical_thickness')
@@ -122,9 +122,9 @@ def collect_graph_data(subject_ids, functional, structural, euler):
         volume_data = precompute.extract_structural(subject_ids, type='volume')
         assert len(np.intersect1d(subject_ids, volume_data.index)) == len(subject_ids)
     else:
-        cortical_thickness_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
-        surface_area_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
-        volume_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
+        cortical_thickness_data = pd.DataFrame(np.empty((len(subject_ids), 0)))
+        surface_area_data = pd.DataFrame(np.empty((len(subject_ids), 0)))
+        volume_data = pd.DataFrame(np.empty((len(subject_ids), 0)))
 
     if euler:
         euler_data = precompute.extract_euler(subject_ids)
@@ -142,7 +142,7 @@ def collect_graph_data(subject_ids, functional, structural, euler):
 
 def get_sufficient_age_occurrence_index(phenotypes):
     age_counts = phenotypes[AGE_UID].value_counts()
-    ages = age_counts.iloc[np.argwhere(age_counts >= 3).flatten()].index.tolist()
+    ages = age_counts[age_counts >= 3].index.tolist()
     age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
     return age_index
 
@@ -264,7 +264,7 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
                                pca=False, structural=True, euler=True, save=True, subject_ids=None, age_filtering=True,
                                save_dir=graph_root, name=None):
     if name is None:
-        name = get_graph_name(size, functional, pca, structural, euler, similarity_feature_set)
+        name = get_graph_name(size, functional, pca, structural, euler, similarity_feature_set, similarity_threshold)
 
     if subject_ids is None:
         subject_ids = sorted(get_subject_ids(size))
@@ -308,6 +308,7 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
                                         'surface_area': graph_data['surface_area'],
                                         'volume': graph_data['volume']}
     population_graph.euler_data = graph_data['euler']
+    population_graph.name = name
 
     if save:
         torch.save(population_graph, os.path.join(save_dir, name))
@@ -320,5 +321,8 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    feature_set = [Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE]
-    graph = construct_population_graph(feature_set, similarity_threshold=0.9)
+    feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE,
+                   Phenotype.PROSPECTIVE_MEMORY_RESULT, Phenotype.NEUROTICISM_SCORE,
+                   Phenotype.BIPOLAR_DISORDER_STATUS, Phenotype.SMOKING_STATUS]
+    graph = construct_population_graph(feature_set, similarity_threshold=0.5)
+    # graph = load_population_graph(graph_root, 'population_graph_all_SEX_FTE_FI_MEM_NEU_structural_euler.pt')
