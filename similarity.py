@@ -110,7 +110,7 @@ def custom_similarity_function(feature_list):
 
 
 def precompute_similarities():
-    p_list = [Phenotype.AGE]
+    p_list = [Phenotype.MENTAL_HEALTH]
     subject_ids = np.load(SUBJECT_IDS, allow_pickle=True)
     similarity_lookup = pd.read_pickle(SIMILARITY_LOOKUP)
 
@@ -119,10 +119,11 @@ def precompute_similarities():
         sm = np.zeros((len(subject_ids), len(subject_ids)), dtype=np.bool)
 
         if p == Phenotype.MENTAL_HEALTH:
-            mental_feature_codes = [Phenotype.MENTAL_HEALTH.value + str(i) for i in range(19)]
+            mental_feature_codes = [Phenotype.MENTAL_HEALTH.value + str(i) for i in range(1, 19)]
             for i in range(len(subject_ids)):
+                print('{}/{} subjects processed'.format(i, len(subject_ids)))
                 id_i = subject_ids[i]
-                for j in range(i):
+                for j in range(i+1, len(subject_ids)):
                     id_j = subject_ids[j]
                     sm[i, j] = sm[j, i] = int(np.dot(similarity_lookup.loc[id_i, mental_feature_codes],
                                                      similarity_lookup.loc[id_j, mental_feature_codes]) >= 1)
@@ -135,3 +136,6 @@ def precompute_similarities():
                                            similarity_lookup.loc[id_j, p.value])
 
         np.save(os.path.join(similarity_root, '{}_similarity'.format(p.value)), sm)
+
+
+precompute_similarities()
