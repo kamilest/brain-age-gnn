@@ -43,18 +43,18 @@ def create_similarity_lookup():
         biobank_feature = Phenotype.get_biobank_codes(feature)
         if feature == Phenotype.MENTAL_HEALTH:
             mental_to_code = Phenotype.get_mental_to_code()
-            # column names for summary + 18 possible condidions: MEN0, MEN1, ..., MEN18.
+            # column names for summary (total number of conditions) + 18 possible condidions: MEN0, MEN1, ..., MEN18.
             mental_feature_codes = [Phenotype.MENTAL_HEALTH.value + str(i) for i in range(19)]
             # Replace string descriptions with their codes for consistency.
             phenotype_processed.loc[:, biobank_feature[0]] = phenotype_processed[biobank_feature[0]].apply(
                 lambda x: mental_to_code[x] if x in mental_to_code.keys() else None)
-            # Determine if the the patient have the occurrence of a particular disease.
+            # Determine if the the patient has the occurrence of a particular disease.
             si = phenotype_processed.index.to_series()
             for i in range(1, len(mental_feature_codes)):
                 phenotype_processed.loc[:, Phenotype.MENTAL_HEALTH.value + str(i)] = si.apply(
-                    lambda s: int(i in phenotype_processed.loc[s, biobank_feature].to_numpy()))
+                    lambda s: int(i in phenotype_processed.loc[s, biobank_feature].to_numpy().astype(bool)))
             phenotype_processed.loc[:, mental_feature_codes[0]] = si.apply(
-                lambda s: int(np.sum(phenotype_processed.loc[s, mental_feature_codes[1:]]) > 0))
+                lambda s: int(np.sum(phenotype_processed.loc[s, mental_feature_codes[1:]])))
 
         elif len(biobank_feature) > 1:
             # handle the more/less recent values
