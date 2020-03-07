@@ -43,18 +43,18 @@ def create_similarity_lookup():
         biobank_feature = Phenotype.get_biobank_codes(feature)
         if feature == Phenotype.MENTAL_HEALTH:
             mental_to_code = Phenotype.get_mental_to_code()
-            # column names for summary + 18 possible condidions: MEN0, MEN1, ..., MEN18.
+            # column names for summary (total number of conditions) + 18 possible condidions: MEN0, MEN1, ..., MEN18.
             mental_feature_codes = [Phenotype.MENTAL_HEALTH.value + str(i) for i in range(19)]
             # Replace string descriptions with their codes for consistency.
             phenotype_processed.loc[:, biobank_feature[0]] = phenotype_processed[biobank_feature[0]].apply(
                 lambda x: mental_to_code[x] if x in mental_to_code.keys() else None)
-            # Determine if the the patient have the occurrence of a particular disease.
+            # Determine if the the patient has the occurrence of a particular disease.
             si = phenotype_processed.index.to_series()
             for i in range(1, len(mental_feature_codes)):
                 phenotype_processed.loc[:, Phenotype.MENTAL_HEALTH.value + str(i)] = si.apply(
-                    lambda s: int(i in phenotype_processed.loc[s, biobank_feature].to_numpy()))
+                    lambda s: int(i in phenotype_processed.loc[s, biobank_feature].to_numpy().astype(bool)))
             phenotype_processed.loc[:, mental_feature_codes[0]] = si.apply(
-                lambda s: int(np.sum(phenotype_processed.loc[s, mental_feature_codes[1:]]) > 0))
+                lambda s: int(np.sum(phenotype_processed.loc[s, mental_feature_codes[1:]])))
 
         elif len(biobank_feature) > 1:
             # handle the more/less recent values
@@ -110,7 +110,7 @@ def custom_similarity_function(feature_list):
 
 
 def precompute_similarities():
-    p_list = [Phenotype.AGE]
+    p_list = [Phenotype.MENTAL_HEALTH]
     subject_ids = np.load(SUBJECT_IDS, allow_pickle=True)
     similarity_lookup = pd.read_pickle(SIMILARITY_LOOKUP)
 
@@ -119,10 +119,11 @@ def precompute_similarities():
         sm = np.zeros((len(subject_ids), len(subject_ids)), dtype=np.bool)
 
         if p == Phenotype.MENTAL_HEALTH:
-            mental_feature_codes = [Phenotype.MENTAL_HEALTH.value + str(i) for i in range(19)]
+            mental_feature_codes = [Phenotype.MENTAL_HEALTH.value + str(i) for i in range(1, 19)]
             for i in range(len(subject_ids)):
+                print('{}/{} subjects processed'.format(i, len(subject_ids)))
                 id_i = subject_ids[i]
-                for j in range(i):
+                for j in range(i+1, len(subject_ids)):
                     id_j = subject_ids[j]
                     sm[i, j] = sm[j, i] = int(np.dot(similarity_lookup.loc[id_i, mental_feature_codes],
                                                      similarity_lookup.loc[id_j, mental_feature_codes]) >= 1)
@@ -135,3 +136,6 @@ def precompute_similarities():
                                            similarity_lookup.loc[id_j, p.value])
 
         np.save(os.path.join(similarity_root, '{}_similarity'.format(p.value)), sm)
+
+
+precompute_similarities()
