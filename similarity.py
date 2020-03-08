@@ -2,9 +2,12 @@ import os
 
 import numpy as np
 import pandas as pd
+import torch
 
 from phenotype import Phenotype
 from precompute import precompute_subject_ids
+
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 data_root = 'data'
 data_phenotype = 'data/phenotype.csv'
@@ -120,13 +123,12 @@ def precompute_similarities():
 
         if p == Phenotype.MENTAL_HEALTH:
             mental_feature_codes = [Phenotype.MENTAL_HEALTH.value + str(i) for i in range(1, 19)]
-            for i in range(len(subject_ids)):
-                print('{}/{} subjects processed'.format(i, len(subject_ids)))
-                id_i = subject_ids[i]
-                for j in range(i+1, len(subject_ids)):
-                    id_j = subject_ids[j]
-                    sm[i, j] = sm[j, i] = int(np.dot(similarity_lookup.loc[id_i, mental_feature_codes],
-                                                     similarity_lookup.loc[id_j, mental_feature_codes]) >= 1)
+            men = similarity_lookup.loc[subject_ids, mental_feature_codes].to_numpy()
+            men = torch.tensor(men)
+            sim = torch.mm(men, men.t())
+            sim = sim >= 1
+            sm = sim.cpu().detach().numpy()
+
         else:
             for i in range(len(subject_ids)):
                 id_i = subject_ids[i]
