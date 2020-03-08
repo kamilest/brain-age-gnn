@@ -89,28 +89,29 @@ def precompute_similarities():
     If both features are unknown, assume there is no match.
     """
 
-    p_list = [Phenotype.MENTAL_HEALTH]
+    p_list = [Phenotype.AGE]
     subject_ids = np.load(SUBJECT_IDS, allow_pickle=True)
     similarity_lookup = pd.read_pickle(SIMILARITY_LOOKUP)
 
     for p in p_list:
-        print(p.value)
-        sm = np.zeros((len(subject_ids), len(subject_ids)), dtype=np.bool)
-
         if p == Phenotype.MENTAL_HEALTH:
             mental_feature_codes = [Phenotype.MENTAL_HEALTH.value + str(i) for i in range(1, 19)]
             men = similarity_lookup.loc[subject_ids, mental_feature_codes].to_numpy()
             men = torch.tensor(men)
+
             sim = torch.mm(men, men.t())
             sim = sim >= 1
             sm = sim.cpu().detach().numpy()
 
         else:
-            for i in range(len(subject_ids)):
-                id_i = subject_ids[i]
-                for j in range(i):
-                    id_j = subject_ids[j]
-                    sm[i, j] = sm[j, i] = (similarity_lookup.loc[id_i, p.value] ==
-                                           similarity_lookup.loc[id_j, p.value])
+            fea = similarity_lookup.loc[subject_ids, p.value].to_numpy()
+            fea = np.expand_dims(fea, axis=0)
+            fea = torch.tensor(fea)
 
-        np.save(os.path.join(similarity_root, '{}_similarity'.format(p.value)), sm)
+            sim = fea.t() - fea
+            sim = sim == 0
+            sm = sim.cpu().detach().numpy()
+
+        # Ignore self-similarities
+        np.fill_diagonal(sm, False)
+        np.save(os.path.join(similarity_root, '{}_similarity_GPU'.format(p.value)), sm)
