@@ -37,11 +37,9 @@ def main():
     wall_start = time.time()
 
     out = precompute_mental_similarities()
-    np.save(os.path.join(similarity_root, 'MEN_similarity_GPU'), out)
     print('Total time: {}'.format(time.clock()-start))
     print('Total wall time: {}'.format((time.time()-wall_start)))
 
 
 if __name__ == "__main__":
     main()
-    a = np.load('data/similarity/MEN_similarity_GPU.npy', allow_pickle=True)
