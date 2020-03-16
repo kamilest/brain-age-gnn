@@ -31,7 +31,7 @@ parser.add_argument('--n_conv_layers', default=1, type=int, help='Number of grap
 parser.add_argument('--layer_sizes', default='[364, 364, 512, 256, 1]', type=str, help='Sizes of layers')
 
 args = parser.parse_args()
-graph_index = args.graph_index
+# graph_index = args.graph_index
 # graph_name = GRAPH_NAMES[graph_index]
 graph_name = args.graph_name
 
@@ -39,18 +39,6 @@ if args.model == 'gcn' or args.model == 'gat':
     n_conv_layers = args.n_conv_layers
 else:
     n_conv_layers = 0
-
-torch.manual_seed(99)
-np.random.seed(0)
-
-population_graph = preprocess.load_population_graph(graph_root, graph_name)
-fold = evaluate.get_stratified_subject_split(population_graph)
-evaluate.set_training_masks(population_graph, *fold)
-preprocess.graph_feature_transform(population_graph)
-
-population_graph = preprocess.load_population_graph(graph_root, graph_name)
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
 
 hyperparameter_defaults = dict(
     graph_name=GRAPH_NAMES[0],
@@ -62,8 +50,17 @@ hyperparameter_defaults = dict(
     layer_sizes=[364, 364, 512, 256, 1]
 )
 
+torch.manual_seed(99)
+np.random.seed(0)
+
 wandb.init(project="brain-age-gnn", config=hyperparameter_defaults)
 
+population_graph = preprocess.load_population_graph(graph_root, graph_name)
+fold = evaluate.get_stratified_subject_split(population_graph)
+evaluate.set_training_masks(population_graph, *fold)
+preprocess.graph_feature_transform(population_graph)
+
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
 # TODO correctly parse layer sizes
 brain_gcn.gcn_train(population_graph, device,
