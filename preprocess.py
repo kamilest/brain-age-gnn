@@ -321,8 +321,6 @@ def load_population_graph(graph_root, name):
 
 
 if __name__ == '__main__':
-    feature_set = [Phenotype.SEX, Phenotype.FULL_TIME_EDUCATION, Phenotype.FLUID_INTELLIGENCE,
-                   Phenotype.PROSPECTIVE_MEMORY_RESULT, Phenotype.NEUROTICISM_SCORE,
-                   Phenotype.BIPOLAR_DISORDER_STATUS, Phenotype.SMOKING_STATUS]
-    graph = construct_population_graph(feature_set, similarity_threshold=0.5)
-    # graph = load_population_graph(graph_root, 'population_graph_all_SEX_FTE_FI_MEM_NEU_structural_euler.pt')
+    feature_set = [Phenotype.SEX, Phenotype.MENTAL_HEALTH, Phenotype.PROSPECTIVE_MEMORY_RESULT, Phenotype.BIPOLAR_DISORDER_STATUS, Phenotype.NEUROTICISM_SCORE]
+    graph = construct_population_graph(feature_set, similarity_threshold=0.8)
+    # graph = load_population_graph(graph_root, 'population_graph_all_SEX_FTE_FI_structural_euler.pt')
