@@ -46,6 +46,7 @@ hyperparameter_defaults = dict(
     model='gcn',
     epochs=5000,
     learning_rate=5e-4,
+    dropout=0,
     weight_decay=0,
     n_conv_layers=1,
     layer_sizes=[364, 364, 512, 256, 1]
