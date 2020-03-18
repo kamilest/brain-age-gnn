@@ -22,14 +22,14 @@ graph_root = 'data/graph'
 graph_name = 'population_graph_all_SEX_FTE_FI_structural_euler.pt'
 
 
-def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005, weight_decay=1e-5, log=True):
+def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005, dropout_p=0, weight_decay=1e-5, log=True):
     data = graph.to(device)
     assert n_conv_layers >= 0
 
     if layer_sizes is None:
         layer_sizes = []
 
-    model = BrainGCN(graph.num_node_features, n_conv_layers, layer_sizes).to(device)
+    model = BrainGCN(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
     if log:
@@ -103,10 +103,11 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
 
 class BrainGCN(torch.nn.Module):
     # noinspection PyUnresolvedReferences
-    def __init__(self, num_node_features, n_conv_layers, layer_sizes):
+    def __init__(self, num_node_features, n_conv_layers, layer_sizes, dropout_p):
         super(BrainGCN, self).__init__()
         self.conv = torch.nn.ModuleList()
         self.fc = torch.nn.ModuleList()
+        self.dropout = torch.nn.Dropout(dropout_p)
         size = num_node_features
         self.params = torch.nn.ParameterList([size].extend(layer_sizes))
         for i in range(n_conv_layers):
@@ -125,6 +126,7 @@ class BrainGCN(torch.nn.Module):
         for i in range(len(self.fc) - 1):
             x = self.fc[i](x)
             x = torch.tanh(x)
+            x = self.dropout(x)
 
         x = self.fc[-1](x)
         return x

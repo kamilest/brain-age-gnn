@@ -25,6 +25,7 @@ parser.add_argument('--graph_name', default=GRAPH_NAMES[0], type=str, help='Grap
 parser.add_argument('--model', default='gcn', type=str, help='Type of model (options: gcn, fc)')
 parser.add_argument('--epochs', default=5000, type=int, help='Number of epochs (default 5000)')
 parser.add_argument('--learning_rate', default=5e-4, type=float, help='Learning rate (default 5e-4)')
+parser.add_argument('--dropout', default=0, type=float, help='Dropout (default 0)')
 parser.add_argument('--weight_decay', default=0, type=float, help='Weight decay (default 0)')
 
 parser.add_argument('--n_conv_layers', default=1, type=int, help='Number of graph convolutional layers (default: 1)')
@@ -60,7 +61,7 @@ fold = evaluate.get_stratified_subject_split(population_graph)
 evaluate.set_training_masks(population_graph, *fold)
 preprocess.graph_feature_transform(population_graph)
 
-device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 # TODO correctly parse layer sizes
 brain_gcn.gcn_train(population_graph, device,
@@ -68,4 +69,5 @@ brain_gcn.gcn_train(population_graph, device,
                     layer_sizes=[364, 364, 512, 256, 1],
                     lr=args.learning_rate,
                     weight_decay=args.weight_decay,
+                    dropout_p=args.dropout,
                     epochs=args.epochs)

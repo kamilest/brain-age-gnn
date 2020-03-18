@@ -6,22 +6,24 @@ metric:
 parameters:
   learning_rate:
     distribution: uniform
-    min: 5e-4
+    min: 5e-5
     max: 5e-2
     # values: [3e-4, 5e-4, 1e-3, 3e-3]
+  dropout:
+    distribution: uniform
+    min: 0
+    max: 0.5
   graph_name:
     distribution: categorical
       # all graph types to be tested
-      values:
-        - population_graph_all_SEX_FTE_FI_0.9_structural_euler.pt
-        - population_graph_all_SEX_FI_MEN_MEM_BIP_NEU_0.8_structural_euler.pt
-        - population_graph_all_SEX_FTE_FI_MEN_0.9_structural_euler.pt
-        - population_graph_all_SEX_FTE_FI_MEN_MEM_BIP_0.7_structural_euler.pt
-        - population_graph_all_SEX_MEN_MEM_BIP_NEU_0.8_structural_euler.pt
+    values:
+      - population_graph_all_SEX_FI_MEN_MEM_BIP_NEU_0.8_structural_euler.pt
+      - population_graph_all_SEX_FTE_FI_MEN_MEM_BIP_0.7_structural_euler.pt
+      - population_graph_all_SEX_MEN_MEM_BIP_NEU_0.8_structural_euler.pt
   n_conv_layers:
     distribution: int_uniform
     min: 1
-    max: 2
+    max: 3
   epochs:
     value: 5000
 early_terminate:
