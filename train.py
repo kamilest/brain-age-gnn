@@ -10,6 +10,7 @@ import wandb
 import brain_gcn
 import evaluate
 import graph_construct
+import graph_transform
 
 graph_root = 'data/graph'
 GRAPH_NAMES = sorted(os.listdir(graph_root))
@@ -60,7 +61,7 @@ wandb.init(project="brain-age-gnn", config=hyperparameter_defaults)
 population_graph = graph_construct.load_population_graph(graph_root, graph_name)
 fold = evaluate.get_stratified_subject_split(population_graph)
 evaluate.set_training_masks(population_graph, *fold)
-graph_construct.graph_feature_transform(population_graph)
+graph_transform.graph_feature_transform(population_graph)
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
