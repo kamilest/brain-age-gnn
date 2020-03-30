@@ -192,7 +192,8 @@ def remove_population_graph_edges(population_graph, p):
         v_list.extend([edge[0], edge[1]])
         w_list.extend([edge[1], edge[0]])
 
-    # TODO save the original edges to have a way to reset them!
+    if not hasattr(population_graph, 'original_edge_index'):
+        population_graph.original_edge_index = population_graph.edge_index.clone()
     population_graph.edge_index = torch.tensor([v_list, w_list], dtype=torch.long)
 
 
