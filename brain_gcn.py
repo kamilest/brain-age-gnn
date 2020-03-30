@@ -16,7 +16,7 @@ from torch.nn import Linear
 from torch_geometric.nn import GCNConv
 
 import evaluate
-import preprocess
+import graph_construct
 
 graph_root = 'data/graph'
 graph_name = 'population_graph_all_SEX_FTE_FI_structural_euler.pt'
@@ -140,7 +140,7 @@ def gcn_train_with_cross_validation(graph, device, n_folds=10, n_conv_layers=0, 
 
     for fold in folds:
         evaluate.set_training_masks(graph, *fold)
-        preprocess.graph_feature_transform(graph)
+        graph_construct.graph_feature_transform(graph)
 
         result = gcn_train(graph, device, n_conv_layers=n_conv_layers, layer_sizes=layer_sizes, epochs=epochs, lr=lr,
                            dropout_p=dropout_p, weight_decay=weight_decay, log=log)
@@ -153,10 +153,10 @@ if __name__ == "__main__":
     torch.manual_seed(99)
     np.random.seed(0)
 
-    population_graph = preprocess.load_population_graph(graph_root, graph_name)
+    population_graph = graph_construct.load_population_graph(graph_root, graph_name)
     fold = evaluate.get_stratified_subject_split(population_graph)
     evaluate.set_training_masks(population_graph, *fold)
-    preprocess.graph_feature_transform(population_graph)
+    graph_construct.graph_feature_transform(population_graph)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     gcn_train(population_graph, device, n_conv_layers=0, layer_sizes=[360, 256, 128, 1], lr=5e-4, weight_decay=0, epochs=5000)
