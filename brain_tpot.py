@@ -2,7 +2,6 @@ import numpy as np
 from tpot import TPOTRegressor
 
 import graph_construct
-import precompute
 
 # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=31
 SEX_UID = '31-0.0'
@@ -11,7 +10,7 @@ AGE_UID = '21003-2.0'
 
 subject_ids = graph_construct.get_subject_ids(1000)
 
-phenotypes = precompute.extract_phenotypes(subject_ids, [SEX_UID, AGE_UID])
+phenotypes = graph_construct.extract_phenotypes(subject_ids, [SEX_UID, AGE_UID])
 connectivities = np.array([graph_construct.get_functional_connectivity(i) for i in phenotypes.index])
 
 labels = np.array(phenotypes[AGE_UID].tolist())
