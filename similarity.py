@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 
 from phenotype import Phenotype
-from precompute import precompute_subject_ids
+from ukb_preprocess import precompute_subject_ids
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
