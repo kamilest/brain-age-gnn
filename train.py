@@ -67,7 +67,7 @@ device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 # TODO correctly parse layer sizes
 brain_gcn.gcn_train(population_graph, device,
                     n_conv_layers=n_conv_layers,
-                    layer_sizes=[364, 364, 512, 256, 1],
+                    layer_sizes=[364, 364, 512, 256, 256, 1],
                     lr=args.learning_rate,
                     weight_decay=args.weight_decay,
                     dropout_p=args.dropout,
