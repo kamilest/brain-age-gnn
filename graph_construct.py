@@ -72,7 +72,7 @@ def get_functional_connectivity(subject_id):
     """
 
     if subject_id + '.npy' not in os.listdir(data_computed_fcms):
-        ukb_preprocess.precompute_fcm(subject_id)
+        ukb_preprocess.precompute_flattened_fcm(subject_id)
 
     return np.load(os.path.join(data_computed_fcms, subject_id + '.npy'))
 
