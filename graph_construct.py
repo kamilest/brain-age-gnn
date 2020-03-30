@@ -158,20 +158,6 @@ def collect_euler(subject_ids):
     return subject_euler
 
 
-def get_graph_name(size, functional, pca, structural, euler, similarity_feature_set, similarity_threshold):
-    separator = '_'
-    similarity_feature_string = separator.join([feature.value for feature in similarity_feature_set])
-    return 'population_graph_' \
-           + (str(size) + '_' if size is not None else 'all_') \
-           + similarity_feature_string \
-           + '_{}'.format(similarity_threshold) \
-           + ('_functional' if functional else '') \
-           + ('_PCA' if functional and pca else '') \
-           + ('_structural' if structural else '') \
-           + ('_euler' if euler else '') \
-           + '.pt'
-
-
 def collect_graph_data(subject_ids, functional, structural, euler):
     phenotypes = collect_phenotypes(subject_ids)
     assert len(np.intersect1d(subject_ids, phenotypes.index)) == len(subject_ids)
@@ -207,6 +193,20 @@ def collect_graph_data(subject_ids, functional, structural, euler):
                                  'surface_area': surface_area_data,
                                  'volume': volume_data,
                                  'euler': euler_data}
+
+
+def get_graph_name(size, functional, pca, structural, euler, similarity_feature_set, similarity_threshold):
+    separator = '_'
+    similarity_feature_string = separator.join([feature.value for feature in similarity_feature_set])
+    return 'population_graph_' \
+           + (str(size) + '_' if size is not None else 'all_') \
+           + similarity_feature_string \
+           + '_{}'.format(similarity_threshold) \
+           + ('_functional' if functional else '') \
+           + ('_PCA' if functional and pca else '') \
+           + ('_structural' if structural else '') \
+           + ('_euler' if euler else '') \
+           + '.pt'
 
 
 def get_sufficient_age_occurrence_index(phenotypes):
