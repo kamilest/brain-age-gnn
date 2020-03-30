@@ -1,12 +1,9 @@
 """
-Graph preprocessing file.
-Collects features and assembles the population graph.
+Population graph construction component.
 
-
-Collects the relevant timeseries, 
-computes functional/structural connectivity matrices
-computes graph adjacency scores
-connects nodes into a graph, assigning collected features
+Collects the specified population graph modalities for a given number of subjects (or their specific IDs).
+Takes a set of similarity metrics (or a generalised similarity function) to generate the edges based on subject similarity.
+Combines the imaging data and the edges into the intermediate population graph representation.
 """
 
 import csv
@@ -45,9 +42,9 @@ AGE_UID = Phenotype.get_biobank_codes(Phenotype.AGE)[0]
 def get_subject_ids(num_subjects=None, randomise=True, seed=0):
     """Gets the list of subject IDs for a spcecified number of subjects.
 
-    :param num_subjects: number of subjects.
+    :param num_subjects: number of subjects. Use the entire dataset when set to None.
     :param randomise: indicates whether to use a random seed for selection of subjects.
-    :param seed: seed value.
+    :param seed: random seed value.
     :return: list of subject IDs.
     """
 
@@ -67,20 +64,27 @@ def get_subject_ids(num_subjects=None, randomise=True, seed=0):
 
 
 def get_functional_connectivity(subject_id):
-    """Returns the correlation matrix for the parcellated timeseries data.
-    If necessary precomputes the matrix.
+    """Returns the flattened functional connectivity matrix for the parcellated timeseries data of a given subject.
+    Precomputes the functional connectivity matrix if necessary.
 
     :param subject_id: subject ID.
     :return: the flattened lower triangle of the correlation matrix for the parcellated timeseries data.
     """
 
     if subject_id + '.npy' not in os.listdir(data_computed_fcms):
-        ukb_preprocess.precompute_fcm(subject_id)
+        ukb_preprocess.precompute_flattened_fcm(subject_id)
 
     return np.load(os.path.join(data_computed_fcms, subject_id + '.npy'))
 
 
 def collect_functional_connectivities(subject_ids):
+    """Returns a list of flattened functional connectivity matrices for a list of subjects.
+    Precomputes the functional connectivity matrices if necessary.
+
+    :param subject_ids: list of subject IDs.
+    :return: the flattened lower triangles of the correlation matrices for the parcellated timeseries data.
+    """
+
     connectivities = []
     for i, subject_id in enumerate(subject_ids):
         connectivity = get_functional_connectivity(subject_id)
@@ -91,6 +95,13 @@ def collect_functional_connectivities(subject_ids):
 
 
 def collect_phenotypes(subject_ids, uid_list=None):
+    """Returns the phenotype data for a given list of subjects and the list of phenotype identifiers.
+
+    :param subject_ids: list of subject IDs.
+    :param uid_list: list of the phenotype data identifiers. If list is None return all phenotype data.
+    :return: a dataframe indexed by sorted subject IDs with columns containing the phenotype data.
+    """
+
     if uid_list is None:
         uid_list = ['eid']
     else:
@@ -115,12 +126,20 @@ def collect_phenotypes(subject_ids, uid_list=None):
     return subject_phenotype
 
 
-def collect_structural(subject_ids, type):
-    if type == 'cortical_thickness':
+def collect_structural(subject_ids, structural_type):
+    """Returns the structural data for a given list of subjects and the specified structural data type.
+
+    :param subject_ids: list of subject IDs.
+    :param structural_type: indicates whether to retrieve 'cortical_thickness', 'surface_area',
+        or (grey matter) 'volume'.
+    :return: a dataframe indexed by sorted subject IDs with columns containing the structural data.
+    """
+
+    if structural_type == 'cortical_thickness':
         data = data_ct
-    elif type == 'surface_area':
+    elif structural_type == 'surface_area':
         data = data_sa
-    elif type == 'volume':
+    elif structural_type == 'volume':
         data = data_vol
     else:
         return pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
@@ -132,7 +151,7 @@ def collect_structural(subject_ids, type):
 
     assert(len(subject_ids) - len(subject_ct) == 0)
     if len(subject_ct) != len(subject_ids):
-        print('{} entries had {} data missing.'.format(len(subject_ids) - len(subject_ct), type))
+        print('{} entries had {} data missing.'.format(len(subject_ids) - len(subject_ct), structural_type))
 
     subject_ct = subject_ct.drop(subject_ct.columns[0], axis=1)
     subject_ct = subject_ct.drop(['lh_???', 'rh_???'], axis=1)
@@ -145,6 +164,12 @@ def collect_structural(subject_ids, type):
 
 
 def collect_euler(subject_ids):
+    """Returns the Euler index data for a given list of subjects.
+
+    :param subject_ids: list of subject IDs.
+    :return: a dataframe indexed by sorted subject IDs with columns containing the Euler indices.
+    """
+
     euler = pd.read_csv(data_euler, sep=',', quotechar='\"')
 
     # Extract data for relevant subject IDs.
@@ -159,6 +184,16 @@ def collect_euler(subject_ids):
 
 
 def collect_graph_data(subject_ids, functional, structural, euler):
+    """Collects the graph data as for the given subject IDs and the specified list of modalities.
+
+    :param subject_ids: list of subject IDs.
+    :param functional: indicates whether to use functional MRI data.
+    :param structural: indicates whether to use structural MRI data.
+    :param euler: indicates whether to use Euler indices.
+    :return: a dictionary containing the dataframes for every modality, indexed by subject IDs. If the modality is not
+        used, an empty dataframe is returned in the corresponding dictionary entry.
+    """
+
     phenotypes = collect_phenotypes(subject_ids)
     assert len(np.intersect1d(subject_ids, phenotypes.index)) == len(subject_ids)
 
@@ -168,13 +203,13 @@ def collect_graph_data(subject_ids, functional, structural, euler):
         functional_data = pd.DataFrame(np.empty((len(subject_ids), 0)))
 
     if structural:
-        cortical_thickness_data = collect_structural(subject_ids, type='cortical_thickness')
+        cortical_thickness_data = collect_structural(subject_ids, structural_type='cortical_thickness')
         assert len(np.intersect1d(subject_ids, cortical_thickness_data.index)) == len(subject_ids)
 
-        surface_area_data = collect_structural(subject_ids, type='surface_area')
+        surface_area_data = collect_structural(subject_ids, structural_type='surface_area')
         assert len(np.intersect1d(subject_ids, surface_area_data.index)) == len(subject_ids)
 
-        volume_data = collect_structural(subject_ids, type='volume')
+        volume_data = collect_structural(subject_ids, structural_type='volume')
         assert len(np.intersect1d(subject_ids, volume_data.index)) == len(subject_ids)
     else:
         cortical_thickness_data = pd.DataFrame(np.empty((len(subject_ids), 0)))
@@ -195,7 +230,18 @@ def collect_graph_data(subject_ids, functional, structural, euler):
                                  'euler': euler_data}
 
 
-def get_graph_name(size, functional, pca, structural, euler, similarity_feature_set, similarity_threshold):
+def get_graph_name(size, functional, structural, euler, similarity_feature_set, similarity_threshold):
+    """Creates the name for the population graph given its parameterisation.
+
+    :param size: list of subject IDs.
+    :param functional: indicates whether the graph contains functional MRI data.
+    :param structural: indicates whether the graph contains structural MRI data.
+    :param euler: indicates whether the graph contains Euler indices.
+    :param similarity_feature_set: list of similarity features were used in similarity metric.
+    :param similarity_threshold: the threshold of similary metric above which an edge is created.
+    :return: the graph name.
+    """
+
     separator = '_'
     similarity_feature_string = separator.join([feature.value for feature in similarity_feature_set])
     return 'population_graph_' \
@@ -203,13 +249,19 @@ def get_graph_name(size, functional, pca, structural, euler, similarity_feature_
            + similarity_feature_string \
            + '_{}'.format(similarity_threshold) \
            + ('_functional' if functional else '') \
-           + ('_PCA' if functional and pca else '') \
            + ('_structural' if structural else '') \
            + ('_euler' if euler else '') \
            + '.pt'
 
 
 def get_sufficient_age_occurrence_index(phenotypes):
+    """Required for correct stratification; ensures that occurrence of each label is at least 3.
+
+    :param phenotypes: dataframe containing phenotype (non-imaging data).
+    :return: return subject IDs whose ages occur with sufficient frequency to be correctly stratified into training,
+        validation and test sets.
+    """
+
     age_counts = phenotypes[AGE_UID].value_counts()
     ages = age_counts[age_counts >= 3].index.tolist()
     age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
@@ -225,8 +277,8 @@ def construct_edge_list_from_function(subject_ids, similarity_function, similari
     :param similarity_threshold: the threshold above which the edge should be added.
     :param save: inidicates whether to save the population_graph in the logs directory.
     :param graph_name: population_graph name for saved file if population_graph edges are logged.
-    :return: population_graph connectivity in coordinate format of shape [2, num_edges].
-    The same edge (v, w) appears twice as (v, w) and (w, v) to represent bidirectionality.
+    :return population_graph connectivity in coordinate format of shape [2, num_edges].
+        The same edge (v, w) appears twice as (v, w) and (w, v) to represent bidirectionality.
     """
 
     v_list = []
@@ -260,6 +312,15 @@ def construct_edge_list_from_function(subject_ids, similarity_function, similari
 
 
 def construct_edge_list(subject_ids, phenotypes, similarity_threshold=0.5):
+    """Constructs the adjacency list of the population population_graph based on a similarity features provided.
+
+    :param subject_ids: list of subject IDs.
+    :param phenotypes: the list of features which will be accounted for with equal importance when computing similarity.
+    :param similarity_threshold: the threshold above which the edge will be added to the graph.
+    :return a dictionary containing the dataframes for every modality, indexed by subject IDs. If the modality is not
+        used, an empty dataframe is returned in the corresponding dictionary entry.
+    """
+
     # Get the similarity matrices for subject_ids and phenotype_features provided.
     # Add up the matrices (possibly weighting).
     num_subjects = len(subject_ids)
@@ -282,8 +343,28 @@ def construct_edge_list(subject_ids, phenotypes, similarity_threshold=0.5):
 def construct_population_graph(similarity_feature_set, similarity_threshold=0.5, size=None, functional=False,
                                pca=False, structural=True, euler=True, save=True, subject_ids=None, age_filtering=True,
                                save_dir=graph_root, name=None):
+    """Constructs the population graph given its modality and similarity parameterisation.
+
+    :param similarity_feature_set: list of features which will be accounted for with equal importance when computing \
+        similarity.
+    :param similarity_threshold: the threshold above which the edge will be added to the graph.
+    :param size: the maximum number of nodes in population graph (can be lower if some nodes have to be filtered out).
+        If size is None then the entire dataset is considered.
+    :param functional: indicates whether to use functional MRI data.
+    :param structural: indicates whether to use structural MRI data.
+    :param euler: indicates whether to use Euler index data.
+    :param save: indicates whether the graph should be saved.
+    :param subject_ids: the specific subjects for which population graph should be created. Takes precedence over the
+        size parameter if both are indicated.
+    :param age_filtering: indicates whether to remove patients with low label occurrence (for correct stratification in
+        training process).
+    :param save_dir: directory in which the graph should be saved.
+    :param name: the name of the graph. Creates a default name if None is given.
+    :return an intermediate population graph representation.
+    """
+
     if name is None:
-        name = get_graph_name(size, functional, pca, structural, euler, similarity_feature_set, similarity_threshold)
+        name = get_graph_name(size, functional, structural, euler, similarity_feature_set, similarity_threshold)
 
     if subject_ids is None:
         subject_ids = sorted(get_subject_ids(size))
@@ -336,6 +417,13 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
 
 
 def load_population_graph(root, name):
+    """Loads population graph.
+
+    :param root: the root directory of the graph.
+    :param name: the name of the population graph file.
+    :return population graph object.
+    """
+
     return torch.load(os.path.join(root, name))
 
 

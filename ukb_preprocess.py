@@ -27,7 +27,7 @@ SUBJECT_IDS = 'data/subject_ids.npy'
 EXCLUDED_UKB_IDS = ['UKB2203847', 'UKB2208238', 'UKB2697888']
 
 
-def precompute_fcm(subject_id=None):
+def precompute_flattened_fcm(subject_id=None):
     """ Derives the correlation matrices for the parcellated timeseries data.
 
     :param subject_id: subject ID if only one connectivity matrix needs to be precomputed
@@ -61,6 +61,11 @@ def precompute_fcm(subject_id=None):
 
 
 def precompute_subject_ids():
+    """Precomputes the index of subjects that have data available for all possible modalities.
+
+    :return list of filtered subject IDs.
+    """
+
     # Timeseries subject IDs.
     timeseries_ids = [f[:-len("_ts_raw.txt")] for f in sorted(os.listdir(data_timeseries))]
 
@@ -95,6 +100,15 @@ def precompute_subject_ids():
 
 
 def get_most_recent(ukb_feature, subject_id, phenotypes):
+    """Utility method for retrieving the most recent datapoint if several measurements of the same feature are
+        available.
+
+    :param ukb_feature: the UKB feature as a list of relevant UKB IDs.
+    :param subject_id: the subject for which to return the most recent feature instance.
+    :param phenotypes: the dataframe containing phenotype data.
+    :return the value for the most recent feature.
+    """
+
     instance = ukb_feature[0]
     for f in reversed(ukb_feature):
         if not np.isnan(phenotypes.loc[subject_id, f]):
@@ -195,7 +209,7 @@ def precompute_similarities():
 
 
 if __name__ == '__main__':
-    # precompute_fcm()
+    # precompute_flattened_fcm()
     precompute_subject_ids()
     # precompute_similarities()
     sids = np.load(os.path.join(data_root, 'subject_ids.npy'), allow_pickle=True)
