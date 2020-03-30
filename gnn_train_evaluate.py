@@ -13,7 +13,12 @@ from graph_transform import concatenate_graph_features
 
 
 def test_subject_split(train_idx, validate_idx, test_idx):
-    """Tests subject split, asserting whether no subjects spill between the splits."""
+    """Tests subject split, asserting whether no subjects spill between the splits.
+
+    :param train_idx: subjects in train set
+    :param validate_idx: subjects in validation set
+    :param test_idx: subjects in test set
+    """
 
     assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
     assert (len(np.intersect1d(train_idx, test_idx)) == 0)
