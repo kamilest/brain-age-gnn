@@ -15,7 +15,7 @@ from sklearn.metrics import r2_score
 from torch.nn import Linear
 from torch_geometric.nn import GCNConv
 
-import evaluate
+import gnn_train_evaluate
 import graph_construct
 import graph_transform
 
@@ -135,12 +135,12 @@ class BrainGCN(torch.nn.Module):
 
 def gcn_train_with_cross_validation(graph, device, n_folds=10, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005,
                                     dropout_p=0, weight_decay=1e-5, log=True):
-    folds = evaluate.get_cv_subject_split(graph, n_folds=n_folds)
+    folds = gnn_train_evaluate.get_cv_subject_split(graph, n_folds=n_folds)
 
     results = []
 
     for fold in folds:
-        evaluate.set_training_masks(graph, *fold)
+        gnn_train_evaluate.set_training_masks(graph, *fold)
         graph_transform.graph_feature_transform(graph)
 
         result = gcn_train(graph, device, n_conv_layers=n_conv_layers, layer_sizes=layer_sizes, epochs=epochs, lr=lr,
@@ -155,8 +155,8 @@ if __name__ == "__main__":
     np.random.seed(0)
 
     population_graph = graph_construct.load_population_graph(graph_root, graph_name)
-    fold = evaluate.get_stratified_subject_split(population_graph)
-    evaluate.set_training_masks(population_graph, *fold)
+    fold = gnn_train_evaluate.get_stratified_subject_split(population_graph)
+    gnn_train_evaluate.set_training_masks(population_graph, *fold)
     graph_transform.graph_feature_transform(population_graph)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')

@@ -7,7 +7,7 @@ import numpy as np
 import torch
 import wandb
 
-import evaluate
+import gnn_train_evaluate
 import graph_construct
 import graph_transform
 from auxiliary_networks import brain_gcn
@@ -59,8 +59,8 @@ np.random.seed(0)
 wandb.init(project="brain-age-gnn", config=hyperparameter_defaults)
 
 population_graph = graph_construct.load_population_graph(graph_root, graph_name)
-fold = evaluate.get_stratified_subject_split(population_graph)
-evaluate.set_training_masks(population_graph, *fold)
+fold = gnn_train_evaluate.get_stratified_subject_split(population_graph)
+gnn_train_evaluate.set_training_masks(population_graph, *fold)
 graph_transform.graph_feature_transform(population_graph)
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
