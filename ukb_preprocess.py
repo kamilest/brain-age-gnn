@@ -11,7 +11,7 @@ from phenotype import Phenotype
 data_root = 'data'
 data_timeseries = 'data/raw_ts'
 data_phenotype = 'data/phenotype.csv'
-similarity_root = 'data/similarity'
+data_similarity = 'data/similarity'
 data_ct = 'data/CT.csv'
 data_sa = 'data/SA.csv'
 data_vol = 'data/Vol.csv'
@@ -191,16 +191,16 @@ def precompute_similarities():
 
         # Ignore self-similarities
         np.fill_diagonal(sm, False)
-        np.save(os.path.join(similarity_root, '{}_similarity'.format(p.value)), sm)
+        np.save(os.path.join(data_similarity, '{}_similarity'.format(p.value)), sm)
 
 
 if __name__ == '__main__':
     # precompute_fcm()
     precompute_subject_ids()
-    subject_ids = np.load(os.path.join(data_root, 'subject_ids.npy'), allow_pickle=True)
+    sids = np.load(os.path.join(data_root, 'subject_ids.npy'), allow_pickle=True)
 
     # 17550 = count of functional connectivity files
     # 3 = excluded functional connectivity files due to mismatched formatting
     # 233 = number of missing patients in phenotype data
-    assert len(subject_ids) == (17550 - 233 - 3)
+    assert len(sids) == (17550 - 233 - 3)
 
