@@ -132,7 +132,8 @@ class BrainGCN(torch.nn.Module):
         return x
 
 
-def gcn_train_with_cross_validation(graph, device, n_folds=10):
+def gcn_train_with_cross_validation(graph, device, n_folds=10, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005,
+                                    dropout_p=0, weight_decay=1e-5, log=True):
     folds = evaluate.get_cv_subject_split(graph, n_folds=n_folds)
 
     results = []
@@ -141,7 +142,8 @@ def gcn_train_with_cross_validation(graph, device, n_folds=10):
         evaluate.set_training_masks(graph, *fold)
         preprocess.graph_feature_transform(graph)
 
-        result = gcn_train(graph, device, n_conv_layers=2, layer_sizes=[364, 364, 512, 256, 1], epochs=500)
+        result = gcn_train(graph, device, n_conv_layers=n_conv_layers, layer_sizes=layer_sizes, epochs=epochs, lr=lr,
+                           dropout_p=dropout_p, weight_decay=weight_decay, log=log)
         results.append(result)
 
     return results
