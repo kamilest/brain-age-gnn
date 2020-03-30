@@ -166,7 +166,7 @@ def precompute_similarities():
     If both features are unknown, assume there is no match.
     """
 
-    p_list = [Phenotype.MENTAL_HEALTH]
+    p_list = Phenotype
     subject_ids = np.load(SUBJECT_IDS, allow_pickle=True)
     similarity_lookup = pd.read_pickle(SIMILARITY_LOOKUP)
 
@@ -197,6 +197,7 @@ def precompute_similarities():
 if __name__ == '__main__':
     # precompute_fcm()
     precompute_subject_ids()
+    # precompute_similarities()
     sids = np.load(os.path.join(data_root, 'subject_ids.npy'), allow_pickle=True)
 
     # 17550 = count of functional connectivity files
