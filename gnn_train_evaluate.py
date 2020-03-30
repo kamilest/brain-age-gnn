@@ -2,7 +2,7 @@ import numpy as np
 import torch
 from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 
-from preprocess import concatenate_graph_features
+from graph_transform import concatenate_graph_features
 
 
 def test_subject_split(train_idx, validate_idx, test_idx):

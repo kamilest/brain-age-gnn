@@ -3,22 +3,21 @@
     https://pytorch-geometric.readthedocs.io/en/latest/notes/introduction.html
 
 """
-import preprocess
+import numpy as np
 import torch
 import torch.nn.functional as F
-from torch.nn import Linear
-from torch_geometric.nn import GATConv
-
-import numpy as np
 from scipy.stats import pearsonr
 from sklearn.metrics import r2_score
 from sklearn.model_selection import StratifiedKFold
-
+from torch.nn import Linear
 from torch.utils.tensorboard import SummaryWriter
+from torch_geometric.nn import GATConv
+
+import graph_construct
 
 graph_root = 'data/graph'
 graph_name = 'population_graph_all_structural_euler_no_edges_sex.pt'
-population_graph = preprocess.load_population_graph(graph_root, graph_name)
+population_graph = graph_construct.load_population_graph(graph_root, graph_name)
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 data = population_graph.to(device)

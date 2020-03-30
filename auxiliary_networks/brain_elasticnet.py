@@ -1,14 +1,10 @@
-import numpy as np
-import os
-
 import sklearn
 
-import preprocess
-import precompute
+import graph_construct
 
 graph_root = 'data/graph'
 graph_name = 'population_graph_all_structural_euler_no_edges_sex.pt'
-population_graph = preprocess.load_population_graph(graph_root, graph_name)
+population_graph = graph_construct.load_population_graph(graph_root, graph_name)
 
 X_train = population_graph.x[population_graph.train_mask].cpu().detach().numpy()
 X_validate = population_graph.x[population_graph.validate_mask].cpu().detach().numpy()
