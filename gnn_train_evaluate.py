@@ -1,3 +1,10 @@
+"""Graph neural network training and evaluation component.
+
+Provides functions for splitting the subjects into train, validation and test sets, including stratification and cross
+    validation functionality.
+Provides functions for altering the graph by adding node noise or edge noise.
+"""
+
 import numpy as np
 import torch
 from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
@@ -6,12 +13,23 @@ from graph_transform import concatenate_graph_features
 
 
 def test_subject_split(train_idx, validate_idx, test_idx):
+    """Tests subject split, asserting whether no subjects spill between the splits."""
+
     assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
     assert (len(np.intersect1d(train_idx, test_idx)) == 0)
     assert (len(np.intersect1d(validate_idx, test_idx)) == 0)
 
 
 def get_random_subject_split(population_graph, test=0.1, seed=0):
+    """Returns a random subject split for a population graph.
+
+    :param population_graph: population graph object.
+    :param test: proportion of subjects to remain in test set.
+    :param seed: random seed for splitting.
+    :return a tuple of three lists, of integer array indexes for train, validation and test sets. The order follows the
+        subject order in the population graph.
+    """
+
     num_subjects = population_graph.num_nodes
     np.random.seed(seed)
 
@@ -33,6 +51,15 @@ def get_random_subject_split(population_graph, test=0.1, seed=0):
 
 
 def get_stratified_subject_split(population_graph, test_size=0.1, random_state=0):
+    """Returns a subject split into train validation and test sets for a population graph, stratified by label.
+
+    :param population_graph: population graph object.
+    :param test_size: proportion of subjects to remain in test set.
+    :param random_state: random seed for splitting.
+    :return a tuple of three lists, of integer array indexes for train, validation and test sets. The order follows the
+        subject order in the population graph.
+    """
+
     features = concatenate_graph_features(population_graph)
     labels = population_graph.y.numpy()
 
@@ -58,6 +85,14 @@ def get_stratified_subject_split(population_graph, test_size=0.1, random_state=0
 
 
 def get_cv_subject_split(population_graph, n_folds=10, random_state=0):
+    """Get the cross-validated subject split for the a given population graph and the number of folds.
+
+    :param population_graph: population graph object.
+    :param n_folds: number of folds in which to split the subjects in the population graph.
+    :param random_state: random seed for splitting.
+    :return a list of folds, each consisting of lists of array indices for training, validation and test sets.
+    """
+
     features = concatenate_graph_features(population_graph)
     labels = population_graph.y.numpy()
 
@@ -85,6 +120,14 @@ def get_cv_subject_split(population_graph, n_folds=10, random_state=0):
 
 
 def set_training_masks(population_graph, train_index, validate_index, test_index):
+    """Modifies the population graph by setting the boolean masks for the given train, validation and test set indices.
+
+    :param population_graph: population graph object.
+    :param train_index: indices of subjects belonging to the train set.
+    :param validate_index: indices of subjects belonging to the validation set.
+    :param test_index: indices of subjects belonging to the test set.
+    """
+
     train_mask, validate_mask, test_mask = get_subject_split_masks(train_index, validate_index, test_index)
     population_graph.train_mask = torch.tensor(train_mask, dtype=torch.bool)
     population_graph.validate_mask = torch.tensor(validate_mask, dtype=torch.bool)
@@ -92,6 +135,14 @@ def set_training_masks(population_graph, train_index, validate_index, test_index
 
 
 def get_subject_split_masks(train_index, validate_index, test_index):
+    """Returns the boolean masks for the arrays of integer indices.
+
+    :param train_index: indices of subjects in the train set.
+    :param validate_index: indices of subjects in the validation set.
+    :param test_index: indices of subjects in the test set.
+    :return a tuple of boolean masks corresponding to the train/validate/test set indices.
+    """
+
     num_subjects = len(train_index) + len(validate_index) + len(test_index)
 
     train_mask = np.zeros(num_subjects, dtype=bool)
@@ -107,7 +158,7 @@ def get_subject_split_masks(train_index, validate_index, test_index):
 
 
 def add_population_graph_noise(population_graph, p, noise_amplitude=0.05):
-    """Adds white Gaussian noise to the nodes of the population graph.
+    """Adds white Gaussian noise to the nodes of the population graph, modifying the feature vector.
 
     :param population_graph: population graph.
     :param p: proportion of training nodes with added noise.
@@ -141,6 +192,7 @@ def remove_population_graph_edges(population_graph, p):
         v_list.extend([edge[0], edge[1]])
         w_list.extend([edge[1], edge[0]])
 
+    # TODO save the original edges to have a way to reset them!
     population_graph.edge_index = torch.tensor([v_list, w_list], dtype=torch.long)
 
 
