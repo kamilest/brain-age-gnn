@@ -65,6 +65,12 @@ def graph_feature_transform(population_graph, pca=True):
 
 
 def concatenate_graph_features(population_graph):
+    """A utility method for concatenating all of the population graph node features.
+
+    :param population_graph: population graph object.
+    :return numpy array of concatenated population graph node features.
+    """
+
     structural_data = []
     for structural_feature in population_graph.structural_data.keys():
         structural_data.append(population_graph.structural_data[structural_feature])
