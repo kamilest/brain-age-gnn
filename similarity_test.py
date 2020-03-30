@@ -26,6 +26,7 @@ mental = {'UKB1000028': [],
           'UKB1001269': [15],
           'UKB1002352': [6, 11, 15]}
 
+
 class CreateSimilarityLookupTest(unittest.TestCase):
     def testSimilarityLookup(self):
         similarity_lookup = pd.read_pickle(SIMILARITY_LOOKUP)
@@ -34,7 +35,6 @@ class CreateSimilarityLookupTest(unittest.TestCase):
         self.assertIsNone(np.testing.assert_array_equal(fte, similarity_lookup.loc[subject_ids_ukb, Phenotype.FULL_TIME_EDUCATION.value]))
         self.assertIsNone(np.testing.assert_array_equal(fi, similarity_lookup.loc[subject_ids_ukb, Phenotype.FLUID_INTELLIGENCE.value]))
         self.assertIsNone(np.testing.assert_array_equal(labels, similarity_lookup.loc[subject_ids_ukb, Phenotype.AGE.value]))
-
 
     def testPrecomputeSimilarities_MEN(self):
         mental_similarity = np.load(SIMILARITY_MEN)
