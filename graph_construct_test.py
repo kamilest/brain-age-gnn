@@ -14,10 +14,10 @@ fi = [9, 4, 9, 6, 5, 4, 8, 6, 9, 5]
 labels = [63, 71, 60, 75, 54, 60, 61, 58, 61, 65]
 
 # Structural data
-ct = graph_construct.extract_structural(subject_ids_ukb, 'cortical_thickness')
-sa = graph_construct.extract_structural(subject_ids_ukb, 'surface_area')
-gmv = graph_construct.extract_structural(subject_ids_ukb, 'volume')
-euler = graph_construct.extract_euler(subject_ids_ukb)
+ct = graph_construct.collect_structural(subject_ids_ukb, 'cortical_thickness')
+sa = graph_construct.collect_structural(subject_ids_ukb, 'surface_area')
+gmv = graph_construct.collect_structural(subject_ids_ukb, 'volume')
+euler = graph_construct.collect_euler(subject_ids_ukb)
 
 
 class ConstructEdgeListTest(unittest.TestCase):

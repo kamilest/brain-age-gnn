@@ -10,7 +10,7 @@ AGE_UID = '21003-2.0'
 
 subject_ids = graph_construct.get_subject_ids(1000)
 
-phenotypes = graph_construct.extract_phenotypes(subject_ids, [SEX_UID, AGE_UID])
+phenotypes = graph_construct.collect_phenotypes(subject_ids, [SEX_UID, AGE_UID])
 connectivities = np.array([graph_construct.get_functional_connectivity(i) for i in phenotypes.index])
 
 labels = np.array(phenotypes[AGE_UID].tolist())

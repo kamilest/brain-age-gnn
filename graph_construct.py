@@ -80,7 +80,7 @@ def get_functional_connectivity(subject_id):
     return np.load(os.path.join(data_computed_fcms, subject_id + '.npy'))
 
 
-def get_all_functional_connectivities(subject_ids):
+def collect_functional_connectivities(subject_ids):
     connectivities = []
     for i, subject_id in enumerate(subject_ids):
         connectivity = get_functional_connectivity(subject_id)
@@ -88,6 +88,74 @@ def get_all_functional_connectivities(subject_ids):
         connectivities.append(connectivity)
 
     return connectivities
+
+
+def collect_phenotypes(subject_ids, uid_list=None):
+    if uid_list is None:
+        uid_list = ['eid']
+    else:
+        uid_list.append('eid')
+    phenotype = pd.read_csv(data_phenotype, sep=',')
+    subject_ids_no_UKB = [int(i[3:]) for i in subject_ids]
+
+    # Extract data for relevant subject IDs.
+    subject_phenotype = phenotype[phenotype['eid'].isin(subject_ids_no_UKB)].copy()
+
+    if len(subject_phenotype) != len(subject_ids):
+        print('{} entries had phenotypic data missing.'.format(len(subject_ids) - len(subject_phenotype)))
+
+    # Extract relevant UIDs.
+    if len(uid_list) > 1:
+        subject_phenotype = subject_phenotype[uid_list]
+
+    # Add UKB prefix back to the index.
+    subject_phenotype.index = ['UKB' + str(eid) for eid in subject_phenotype['eid']]
+    subject_phenotype.sort_index()
+
+    return subject_phenotype
+
+
+def collect_structural(subject_ids, type):
+    if type == 'cortical_thickness':
+        data = data_ct
+    elif type == 'surface_area':
+        data = data_sa
+    elif type == 'volume':
+        data = data_vol
+    else:
+        return pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
+
+    ct = pd.read_csv(data, sep=',', quotechar='\"')
+
+    # Extract data for relevant subject IDs.
+    subject_ct = ct[ct['NewID'].isin(subject_ids)].copy()
+
+    assert(len(subject_ids) - len(subject_ct) == 0)
+    if len(subject_ct) != len(subject_ids):
+        print('{} entries had {} data missing.'.format(len(subject_ids) - len(subject_ct), type))
+
+    subject_ct = subject_ct.drop(subject_ct.columns[0], axis=1)
+    subject_ct = subject_ct.drop(['lh_???', 'rh_???'], axis=1)
+
+    subject_ct.index = subject_ct['NewID']
+    subject_ct = subject_ct.drop(['NewID'], axis=1)
+    subject_ct = subject_ct.sort_index()
+
+    return subject_ct
+
+
+def collect_euler(subject_ids):
+    euler = pd.read_csv(data_euler, sep=',', quotechar='\"')
+
+    # Extract data for relevant subject IDs.
+    subject_euler = euler[euler['eid'].isin(subject_ids)].copy()
+    assert (len(subject_ids) - len(subject_euler) == 0)
+
+    subject_euler.index = subject_euler['eid']
+    subject_euler = subject_euler.drop(['eid', 'oldID'], axis=1)
+    subject_euler = subject_euler.sort_index()
+
+    return subject_euler
 
 
 def get_graph_name(size, functional, pca, structural, euler, similarity_feature_set, similarity_threshold):
@@ -105,22 +173,22 @@ def get_graph_name(size, functional, pca, structural, euler, similarity_feature_
 
 
 def collect_graph_data(subject_ids, functional, structural, euler):
-    phenotypes = extract_phenotypes(subject_ids)
+    phenotypes = collect_phenotypes(subject_ids)
     assert len(np.intersect1d(subject_ids, phenotypes.index)) == len(subject_ids)
 
     if functional:
-        functional_data = get_all_functional_connectivities(subject_ids)
+        functional_data = collect_functional_connectivities(subject_ids)
     else:
         functional_data = pd.DataFrame(np.empty((len(subject_ids), 0)))
 
     if structural:
-        cortical_thickness_data = extract_structural(subject_ids, type='cortical_thickness')
+        cortical_thickness_data = collect_structural(subject_ids, type='cortical_thickness')
         assert len(np.intersect1d(subject_ids, cortical_thickness_data.index)) == len(subject_ids)
 
-        surface_area_data = extract_structural(subject_ids, type='surface_area')
+        surface_area_data = collect_structural(subject_ids, type='surface_area')
         assert len(np.intersect1d(subject_ids, surface_area_data.index)) == len(subject_ids)
 
-        volume_data = extract_structural(subject_ids, type='volume')
+        volume_data = collect_structural(subject_ids, type='volume')
         assert len(np.intersect1d(subject_ids, volume_data.index)) == len(subject_ids)
     else:
         cortical_thickness_data = pd.DataFrame(np.empty((len(subject_ids), 0)))
@@ -128,7 +196,7 @@ def collect_graph_data(subject_ids, functional, structural, euler):
         volume_data = pd.DataFrame(np.empty((len(subject_ids), 0)))
 
     if euler:
-        euler_data = extract_euler(subject_ids)
+        euler_data = collect_euler(subject_ids)
         assert len(np.intersect1d(subject_ids, euler_data.index)) == len(subject_ids)
     else:
         euler_data = pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
@@ -267,79 +335,10 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     return population_graph
 
 
-def load_population_graph(graph_root, name):
-    return torch.load(os.path.join(graph_root, name))
+def load_population_graph(root, name):
+    return torch.load(os.path.join(root, name))
 
 
 if __name__ == '__main__':
     feature_set = [Phenotype.SEX, Phenotype.MENTAL_HEALTH, Phenotype.PROSPECTIVE_MEMORY_RESULT, Phenotype.BIPOLAR_DISORDER_STATUS, Phenotype.NEUROTICISM_SCORE]
     graph = construct_population_graph(feature_set, similarity_threshold=0.8)
-    # graph = load_population_graph(graph_root, 'population_graph_all_SEX_FTE_FI_structural_euler.pt')
-
-
-def extract_phenotypes(subject_ids, uid_list=None):
-    if uid_list is None:
-        uid_list = ['eid']
-    else:
-        uid_list.append('eid')
-    phenotype = pd.read_csv(data_phenotype, sep=',')
-    subject_ids_no_UKB = [int(i[3:]) for i in subject_ids]
-
-    # Extract data for relevant subject IDs.
-    subject_phenotype = phenotype[phenotype['eid'].isin(subject_ids_no_UKB)].copy()
-
-    if len(subject_phenotype) != len(subject_ids):
-        print('{} entries had phenotypic data missing.'.format(len(subject_ids) - len(subject_phenotype)))
-
-    # Extract relevant UIDs.
-    if len(uid_list) > 1:
-        subject_phenotype = subject_phenotype[uid_list]
-
-    # Add UKB prefix back to the index.
-    subject_phenotype.index = ['UKB' + str(eid) for eid in subject_phenotype['eid']]
-    subject_phenotype.sort_index()
-
-    return subject_phenotype
-
-
-def extract_structural(subject_ids, type):
-    if type == 'cortical_thickness':
-        data = data_ct
-    elif type == 'surface_area':
-        data = data_sa
-    elif type == 'volume':
-        data = data_vol
-    else:
-        return pd.DataFrame(pd.np.empty((len(subject_ids), 0)))
-
-    ct = pd.read_csv(data, sep=',', quotechar='\"')
-
-    # Extract data for relevant subject IDs.
-    subject_ct = ct[ct['NewID'].isin(subject_ids)].copy()
-
-    assert(len(subject_ids) - len(subject_ct) == 0)
-    if len(subject_ct) != len(subject_ids):
-        print('{} entries had {} data missing.'.format(len(subject_ids) - len(subject_ct), type))
-
-    subject_ct = subject_ct.drop(subject_ct.columns[0], axis=1)
-    subject_ct = subject_ct.drop(['lh_???', 'rh_???'], axis=1)
-
-    subject_ct.index = subject_ct['NewID']
-    subject_ct = subject_ct.drop(['NewID'], axis=1)
-    subject_ct = subject_ct.sort_index()
-
-    return subject_ct
-
-
-def extract_euler(subject_ids):
-    euler = pd.read_csv(data_euler, sep=',', quotechar='\"')
-
-    # Extract data for relevant subject IDs.
-    subject_euler = euler[euler['eid'].isin(subject_ids)].copy()
-    assert (len(subject_ids) - len(subject_euler) == 0)
-
-    subject_euler.index = subject_euler['eid']
-    subject_euler = subject_euler.drop(['eid', 'oldID'], axis=1)
-    subject_euler = subject_euler.sort_index()
-
-    return subject_euler
