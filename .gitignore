@@ -2,6 +2,7 @@ data/
 examples/
 logs/
 runs/
+notebooks/
 fcm_example.py
 results.md
 
