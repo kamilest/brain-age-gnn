@@ -1,11 +1,30 @@
 program: train.py
 method: bayes
 metric:
-  name: val_loss
+  name: 'Validation MSE'
   goal: minimize
 parameters:
   learning_rate:
-    min: 0.001
-    max: 0.1
-  optimizer:
-    values: ["adam", "sgd"]
+    distribution: uniform
+    min: 5e-5
+    max: 5e-2
+  dropout:
+    distribution: uniform
+    min: 0
+    max: 0.5
+  graph_name:
+    distribution: categorical
+    # all graph types to be tested
+    values:
+      - population_graph_all_SEX_FI_MEN_MEM_BIP_NEU_0.8_structural_euler.pt
+      - population_graph_all_SEX_FTE_FI_MEN_MEM_BIP_0.7_structural_euler.pt
+      - population_graph_all_SEX_MEN_MEM_BIP_NEU_0.8_structural_euler.pt
+  n_conv_layers:
+    distribution: int_uniform
+    min: 1
+    max: 3
+  epochs:
+    value: 3500
+early_terminate:
+  type: hyperband
+  min_iter: 2500

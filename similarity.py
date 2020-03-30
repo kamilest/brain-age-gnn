@@ -89,7 +89,7 @@ def precompute_similarities():
     If both features are unknown, assume there is no match.
     """
 
-    p_list = [Phenotype.AGE]
+    p_list = [Phenotype.MENTAL_HEALTH]
     subject_ids = np.load(SUBJECT_IDS, allow_pickle=True)
     similarity_lookup = pd.read_pickle(SIMILARITY_LOOKUP)
 
@@ -114,4 +114,4 @@ def precompute_similarities():
 
         # Ignore self-similarities
         np.fill_diagonal(sm, False)
-        np.save(os.path.join(similarity_root, '{}_similarity_GPU'.format(p.value)), sm)
+        np.save(os.path.join(similarity_root, '{}_similarity'.format(p.value)), sm)
