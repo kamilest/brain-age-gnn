@@ -16,6 +16,7 @@ data_ct = 'data/CT.csv'
 data_sa = 'data/SA.csv'
 data_vol = 'data/Vol.csv'
 data_euler = 'data/Euler.csv'
+data_icd10 = 'data/ICD10.csv'
 data_computed_fcms = 'data/processed_ts'
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
@@ -92,9 +93,13 @@ def precompute_subject_ids():
     euler = pd.read_csv(data_euler, sep=',', quotechar='\"')
     euler_ids = euler['eid'].to_numpy()
 
+    # ICD10 index IDs.
+    icd10 = pd.read_csv(data_icd10, sep=',', quotechar='\"')
+    icd10_ids = np.array(['UKB' + str(eid) for eid in icd10['eid']])
+
     # Save intersection of the subject IDs present in all datasets.
     intersected_ids = sorted(reduce(np.intersect1d,
-                                    (timeseries_ids, phenotype_ids, ct_ids, sa_ids, gmv_ids, euler_ids)))
+                                    (timeseries_ids, phenotype_ids, ct_ids, sa_ids, gmv_ids, euler_ids, icd10_ids)))
     np.save(os.path.join(data_root, 'subject_ids'), intersected_ids)
     return intersected_ids
 
