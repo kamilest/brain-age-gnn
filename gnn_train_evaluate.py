@@ -217,15 +217,6 @@ def remove_population_graph_edges(population_graph, p):
     population_graph.edge_index = torch.tensor([v_list, w_list], dtype=torch.long)
 
 
-def decrease_population_graph_train_set(graph, test_set_sizes):
-    """Decreases the training set (more unlabeled nodes).
-
-    :param graph: path to the population graph file.
-    :param test_set_sizes:
-    :return:
-    """
-
-
 def measure_predictive_power_drop():
     """Measures the drop in performance metrics with increased noise or more missing data.
 
