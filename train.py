@@ -7,10 +7,10 @@ import numpy as np
 import torch
 import wandb
 
+import brain_gcn
 import gnn_train_evaluate
 import graph_construct
 import graph_transform
-from auxiliary_networks import brain_gcn
 
 graph_root = 'data/graph'
 GRAPH_NAMES = sorted(os.listdir(graph_root))
