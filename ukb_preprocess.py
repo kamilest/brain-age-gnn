@@ -196,14 +196,12 @@ def create_icd10_lookup():
                          Phenotype.get_icd10_nervous_system_disorder_codes()))
 
     for c in ci:
-        icd10_lookup.loc[:, c] = si.apply(
-            lambda s: np.any([k.startswith(c) for k in icd10.loc[s, :].to_numpy().astype('str')]))
+        icd10_lookup[c] = pd.Series(si.apply(
+            lambda s: np.any([k.startswith(c) for k in icd10.loc[s, :].to_numpy().astype('str')])))
 
-    icd10.drop(Phenotype.get_biobank_codes(Phenotype.ICD10), axis=1, inplace=True)
-    icd10 = icd10.sort_index()
-
-    icd10.to_pickle(ICD10_LOOKUP)
-    return icd10
+    icd10_lookup = icd10_lookup.sort_index()
+    icd10_lookup.to_pickle(ICD10_LOOKUP)
+    return icd10_lookup
 
 
 def precompute_similarities():
