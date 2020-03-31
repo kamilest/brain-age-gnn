@@ -14,24 +14,26 @@ data_phenotype = 'data/phenotype.csv'
 data_similarity = 'data/similarity'
 data_ct = 'data/CT.csv'
 data_sa = 'data/SA.csv'
-data_vol = 'data/Vol.csv'
+data_gmv = 'data/Vol.csv'
 data_euler = 'data/Euler.csv'
+data_icd10 = 'data/ICD10.csv'
 data_computed_fcms = 'data/processed_ts'
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
 SIMILARITY_LOOKUP = 'data/similarity_lookup.pkl'
+ICD10_LOOKUP = 'data/icd10_lookup.pkl'
 SUBJECT_IDS = 'data/subject_ids.npy'
 
 # Exclude the following raw timeseries due to incorrect size.
 EXCLUDED_UKB_IDS = ['UKB2203847', 'UKB2208238', 'UKB2697888']
+
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
 def precompute_flattened_fcm(subject_id=None):
     """ Derives the correlation matrices for the parcellated timeseries data.
 
     :param subject_id: subject ID if only one connectivity matrix needs to be precomputed
-    :return: the flattened lower triangle of the correlation matrices for the parcellated timeseries data.
+    :return the flattened lower triangle of the correlation matrices for the parcellated timeseries data.
     Saved as a binary numpy array with the name of patient ID in the preprocessed timeseries directory.
     """
 
@@ -85,16 +87,20 @@ def precompute_subject_ids():
     sa_ids = sa['NewID'].to_numpy()
 
     # Grey matter volume IDs.
-    gmv = pd.read_csv(data_vol, sep=',', quotechar='\"')
+    gmv = pd.read_csv(data_gmv, sep=',', quotechar='\"')
     gmv_ids = gmv['NewID'].to_numpy()
 
     # Euler index IDs.
     euler = pd.read_csv(data_euler, sep=',', quotechar='\"')
     euler_ids = euler['eid'].to_numpy()
 
+    # ICD10 index IDs.
+    icd10 = pd.read_csv(data_icd10, sep=',', quotechar='\"')
+    icd10_ids = np.array(['UKB' + str(eid) for eid in icd10['eid']])
+
     # Save intersection of the subject IDs present in all datasets.
     intersected_ids = sorted(reduce(np.intersect1d,
-                                    (timeseries_ids, phenotype_ids, ct_ids, sa_ids, gmv_ids, euler_ids)))
+                                    (timeseries_ids, phenotype_ids, ct_ids, sa_ids, gmv_ids, euler_ids, icd10_ids)))
     np.save(os.path.join(data_root, 'subject_ids'), intersected_ids)
     return intersected_ids
 
@@ -120,7 +126,7 @@ def get_most_recent(ukb_feature, subject_id, phenotypes):
 def create_similarity_lookup():
     """Precomputes the columns of the phenotype dataset for faster subject comparison.
 
-    :return: dataframe containing the values used for similarity comparison, row-indexed by subject ID and
+    :return dataframe containing the values used for similarity comparison, row-indexed by subject ID and
     column-indexed by phenotype code name (e.g. 'AGE', 'FTE' etc.)
     """
 
@@ -168,6 +174,38 @@ def create_similarity_lookup():
     return phenotype_processed
 
 
+def create_icd10_lookup():
+    """Precomputes the mental and nervous system disorder columns of the ICD10 dataset for faster subject comparison.
+    See Chapters V and VI http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=41270
+
+    :return dataframe row-indexed by subject IDs and and boolean columns indexed by disease.
+    """
+
+    icd10 = pd.read_csv(data_icd10, sep=',')
+    icd10.index = ['UKB' + str(eid) for eid in icd10['eid']]
+
+    subject_ids = np.load(SUBJECT_IDS, allow_pickle=True)
+    biobank_uids = Phenotype.get_biobank_codes(Phenotype.ICD10)
+    icd10 = icd10.loc[subject_ids, biobank_uids]
+
+    icd10_lookup = pd.DataFrame(index=icd10.index)
+
+    # Determine if the the patient has the occurrence of a particular disease.
+    si = icd10.index.to_series()
+    ci = np.concatenate((Phenotype.get_icd10_mental_disorder_codes(),
+                         Phenotype.get_icd10_nervous_system_disorder_codes()))
+
+    for c in ci:
+        icd10_lookup.loc[:, c] = si.apply(
+            lambda s: np.any([k.startswith(c) for k in icd10.loc[s, :].to_numpy().astype('str')]))
+
+    icd10.drop(Phenotype.get_biobank_codes(Phenotype.ICD10), axis=1, inplace=True)
+    icd10 = icd10.sort_index()
+
+    icd10.to_pickle(ICD10_LOOKUP)
+    return icd10
+
+
 def precompute_similarities():
     """Creates the similarity metric based on the phenotype feature list.
     If a feature has several entries in the UK Biobank, take either the most recent available estimate or, if the
@@ -194,6 +232,12 @@ def precompute_similarities():
             sim = sim >= 1
             sm = sim.cpu().detach().numpy()
 
+        elif p == Phenotype.ICD10:
+            icd10 = torch.tensor(pd.read_pickle(ICD10_LOOKUP).to_numpy())
+
+            sim = torch.mm(icd10, icd10.t())
+            sm = sim.cpu().detach().numpy()
+
         else:
             fea = similarity_lookup.loc[subject_ids, p.value].to_numpy()
             fea = np.expand_dims(fea, axis=0)
@@ -211,6 +255,7 @@ def precompute_similarities():
 if __name__ == '__main__':
     # precompute_flattened_fcm()
     precompute_subject_ids()
+    # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     # precompute_similarities()
     sids = np.load(os.path.join(data_root, 'subject_ids.npy'), allow_pickle=True)
 

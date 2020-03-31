@@ -1,5 +1,7 @@
 import enum
 
+import numpy as np
+
 # http://biobank.ndph.ox.ac.uk/showcase/coding.cgi?id=1401
 MENTAL_TO_CODE = {'Anxiety, nerves or GAD': 15,
                   'Panic attacks': 6,
@@ -19,6 +21,11 @@ MENTAL_TO_CODE = {'Anxiety, nerves or GAD': 15,
                   'Psychological over-eating or binge-eating': 13,
                   'ADD/ADHD': 18}
 
+data_icd10_codes = 'data/icd10_codes.tsv'
+
+ICD10_MENTAL_DISORDER_CODES = ['F' + str(i) for i in range(0, 9)]
+
+ICD10_NERVOUS_SYSTEM_DISORDER_CODES = ['F' + str(i) for i in range(0, 9)]
 
 class Phenotype(enum.Enum):
     SEX = 'SEX'
@@ -30,6 +37,7 @@ class Phenotype(enum.Enum):
     BIPOLAR_DISORDER_STATUS = 'BIP'
     NEUROTICISM_SCORE = 'NEU'
     SMOKING_STATUS = 'SMO'
+    ICD10 = 'ICD10'
 
     @staticmethod
     def get_biobank_codes(feature):
@@ -42,7 +50,8 @@ class Phenotype(enum.Enum):
             Phenotype.MENTAL_HEALTH: ['20544-0.' + str(i) for i in range(1, 17)],  # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=20544
             Phenotype.BIPOLAR_DISORDER_STATUS: ['20122-0.0'],  # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=20122
             Phenotype.NEUROTICISM_SCORE: ['20127-0.0'],  # http://biobank.ndph.ox.ac.,uk/showcase/field.cgi?id=20127
-            Phenotype.SMOKING_STATUS: ['20116-2.0']  # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=20116
+            Phenotype.SMOKING_STATUS: ['20116-2.0'],  # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=20116
+            Phenotype.ICD10: ['X41270.0.' + str(i) for i in range(0, 213)]  # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=41270
         }
 
         return biobank_features[feature]
@@ -50,4 +59,12 @@ class Phenotype(enum.Enum):
     @staticmethod
     def get_mental_to_code():
         return MENTAL_TO_CODE
+
+    @staticmethod
+    def get_icd10_mental_disorder_codes():
+        return np.unique(np.fromregex(data_icd10_codes, 'F\\d{2}\\b', dtype=[('name', 'U10')]))['name']
+
+    @staticmethod
+    def get_icd10_nervous_system_disorder_codes():
+        return np.unique(np.fromregex(data_icd10_codes, 'G\\d{2}\\b', dtype=[('name', 'U10')]))['name']
 
