@@ -341,7 +341,7 @@ def construct_edge_list(subject_ids, phenotypes, similarity_threshold=0.5):
 
 
 def construct_population_graph(similarity_feature_set, similarity_threshold=0.5, size=None, functional=False,
-                               pca=False, structural=True, euler=True, save=True, subject_ids=None, age_filtering=True,
+                               structural=True, euler=True, save=True, subject_ids=None, age_filtering=True,
                                save_dir=graph_root, name=None):
     """Constructs the population graph given its modality and similarity parameterisation.
 
