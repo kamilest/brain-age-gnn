@@ -46,7 +46,6 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
     for epoch in range(epochs):
         optimizer.zero_grad()
         out = model(data)
-        # TODO intersect with healthy subject mask.
         loss = F.mse_loss(out[data.train_mask], data.y[data.train_mask])
         train_mse = loss.item(),
         train_r2 = r2_score(data.y[data.train_mask].cpu().detach().numpy(),
@@ -89,16 +88,9 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
         wandb.run.summary["Final validation r2"] = final_r2
         wandb.run.summary["Final validation r"] = final_r
 
-        log_name = '{}_{}_gcn{}_fc{}_{}_{}_epochs={}_lr={}_weight_decay={}'.format(
+        log_name = '{}_{}.pt'.format(
             datetime.now().strftime("%Y-%m-%d_%H:%M:%S"),
-            graph_name.replace('population_graph_', '').replace('.pt', ''),
-            n_conv_layers,
-            len(layer_sizes) - n_conv_layers,
-            data.num_node_features,
-            '_'.join(map(str, layer_sizes)),
-            epochs,
-            lr,
-            weight_decay)
+            wandb.run.name)
         torch.save(model.state_dict(), os.path.join(wandb.run.dir, log_name))
 
     return final_r2, predicted, actual
