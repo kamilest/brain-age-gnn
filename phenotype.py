@@ -23,9 +23,6 @@ MENTAL_TO_CODE = {'Anxiety, nerves or GAD': 15,
 
 data_icd10_codes = 'data/icd10_codes.tsv'
 
-ICD10_MENTAL_DISORDER_CODES = ['F' + str(i) for i in range(0, 9)]
-
-ICD10_NERVOUS_SYSTEM_DISORDER_CODES = ['F' + str(i) for i in range(0, 9)]
 
 class Phenotype(enum.Enum):
     SEX = 'SEX'
