@@ -30,6 +30,7 @@ class Phenotype(enum.Enum):
     BIPOLAR_DISORDER_STATUS = 'BIP'
     NEUROTICISM_SCORE = 'NEU'
     SMOKING_STATUS = 'SMO'
+    ICD10 = 'ICD10'
 
     @staticmethod
     def get_biobank_codes(feature):
@@ -42,7 +43,8 @@ class Phenotype(enum.Enum):
             Phenotype.MENTAL_HEALTH: ['20544-0.' + str(i) for i in range(1, 17)],  # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=20544
             Phenotype.BIPOLAR_DISORDER_STATUS: ['20122-0.0'],  # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=20122
             Phenotype.NEUROTICISM_SCORE: ['20127-0.0'],  # http://biobank.ndph.ox.ac.,uk/showcase/field.cgi?id=20127
-            Phenotype.SMOKING_STATUS: ['20116-2.0']  # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=20116
+            Phenotype.SMOKING_STATUS: ['20116-2.0'],  # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=20116
+            Phenotype.ICD10: ['X41270.0.' + str(i) for i in range(1, 213)]  # http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=41270
         }
 
         return biobank_features[feature]
