@@ -14,7 +14,7 @@ data_phenotype = 'data/phenotype.csv'
 data_similarity = 'data/similarity'
 data_ct = 'data/CT.csv'
 data_sa = 'data/SA.csv'
-data_vol = 'data/Vol.csv'
+data_gmv = 'data/Vol.csv'
 data_euler = 'data/Euler.csv'
 data_icd10 = 'data/ICD10.csv'
 data_computed_fcms = 'data/processed_ts'
@@ -86,7 +86,7 @@ def precompute_subject_ids():
     sa_ids = sa['NewID'].to_numpy()
 
     # Grey matter volume IDs.
-    gmv = pd.read_csv(data_vol, sep=',', quotechar='\"')
+    gmv = pd.read_csv(data_gmv, sep=',', quotechar='\"')
     gmv_ids = gmv['NewID'].to_numpy()
 
     # Euler index IDs.
