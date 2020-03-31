@@ -2,7 +2,8 @@
 Population graph construction component.
 
 Collects the specified population graph modalities for a given number of subjects (or their specific IDs).
-Takes a set of similarity metrics (or a generalised similarity function) to generate the edges based on subject similarity.
+Takes a set of similarity metrics (or a generalised similarity function) to generate the edges based on subject
+    similarity.
 Combines the imaging data and the edges into the intermediate population graph representation.
 """
 
@@ -16,6 +17,7 @@ from torch_geometric.data import Data
 
 import ukb_preprocess
 from phenotype import Phenotype
+from ukb_preprocess import ICD10_LOOKUP
 
 # Data sources.
 data_root = 'data'
@@ -268,6 +270,21 @@ def get_sufficient_age_occurrence_index(phenotypes):
     return age_index
 
 
+def get_healthy_brain_subject_mask(subject_ids):
+    """Returns the boolean mask for subjects which have healthy brains.
+    Brain health is defined as having no mental health or nervous system disorder diagnosis.
+
+    :param subject_ids: list of subject IDs.
+    :return boolean mask indicating brain health.
+    """
+
+    full_subject_ids = np.load(SUBJECT_IDS, allow_pickle=True)
+    si = np.searchsorted(full_subject_ids, subject_ids)
+
+    icd10_lookup = pd.read_pickle(ICD10_LOOKUP).to_numpy()
+    return np.invert(np.any(icd10_lookup[si], axis=1))
+
+
 def construct_edge_list_from_function(subject_ids, similarity_function, similarity_threshold=0.5, save=False,
                                       graph_name=None):
     """Constructs the adjacency list of the population population_graph based on a similarity metric provided.
@@ -345,7 +362,7 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
                                save_dir=graph_root, name=None):
     """Constructs the population graph given its modality and similarity parameterisation.
 
-    :param similarity_feature_set: list of features which will be accounted for with equal importance when computing \
+    :param similarity_feature_set: list of features which will be accounted for with equal importance when computing
         similarity.
     :param similarity_threshold: the threshold above which the edge will be added to the graph.
     :param size: the maximum number of nodes in population graph (can be lower if some nodes have to be filtered out).
@@ -399,6 +416,7 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     population_graph = Data()
     population_graph.num_nodes = len(subject_ids)
     population_graph.subject_index = subject_ids
+    population_graph.healthy_brain_subject_mask = get_healthy_brain_subject_mask(subject_ids)
 
     population_graph.edge_index = edge_index_tensor
     population_graph.y = label_tensor
@@ -428,5 +446,6 @@ def load_population_graph(root, name):
 
 
 if __name__ == '__main__':
-    feature_set = [Phenotype.SEX, Phenotype.MENTAL_HEALTH, Phenotype.PROSPECTIVE_MEMORY_RESULT, Phenotype.BIPOLAR_DISORDER_STATUS, Phenotype.NEUROTICISM_SCORE]
+    feature_set = [Phenotype.SEX, Phenotype.MENTAL_HEALTH, Phenotype.PROSPECTIVE_MEMORY_RESULT,
+                   Phenotype.BIPOLAR_DISORDER_STATUS, Phenotype.NEUROTICISM_SCORE]
     graph = construct_population_graph(feature_set, similarity_threshold=0.8)

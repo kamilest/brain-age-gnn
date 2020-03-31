@@ -23,7 +23,8 @@ graph_root = 'data/graph'
 graph_name = 'population_graph_all_SEX_FTE_FI_structural_euler.pt'
 
 
-def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005, dropout_p=0, weight_decay=1e-5, log=True):
+def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005, dropout_p=0, weight_decay=1e-5,
+              log=True):
     data = graph.to(device)
     assert n_conv_layers >= 0
 
@@ -45,6 +46,7 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
     for epoch in range(epochs):
         optimizer.zero_grad()
         out = model(data)
+        # TODO intersect with healthy subject mask.
         loss = F.mse_loss(out[data.train_mask], data.y[data.train_mask])
         train_mse = loss.item(),
         train_r2 = r2_score(data.y[data.train_mask].cpu().detach().numpy(),
@@ -160,4 +162,5 @@ if __name__ == "__main__":
     graph_transform.graph_feature_transform(population_graph)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    gcn_train(population_graph, device, n_conv_layers=0, layer_sizes=[360, 256, 128, 1], lr=5e-4, weight_decay=0, epochs=5000)
+    gcn_train(population_graph, device, n_conv_layers=0, layer_sizes=[360, 256, 128, 1], lr=5e-4, weight_decay=0,
+              epochs=5000)
