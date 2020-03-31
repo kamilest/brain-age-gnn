@@ -24,7 +24,7 @@ graph_name = 'population_graph_all_SEX_FTE_FI_structural_euler.pt'
 
 
 def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005, dropout_p=0, weight_decay=1e-5,
-              log=True):
+              log=True, early_stopping=True, patience=10, delta=0.005):
     data = graph.to(device)
     assert n_conv_layers >= 0
 
@@ -34,6 +34,15 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
     model = BrainGCN(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
 
+    # Saving (early sopping) checkpoints
+    early_stopping_checkpoint = 'checkpoint.pt'
+
+    # Initialise early stopping.
+    early_stopping_count = 0
+    early_stopping_min_val_loss = None
+    early_stop = False
+
+    # Initialise wandb log.
     if log:
         wandb.watch(model)
         wandb.config.update({
@@ -41,6 +50,10 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
             "epochs": epochs,
             "learning_rate": lr,
             "weight_decay": weight_decay})
+        early_stopping_checkpoint = '{}_{}_state_dict.pt'.format(
+            datetime.now().strftime("%Y-%m-%d_%H:%M:%S"),
+            wandb.run.name)
+
     model.train()
 
     for epoch in range(epochs):
@@ -57,6 +70,20 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
                           out[data.validate_mask].cpu().detach().numpy()),
         val_r = pearsonr(data.y[data.validate_mask].cpu().detach().numpy().flatten(),
                          out[data.validate_mask].cpu().detach().numpy().flatten())[0]
+
+        if early_stopping:
+            if early_stopping_min_val_loss is None:
+                torch.save(model.state_dict(), early_stopping_checkpoint)
+                early_stopping_min_val_loss = val_mse
+            elif val_mse > early_stopping_min_val_loss - delta:
+                early_stopping_count += 1
+                if early_stopping_count >= patience:
+                    early_stop = True
+            else:
+                torch.save(model.state_dict(), early_stopping_checkpoint)
+                early_stopping_min_val_loss = val_mse
+                early_stopping_count = 0
+
         if log:
             wandb.log({"Train MSE": train_mse[0],
                        "Train r2": train_r2,
@@ -69,9 +96,15 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
         print()
 
         loss.backward()
-
         torch.nn.utils.clip_grad_norm_(model.parameters(), 10)
         optimizer.step()
+
+        if early_stop:
+            break
+
+    # Load the best early stopping model.
+    if early_stopping:
+        model.load_state_dict(torch.load(os.path.join(wandb.run.dir, early_stopping_checkpoint)))
 
     model.eval()
     final_model = model(data)
@@ -88,10 +121,10 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
         wandb.run.summary["Final validation r2"] = final_r2
         wandb.run.summary["Final validation r"] = final_r
 
-        log_name = '{}_{}.pt'.format(
-            datetime.now().strftime("%Y-%m-%d_%H:%M:%S"),
-            wandb.run.name)
-        torch.save(model.state_dict(), os.path.join(wandb.run.dir, log_name))
+        # Save the entire model.
+        best_model_name = 'best_{}.pt'.format(wandb.run.name)
+        torch.save(model, os.path.join(wandb.run.dir, best_model_name))
+        wandb.save(best_model_name)
 
     return final_r2, predicted, actual
 
