@@ -26,6 +26,8 @@ SUBJECT_IDS = 'data/subject_ids.npy'
 # Exclude the following raw timeseries due to incorrect size.
 EXCLUDED_UKB_IDS = ['UKB2203847', 'UKB2208238', 'UKB2697888']
 
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 
 def precompute_flattened_fcm(subject_id=None):
     """ Derives the correlation matrices for the parcellated timeseries data.
@@ -186,14 +188,16 @@ def create_icd10_lookup():
     biobank_uids = Phenotype.get_biobank_codes(Phenotype.ICD10)
     icd10 = icd10.loc[subject_ids, biobank_uids]
 
+    icd10_lookup = pd.DataFrame(index=icd10.index)
+
     # Determine if the the patient has the occurrence of a particular disease.
     si = icd10.index.to_series()
     ci = np.concatenate((Phenotype.get_icd10_mental_disorder_codes(),
                          Phenotype.get_icd10_nervous_system_disorder_codes()))
 
     for c in ci:
-        icd10.loc[:, c] = si.apply(
-            lambda s: np.any([k.startswith(c) for k in icd10.loc[s, biobank_uids].to_numpy().astype('str')]))
+        icd10_lookup.loc[:, c] = si.apply(
+            lambda s: np.any([k.startswith(c) for k in icd10.loc[s, :].to_numpy().astype('str')]))
 
     icd10.drop(Phenotype.get_biobank_codes(Phenotype.ICD10), axis=1, inplace=True)
     icd10 = icd10.sort_index()
@@ -226,6 +230,12 @@ def precompute_similarities():
 
             sim = torch.mm(men, men.t())
             sim = sim >= 1
+            sm = sim.cpu().detach().numpy()
+
+        elif p == Phenotype.ICD10:
+            icd10 = torch.tensor(pd.read_pickle(ICD10_LOOKUP).to_numpy())
+
+            sim = torch.mm(icd10, icd10.t())
             sm = sim.cpu().detach().numpy()
 
         else:
