@@ -124,19 +124,34 @@ def get_cv_subject_split(population_graph, n_folds=10, random_state=0):
     return folds
 
 
-def set_training_masks(population_graph, train_index, validate_index, test_index):
+def set_training_masks(population_graph, train_index, validate_index, test_index, ignore_nonhealthy=True):
     """Modifies the population graph by setting the boolean masks for the given train, validation and test set indices.
+    Optionally masks the subjects that are considered to have unhealthy brains.
 
     :param population_graph: population graph object.
     :param train_index: indices of subjects belonging to the train set.
     :param validate_index: indices of subjects belonging to the validation set.
     :param test_index: indices of subjects belonging to the test set.
+    :param ignore_nonhealthy: if set to True, additionally masks subjects with mental/nervous system problems.
     """
 
     train_mask, validate_mask, test_mask = get_subject_split_masks(train_index, validate_index, test_index)
-    population_graph.train_mask = torch.tensor(train_mask, dtype=torch.bool)
-    population_graph.validate_mask = torch.tensor(validate_mask, dtype=torch.bool)
-    population_graph.test_mask = torch.tensor(test_mask, dtype=torch.bool)
+
+    if ignore_nonhealthy:
+        population_graph.full_train_mask = torch.tensor(train_mask, dtype=torch.bool)
+        population_graph.train_mask = torch.tensor(
+            np.logical_and(train_mask, population_graph.healthy_brain_subject_mask), dtype=torch.bool)
+        population_graph.full_validate_mask = torch.tensor(validate_mask, dtype=torch.bool)
+        population_graph.validate_mask = torch.tensor(
+            np.logical_and(validate_mask, population_graph.healthy_brain_subject_mask), dtype=torch.bool)
+        population_graph.full_test_mask = torch.tensor(test_mask, dtype=torch.bool)
+        population_graph.test_mask = torch.tensor(
+            np.logical_and(test_mask, population_graph.healthy_brain_subject_mask), dtype=torch.bool)
+
+    else:
+        population_graph.train_mask = torch.tensor(train_mask, dtype=torch.bool)
+        population_graph.validate_mask = torch.tensor(validate_mask, dtype=torch.bool)
+        population_graph.test_mask = torch.tensor(test_mask, dtype=torch.bool)
 
 
 def get_subject_split_masks(train_index, validate_index, test_index):
