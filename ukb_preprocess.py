@@ -19,8 +19,6 @@ data_euler = 'data/Euler.csv'
 data_icd10 = 'data/ICD10.csv'
 data_computed_fcms = 'data/processed_ts'
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
 SIMILARITY_LOOKUP = 'data/similarity_lookup.pkl'
 ICD10_LOOKUP = 'data/icd10_lookup.pkl'
 SUBJECT_IDS = 'data/subject_ids.npy'
@@ -184,18 +182,18 @@ def create_icd10_lookup():
     icd10 = pd.read_csv(data_icd10, sep=',')
     icd10.index = ['UKB' + str(eid) for eid in icd10['eid']]
 
+    subject_ids = np.load(SUBJECT_IDS, allow_pickle=True)
     biobank_uids = Phenotype.get_biobank_codes(Phenotype.ICD10)
-    icd10 = icd10[biobank_uids]
-
-    mental_disorder_codes = []  # [Phenotype.ICD10.value + '_' + str(i) for i in range(213)]
-    nervous_system_disorder_codes = []
+    icd10 = icd10.loc[subject_ids, biobank_uids]
 
     # Determine if the the patient has the occurrence of a particular disease.
     si = icd10.index.to_series()
-    for i in np.concatenate((Phenotype.get_icd10_mental_disorder_codes(),
-                             Phenotype.get_icd10_nervous_system_disorder_codes())):
-        icd10.loc[:, i] = si.apply(
-            lambda s: int(i in icd10.loc[s, biobank_uids].to_numpy().astype(bool)))
+    ci = np.concatenate((Phenotype.get_icd10_mental_disorder_codes(),
+                         Phenotype.get_icd10_nervous_system_disorder_codes()))
+
+    for c in ci:
+        icd10.loc[:, c] = si.apply(
+            lambda s: np.any([k.startswith(c) for k in icd10.loc[s, biobank_uids].to_numpy().astype('str')]))
 
     icd10.drop(Phenotype.get_biobank_codes(Phenotype.ICD10), axis=1, inplace=True)
     icd10 = icd10.sort_index()
@@ -247,6 +245,7 @@ def precompute_similarities():
 if __name__ == '__main__':
     # precompute_flattened_fcm()
     precompute_subject_ids()
+    # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     # precompute_similarities()
     sids = np.load(os.path.join(data_root, 'subject_ids.npy'), allow_pickle=True)
 
