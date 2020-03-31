@@ -13,7 +13,12 @@ from graph_transform import concatenate_graph_features
 
 
 def test_subject_split(train_idx, validate_idx, test_idx):
-    """Tests subject split, asserting whether no subjects spill between the splits."""
+    """Tests subject split, asserting whether no subjects spill between the splits.
+
+    :param train_idx: subjects in train set
+    :param validate_idx: subjects in validation set
+    :param test_idx: subjects in test set
+    """
 
     assert (len(np.intersect1d(train_idx, validate_idx)) == 0)
     assert (len(np.intersect1d(train_idx, test_idx)) == 0)
@@ -192,7 +197,8 @@ def remove_population_graph_edges(population_graph, p):
         v_list.extend([edge[0], edge[1]])
         w_list.extend([edge[1], edge[0]])
 
-    # TODO save the original edges to have a way to reset them!
+    if not hasattr(population_graph, 'original_edge_index'):
+        population_graph.original_edge_index = population_graph.edge_index.clone()
     population_graph.edge_index = torch.tensor([v_list, w_list], dtype=torch.long)
 
 
