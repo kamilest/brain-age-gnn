@@ -1,5 +1,7 @@
 import enum
 
+import numpy as np
+
 # http://biobank.ndph.ox.ac.uk/showcase/coding.cgi?id=1401
 MENTAL_TO_CODE = {'Anxiety, nerves or GAD': 15,
                   'Panic attacks': 6,
@@ -19,6 +21,11 @@ MENTAL_TO_CODE = {'Anxiety, nerves or GAD': 15,
                   'Psychological over-eating or binge-eating': 13,
                   'ADD/ADHD': 18}
 
+data_icd10_codes = 'data/icd10_codes.tsv'
+
+ICD10_MENTAL_DISORDER_CODES = ['F' + str(i) for i in range(0, 9)]
+
+ICD10_NERVOUS_SYSTEM_DISORDER_CODES = ['F' + str(i) for i in range(0, 9)]
 
 class Phenotype(enum.Enum):
     SEX = 'SEX'
@@ -52,4 +59,12 @@ class Phenotype(enum.Enum):
     @staticmethod
     def get_mental_to_code():
         return MENTAL_TO_CODE
+
+    @staticmethod
+    def get_icd10_mental_disorder_codes():
+        return np.unique(np.fromregex(data_icd10_codes, 'F\\d{2}\\b', dtype=[('name', 'U10')]))['name']
+
+    @staticmethod
+    def get_icd10_nervous_system_disorder_codes():
+        return np.unique(np.fromregex(data_icd10_codes, 'G\\d{2}\\b', dtype=[('name', 'U10')]))['name']
 

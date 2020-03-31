@@ -22,6 +22,7 @@ data_computed_fcms = 'data/processed_ts'
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 SIMILARITY_LOOKUP = 'data/similarity_lookup.pkl'
+ICD10_LOOKUP = 'data/icd10_lookup.pkl'
 SUBJECT_IDS = 'data/subject_ids.npy'
 
 # Exclude the following raw timeseries due to incorrect size.
@@ -32,7 +33,7 @@ def precompute_flattened_fcm(subject_id=None):
     """ Derives the correlation matrices for the parcellated timeseries data.
 
     :param subject_id: subject ID if only one connectivity matrix needs to be precomputed
-    :return: the flattened lower triangle of the correlation matrices for the parcellated timeseries data.
+    :return the flattened lower triangle of the correlation matrices for the parcellated timeseries data.
     Saved as a binary numpy array with the name of patient ID in the preprocessed timeseries directory.
     """
 
@@ -125,7 +126,7 @@ def get_most_recent(ukb_feature, subject_id, phenotypes):
 def create_similarity_lookup():
     """Precomputes the columns of the phenotype dataset for faster subject comparison.
 
-    :return: dataframe containing the values used for similarity comparison, row-indexed by subject ID and
+    :return dataframe containing the values used for similarity comparison, row-indexed by subject ID and
     column-indexed by phenotype code name (e.g. 'AGE', 'FTE' etc.)
     """
 
@@ -171,6 +172,36 @@ def create_similarity_lookup():
 
     phenotype_processed.to_pickle(SIMILARITY_LOOKUP)
     return phenotype_processed
+
+
+def create_icd10_lookup():
+    """Precomputes the mental and nervous system disorder columns of the ICD10 dataset for faster subject comparison.
+    See Chapters V and VI http://biobank.ndph.ox.ac.uk/showcase/field.cgi?id=41270
+
+    :return dataframe row-indexed by subject IDs and and boolean columns indexed by disease.
+    """
+
+    icd10 = pd.read_csv(data_icd10, sep=',')
+    icd10.index = ['UKB' + str(eid) for eid in icd10['eid']]
+
+    biobank_uids = Phenotype.get_biobank_codes(Phenotype.ICD10)
+    icd10 = icd10[biobank_uids]
+
+    mental_disorder_codes = []  # [Phenotype.ICD10.value + '_' + str(i) for i in range(213)]
+    nervous_system_disorder_codes = []
+
+    # Determine if the the patient has the occurrence of a particular disease.
+    si = icd10.index.to_series()
+    for i in np.concatenate((Phenotype.get_icd10_mental_disorder_codes(),
+                             Phenotype.get_icd10_nervous_system_disorder_codes())):
+        icd10.loc[:, i] = si.apply(
+            lambda s: int(i in icd10.loc[s, biobank_uids].to_numpy().astype(bool)))
+
+    icd10.drop(Phenotype.get_biobank_codes(Phenotype.ICD10), axis=1, inplace=True)
+    icd10 = icd10.sort_index()
+
+    icd10.to_pickle(ICD10_LOOKUP)
+    return icd10
 
 
 def precompute_similarities():
