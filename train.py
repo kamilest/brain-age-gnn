@@ -44,7 +44,7 @@ args = parser.parse_args()
 functional = args.functional
 structural = args.structural
 euler = args.euler
-similarity_feature_set = [Phenotype(i).name for i in ast.literal_eval(args.similarity_feature_set)]
+similarity_feature_set = [Phenotype(i) for i in ast.literal_eval(args.similarity_feature_set)]
 similarity_threshold = args.similarity_threshold
 
 graph_name = graph_construct.get_graph_name(functional=functional,
