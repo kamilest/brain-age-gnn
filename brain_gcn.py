@@ -22,6 +22,16 @@ import graph_transform
 graph_root = 'data/graph'
 graph_name = 'population_graph_all_SEX_FTE_FI_structural_euler.pt'
 
+hyperparameter_defaults = dict(
+    model='gcn',
+    epochs=5000,
+    learning_rate=5e-4,
+    dropout=0,
+    weight_decay=0,
+    n_conv_layers=1,
+    layer_sizes=[364, 364, 512, 256, 1]
+)
+
 
 def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005, dropout_p=0, weight_decay=1e-5,
               log=True, early_stopping=True, patience=10, delta=0.005, cv=False, fold=0, run_name=None):
@@ -81,14 +91,14 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
 
         if early_stopping:
             if early_stopping_min_val_loss is None:
-                torch.save(model.state_dict(), early_stopping_checkpoint)
+                torch.save(model.state_dict(), os.path.join(wandb.run.dir, early_stopping_checkpoint))
                 early_stopping_min_val_loss = val_mse
             elif val_mse > early_stopping_min_val_loss - delta:
                 early_stopping_count += 1
                 if early_stopping_count >= patience:
                     early_stop = True
             else:
-                torch.save(model.state_dict(), early_stopping_checkpoint)
+                torch.save(model.state_dict(), os.path.join(wandb.run.dir, early_stopping_checkpoint))
                 early_stopping_min_val_loss = val_mse
                 early_stopping_count = 0
 
