@@ -264,7 +264,7 @@ def get_sufficient_age_occurrence_index(phenotypes):
     """
 
     age_counts = phenotypes[AGE_UID].value_counts()
-    ages = age_counts[age_counts >= 3].index.tolist()
+    ages = age_counts[age_counts >= 5].index.tolist()
     age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
     return age_index
 
