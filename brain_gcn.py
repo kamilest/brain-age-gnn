@@ -24,7 +24,7 @@ graph_name = 'population_graph_all_SEX_FTE_FI_structural_euler.pt'
 
 
 def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005, dropout_p=0, weight_decay=1e-5,
-              log=True, early_stopping=True, patience=10, delta=0.005):
+              log=True, early_stopping=True, patience=10, delta=0.005, cv=False, fold=0, run_name=None):
     data = graph.to(device)
     assert n_conv_layers >= 0
 
@@ -50,6 +50,11 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
             "epochs": epochs,
             "learning_rate": lr,
             "weight_decay": weight_decay})
+
+        if not cv or run_name is None:
+            run_name = wandb.run.name
+        else:
+            wandb.run.name = run_name + '-fold-{}'.format(fold)
         early_stopping_checkpoint = '{}_{}_state_dict.pt'.format(
             datetime.now().strftime("%Y-%m-%d_%H:%M:%S"),
             wandb.run.name)
@@ -126,7 +131,7 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
         torch.save(model, os.path.join(wandb.run.dir, best_model_name))
         wandb.save(best_model_name)
 
-    return final_r2, predicted, actual
+    return run_name, final_r2, predicted, actual
 
 
 class BrainGCN(torch.nn.Module):
@@ -162,17 +167,19 @@ class BrainGCN(torch.nn.Module):
 
 def gcn_train_with_cross_validation(graph, device, n_folds=10, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005,
                                     dropout_p=0, weight_decay=1e-5, log=True):
-    folds = gnn_train_evaluate.get_cv_subject_split(graph, n_folds=n_folds)
 
+    folds = gnn_train_evaluate.get_cv_subject_split(graph, n_folds=n_folds)
     results = []
 
-    for fold in folds:
+    for i, fold in enumerate(folds):
         gnn_train_evaluate.set_training_masks(graph, *fold)
         graph_transform.graph_feature_transform(graph)
 
-        result = gcn_train(graph, device, n_conv_layers=n_conv_layers, layer_sizes=layer_sizes, epochs=epochs, lr=lr,
-                           dropout_p=dropout_p, weight_decay=weight_decay, log=log)
-        results.append(result)
+        run_name = None if not results else results[0][0]
+        fold_scores = gcn_train(graph, device, n_conv_layers=n_conv_layers, layer_sizes=layer_sizes, epochs=epochs,
+                                lr=lr, dropout_p=dropout_p, weight_decay=weight_decay, log=log, cv=True, fold=i,
+                                run_name=run_name)
+        results.append(fold_scores)
 
     return results
 
