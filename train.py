@@ -30,11 +30,11 @@ parser.add_argument('--learning_rate', default=5e-4, type=float, help='Learning 
 parser.add_argument('--dropout', default=0, type=float, help='Dropout (default 0)')
 parser.add_argument('--weight_decay', default=0, type=float, help='Weight decay (default 0)')
 parser.add_argument('--n_conv_layers', default=1, type=int, help='Number of graph convolutional layers (default: 1)')
-parser.add_argument('--layer_sizes', default='[364, 364, 512, 256, 1]', type=str, help='Sizes of layers')
+parser.add_argument('--layer_sizes', default='[364, 364, 512, 256, 256, 1]', type=str, help='Sizes of layers')
 
 # Population graph parameters
 parser.add_argument('--functional', default=0, type=bool)
-parser.add_argument('--structual', default=1, type=bool)
+parser.add_argument('--structural', default=1, type=bool)
 parser.add_argument('--euler', default=1, type=bool)
 parser.add_argument('--similarity_feature_set', default="['SEX', 'ICD10', 'FTE', 'NEU']", type=str)
 parser.add_argument('--similarity_threshold', default=0.8, type=float)
