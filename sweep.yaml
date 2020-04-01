@@ -16,7 +16,7 @@ parameters:
     distribution: categorical
     values:
       - "['SEX', 'ICD10', 'FI', 'FTE', 'MEM', 'NEU']"
-      - "['SEX', 'FTE', 'FI']"
+#      - "['SEX', 'FTE', 'FI']"
       - "['SEX', 'ICD10', 'MEM', 'FTE']"
       - "['SEX', 'ICD10', 'FI']"
       - "['SEX', 'ICD10', 'NEU']"
