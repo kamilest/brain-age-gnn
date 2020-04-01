@@ -131,7 +131,7 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
         torch.save(model, os.path.join(wandb.run.dir, best_model_name))
         wandb.save(best_model_name)
 
-    return run_name, final_r2, predicted, actual
+    return run_name, predicted, actual
 
 
 class BrainGCN(torch.nn.Module):
@@ -170,16 +170,30 @@ def gcn_train_with_cross_validation(graph, device, n_folds=10, n_conv_layers=0, 
 
     folds = gnn_train_evaluate.get_cv_subject_split(graph, n_folds=n_folds)
     results = []
+    run_name = None
 
     for i, fold in enumerate(folds):
         gnn_train_evaluate.set_training_masks(graph, *fold)
         graph_transform.graph_feature_transform(graph)
 
-        run_name = None if not results else results[0][0]
-        fold_scores = gcn_train(graph, device, n_conv_layers=n_conv_layers, layer_sizes=layer_sizes, epochs=epochs,
+        fold_result = gcn_train(graph, device, n_conv_layers=n_conv_layers, layer_sizes=layer_sizes, epochs=epochs,
                                 lr=lr, dropout_p=dropout_p, weight_decay=weight_decay, log=log, cv=True, fold=i,
                                 run_name=run_name)
+        run_name = fold_result[0]
+        fold_scores = fold_result[1:]
         results.append(fold_scores)
+
+    # Add cross-validation summaries to the last fold
+    cv_mse = [F.mse_loss(predicted, actual) for predicted, actual in results]
+    cv_r2 = [r2_score(actual.detach().numpy(), predicted.detach().numpy()) for predicted, actual in results]
+    cv_r = [pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
+            for predicted, actual in results]
+    wandb.run.summary["CV validation MSEs"] = cv_mse
+    wandb.run.summary["CV validation r2s"] = cv_r2
+    wandb.run.summary["CV validation rs"] = cv_r
+    wandb.run.summary["CV validation average MSE"] = np.mean(cv_mse, axis=0)
+    wandb.run.summary["CV validation average r2"] = np.mean(cv_r2, axis=0)
+    wandb.run.summary["CV validation average r"] = np.mean(cv_r, axis=0)
 
     return results
 
