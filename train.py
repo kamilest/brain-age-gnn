@@ -6,7 +6,6 @@ from pathlib import Path
 
 import numpy as np
 import torch
-import wandb
 
 import brain_gcn
 import gnn_train_evaluate
@@ -65,21 +64,9 @@ if args.model == 'gcn' or args.model == 'gat':
 else:
     n_conv_layers = 0
 
-hyperparameter_defaults = dict(
-    graph_name=GRAPH_NAMES[0],
-    model='gcn',
-    epochs=5000,
-    learning_rate=5e-4,
-    dropout=0,
-    weight_decay=0,
-    n_conv_layers=1,
-    layer_sizes=[364, 364, 512, 256, 1]
-)
 
 torch.manual_seed(99)
 np.random.seed(0)
-
-wandb.init(project="brain-age-gnn", config=hyperparameter_defaults)
 
 population_graph = graph_construct.load_population_graph(graph_root, graph_name)
 fold = gnn_train_evaluate.get_stratified_subject_split(population_graph)
@@ -95,4 +82,5 @@ brain_gcn.gcn_train_with_cross_validation(population_graph, device,
                                           weight_decay=args.weight_decay,
                                           dropout_p=args.dropout,
                                           epochs=args.epochs,
-                                          n_folds=5)
+                                          n_folds=5,
+                                          patience=100)
