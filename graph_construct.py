@@ -244,8 +244,7 @@ def get_graph_name(size, functional, structural, euler, similarity_feature_set, 
     :return: the graph name.
     """
 
-    separator = '_'
-    similarity_feature_string = separator.join([feature.value for feature in similarity_feature_set])
+    similarity_feature_string = '_'.join(sorted([feature.value for feature in similarity_feature_set]))
     return 'population_graph_' \
            + (str(size) + '_' if size is not None else 'all_') \
            + similarity_feature_string \
