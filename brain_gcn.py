@@ -53,8 +53,7 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
 
         if not cv or run_name is None:
             run_name = wandb.run.name
-        else:
-            wandb.run.name = run_name + '-fold-{}'.format(fold)
+        wandb.run.name = run_name + '-fold-{}'.format(fold)
         early_stopping_checkpoint = '{}_{}_state_dict.pt'.format(
             datetime.now().strftime("%Y-%m-%d_%H:%M:%S"),
             wandb.run.name)
