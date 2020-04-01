@@ -44,6 +44,9 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
 
     # Initialise wandb log.
     if log:
+        wandb.init(project="brain-age-gnn", config=hyperparameter_defaults, reinit=True)
+
+        wandb.run.save()
         wandb.watch(model)
         wandb.config.update({
             "graph_name": graph.name,
@@ -54,6 +57,7 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
         if not cv or run_name is None:
             run_name = wandb.run.name
         wandb.run.name = run_name + '-fold-{}'.format(fold)
+        wandb.run.save()
         early_stopping_checkpoint = '{}_{}_state_dict.pt'.format(
             datetime.now().strftime("%Y-%m-%d_%H:%M:%S"),
             wandb.run.name)
@@ -129,6 +133,7 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
         best_model_name = 'best_{}.pt'.format(wandb.run.name)
         torch.save(model, os.path.join(wandb.run.dir, best_model_name))
         wandb.save(best_model_name)
+        wandb.join()
 
     return run_name, predicted, actual
 
