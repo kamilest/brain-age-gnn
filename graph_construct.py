@@ -246,7 +246,7 @@ def get_graph_name(functional, structural, euler, similarity_feature_set, simila
 
     similarity_feature_string = '_'.join(sorted([feature.value for feature in similarity_feature_set]))
     return 'population_graph_' \
-           + (str(size) + '_' if size is not None else '_') \
+           + (str(size) + '_' if size is not None else '') \
            + similarity_feature_string \
            + '_{}'.format(similarity_threshold) \
            + ('_functional' if functional else '') \
