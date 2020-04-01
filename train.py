@@ -95,4 +95,4 @@ brain_gcn.gcn_train_with_cross_validation(population_graph, device,
                                           weight_decay=args.weight_decay,
                                           dropout_p=args.dropout,
                                           epochs=args.epochs,
-                                          n_folds=10)
+                                          n_folds=5)
