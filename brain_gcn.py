@@ -155,7 +155,7 @@ class BrainGCN(torch.nn.Module):
         super(BrainGCN, self).__init__()
         self.conv = torch.nn.ModuleList()
         self.fc = torch.nn.ModuleList()
-        self.dropout = torch.nn.Dropout(dropout_p)
+        self.dropout = torch.nn.ModuleList()
         size = num_node_features
         self.params = torch.nn.ParameterList([size].extend(layer_sizes))
         for i in range(n_conv_layers):
@@ -164,6 +164,8 @@ class BrainGCN(torch.nn.Module):
         for i in range(len(layer_sizes) - n_conv_layers):
             self.fc.append(Linear(size, layer_sizes[n_conv_layers+i]))
             size = layer_sizes[n_conv_layers+i]
+            if i < len(layer_sizes) - n_conv_layers - 1:
+                self.dropout.append(torch.nn.Dropout(dropout_p))
 
     # noinspection PyTypeChecker,PyUnresolvedReferences
     def forward(self, data):
@@ -174,7 +176,7 @@ class BrainGCN(torch.nn.Module):
         for i in range(len(self.fc) - 1):
             x = self.fc[i](x)
             x = torch.tanh(x)
-            x = self.dropout(x)
+            x = self.dropout[i](x)
 
         x = self.fc[-1](x)
         return x
