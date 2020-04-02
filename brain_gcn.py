@@ -33,8 +33,9 @@ hyperparameter_defaults = dict(
 )
 
 
-def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005, dropout_p=0, weight_decay=1e-5,
-              log=True, early_stopping=True, patience=10, delta=0.005, cv=False, fold=0, run_name=None):
+def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=3500, lr=0.005, dropout_p=0, weight_decay=1e-5,
+              log=True, early_stopping=True, patience=10, delta=0.005, cv=False, fold=0, run_name=None,
+              min_epochs=1000):
     data = graph.to(device)
     assert n_conv_layers >= 0
 
@@ -93,7 +94,7 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
             if early_stopping_min_val_loss is None:
                 torch.save(model.state_dict(), os.path.join(wandb.run.dir, early_stopping_checkpoint))
                 early_stopping_min_val_loss = val_mse
-            elif val_mse > early_stopping_min_val_loss - delta:
+            elif val_mse > early_stopping_min_val_loss - delta and epoch > min_epochs:
                 early_stopping_count += 1
                 if early_stopping_count >= patience:
                     early_stop = True
@@ -142,8 +143,7 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0
         # Save the entire model.
         best_model_name = 'best_{}.pt'.format(wandb.run.name)
         torch.save(model, os.path.join(wandb.run.dir, best_model_name))
-        wandb.save(best_model_name)
-        wandb.join()
+        # wandb.join()
 
     return run_name, predicted, actual
 
@@ -223,6 +223,6 @@ if __name__ == "__main__":
     gnn_train_evaluate.set_training_masks(population_graph, *fold)
     graph_transform.graph_feature_transform(population_graph)
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
     gcn_train(population_graph, device, n_conv_layers=0, layer_sizes=[360, 256, 128, 1], lr=5e-4, weight_decay=0,
               epochs=5000)
