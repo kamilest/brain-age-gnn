@@ -1,7 +1,7 @@
 program: train.py
 method: bayes
 metric:
-  name: 'Validation MSE'
+  name: 'cv_validation_average_mse'
   goal: minimize
 parameters:
   learning_rate:
