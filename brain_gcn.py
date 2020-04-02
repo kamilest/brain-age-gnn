@@ -190,8 +190,8 @@ def gcn_train_with_cross_validation(graph, device, n_folds=10, n_conv_layers=0, 
     results = []
     run_name = None
 
-    wandb.save("*.pt")
     wandb.init(project="brain-age-gnn", config=hyperparameter_defaults, reinit=True)
+    wandb.save("*.pt")
 
     for i, fold in enumerate(folds):
         gnn_train_evaluate.set_training_masks(graph, *fold)
