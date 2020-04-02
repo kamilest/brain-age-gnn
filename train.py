@@ -35,16 +35,17 @@ parser.add_argument('--layer_sizes', default='[364, 364, 512, 256, 256, 1]', typ
 parser.add_argument('--functional', default=0, type=bool)
 parser.add_argument('--structural', default=1, type=bool)
 parser.add_argument('--euler', default=1, type=bool)
-parser.add_argument('--similarity_feature_set', default="['SEX', 'ICD10', 'FTE', 'NEU']", type=str)
-parser.add_argument('--similarity_threshold', default=0.8, type=float)
+# parser.add_argument('--similarity_feature_set', default="['SEX', 'ICD10', 'FTE', 'NEU']", type=str)
+# parser.add_argument('--similarity_threshold', default=0.8, type=float)
+parser.add_argument('--similarity', default="(['SEX', 'ICD10', 'FTE', 'NEU'], 0.8)", type=str)
 
 args = parser.parse_args()
 
 functional = args.functional
 structural = args.structural
 euler = args.euler
-similarity_feature_set = [Phenotype(i) for i in ast.literal_eval(args.similarity_feature_set)]
-similarity_threshold = args.similarity_threshold
+similarity_feature_set = [Phenotype(i) for i in ast.literal_eval(args.similarity)[0]]
+similarity_threshold = ast.literal_eval(args.similarity)[1]
 
 graph_name = graph_construct.get_graph_name(functional=functional,
                                             structural=structural,
@@ -73,7 +74,7 @@ fold = gnn_train_evaluate.get_stratified_subject_split(population_graph)
 gnn_train_evaluate.set_training_masks(population_graph, *fold)
 graph_transform.graph_feature_transform(population_graph)
 
-device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 brain_gcn.gcn_train_with_cross_validation(population_graph, device,
                                           n_conv_layers=n_conv_layers,
