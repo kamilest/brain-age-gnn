@@ -1,7 +1,7 @@
 program: train.py
 method: bayes
 metric:
-  name: 'Validation MSE'
+  name: 'cv_validation_average_mse'
   goal: minimize
 parameters:
   learning_rate:
@@ -12,13 +12,17 @@ parameters:
     distribution: uniform
     min: 0
     max: 0.5
-  graph_name:
+  similarity_feature_set:
     distribution: categorical
-    # all graph types to be tested
     values:
-      - population_graph_all_SEX_FI_MEN_MEM_BIP_NEU_0.8_structural_euler.pt
-      - population_graph_all_SEX_FTE_FI_MEN_MEM_BIP_0.7_structural_euler.pt
-      - population_graph_all_SEX_MEN_MEM_BIP_NEU_0.8_structural_euler.pt
+      - "['SEX', 'ICD10', 'FI', 'FTE', 'MEM', 'NEU']"
+#      - "['SEX', 'FTE', 'FI']"
+      - "['SEX', 'ICD10', 'MEM', 'FTE']"
+      - "['SEX', 'ICD10', 'FI']"
+      - "['SEX', 'ICD10', 'NEU']"
+      - "['SEX', 'ICD10', 'FTE', 'NEU']"
+  similarity_threshold:
+    values: [0.6, 0.7, 0.8, 0.9]
   n_conv_layers:
     distribution: int_uniform
     min: 1

@@ -232,22 +232,21 @@ def collect_graph_data(subject_ids, functional, structural, euler):
                                  'euler': euler_data}
 
 
-def get_graph_name(size, functional, structural, euler, similarity_feature_set, similarity_threshold):
+def get_graph_name(functional, structural, euler, similarity_feature_set, similarity_threshold, size=None):
     """Creates the name for the population graph given its parameterisation.
 
-    :param size: list of subject IDs.
     :param functional: indicates whether the graph contains functional MRI data.
     :param structural: indicates whether the graph contains structural MRI data.
     :param euler: indicates whether the graph contains Euler indices.
     :param similarity_feature_set: list of similarity features were used in similarity metric.
     :param similarity_threshold: the threshold of similary metric above which an edge is created.
+    :param size: number of subjects.
     :return: the graph name.
     """
 
-    separator = '_'
-    similarity_feature_string = separator.join([feature.value for feature in similarity_feature_set])
+    similarity_feature_string = '_'.join(sorted([feature.value for feature in similarity_feature_set]))
     return 'population_graph_' \
-           + (str(size) + '_' if size is not None else 'all_') \
+           + (str(size) + '_' if size is not None else '') \
            + similarity_feature_string \
            + '_{}'.format(similarity_threshold) \
            + ('_functional' if functional else '') \
@@ -265,7 +264,7 @@ def get_sufficient_age_occurrence_index(phenotypes):
     """
 
     age_counts = phenotypes[AGE_UID].value_counts()
-    ages = age_counts[age_counts >= 3].index.tolist()
+    ages = age_counts[age_counts >= 5].index.tolist()
     age_index = np.where(phenotypes[AGE_UID].isin(ages))[0]
     return age_index
 
@@ -381,7 +380,7 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     """
 
     if name is None:
-        name = get_graph_name(size, functional, structural, euler, similarity_feature_set, similarity_threshold)
+        name = get_graph_name(functional, structural, euler, similarity_feature_set, similarity_threshold, size)
 
     if subject_ids is None:
         subject_ids = sorted(get_subject_ids(size))

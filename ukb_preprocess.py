@@ -231,9 +231,10 @@ def precompute_similarities():
             sm = sim.cpu().detach().numpy()
 
         elif p == Phenotype.ICD10:
-            icd10 = torch.tensor(pd.read_pickle(ICD10_LOOKUP).to_numpy())
+            icd10 = torch.tensor(pd.read_pickle(ICD10_LOOKUP).to_numpy().astype(int))
 
             sim = torch.mm(icd10, icd10.t())
+            sim = sim >= 1
             sm = sim.cpu().detach().numpy()
 
         else:
