@@ -206,7 +206,7 @@ def gcn_train_with_cross_validation(graph, device, n_folds=10, n_conv_layers=0, 
         results.append(fold_scores)
 
     # Add cross-validation summaries to the last fold
-    cv_mse = [F.mse_loss(predicted, actual) for predicted, actual in results]
+    cv_mse = [F.mse_loss(predicted, actual).item() for predicted, actual in results]
     cv_r2 = [r2_score(actual.detach().numpy(), predicted.detach().numpy()) for predicted, actual in results]
     cv_r = [pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
             for predicted, actual in results]
