@@ -55,8 +55,6 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=3500, lr=
 
     # Initialise wandb log.
     if log:
-        wandb.init(project="brain-age-gnn", config=hyperparameter_defaults, reinit=True)
-
         wandb.run.save()
         wandb.watch(model)
         wandb.config.update({
@@ -100,16 +98,18 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=3500, lr=
                     early_stop = True
             else:
                 torch.save(model.state_dict(), os.path.join(wandb.run.dir, early_stopping_checkpoint))
+                if log:
+                    wandb.save(model.state_dict(), os.path.join(wandb.run.dir, early_stopping_checkpoint))
                 early_stopping_min_val_loss = val_mse
                 early_stopping_count = 0
 
         if log:
-            wandb.log({"Train MSE": train_mse[0],
-                       "Train r2": train_r2,
-                       "Train r": train_r,
-                       "Validation MSE": val_mse,
-                       "Validation r2": val_r2[0],
-                       "Validation r": val_r})
+            wandb.log({"train_mse_fold_{}".format(fold): train_mse[0],
+                       "train_r2_fold_{}".format(fold): train_r2,
+                       "train_r_fold_{}".format(fold): train_r,
+                       "validation_mse_fold_{}".format(fold): val_mse,
+                       "validation_r2_fold_{}".format(fold): val_r2[0],
+                       "validation_r_fold_{}".format(fold): val_r})
         print(epoch, train_mse, train_r2, train_r)
         print(epoch, val_mse, val_r2, val_r)
         print()
@@ -136,13 +136,14 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=3500, lr=
     print('Final Pearson\'s r: {}'.format(final_r))
 
     if log:
-        wandb.run.summary["Final validation MSE"] = F.mse_loss(predicted, actual)
-        wandb.run.summary["Final validation r2"] = final_r2
-        wandb.run.summary["Final validation r"] = final_r
+        wandb.run.summary["final_validation_mse_fold_{}".format(fold)] = F.mse_loss(predicted, actual)
+        wandb.run.summary["final_validation_r2_fold_{}".format(fold)] = final_r2
+        wandb.run.summary["final_validation_r_fold_{}".format(fold)] = final_r
 
         # Save the entire model.
         best_model_name = 'best_{}.pt'.format(wandb.run.name)
         torch.save(model, os.path.join(wandb.run.dir, best_model_name))
+        wandb.save(model, os.path.join(wandb.run.dir, best_model_name))
         # wandb.join()
 
     return run_name, predicted, actual
@@ -187,6 +188,8 @@ def gcn_train_with_cross_validation(graph, device, n_folds=10, n_conv_layers=0, 
     results = []
     run_name = None
 
+    wandb.init(project="brain-age-gnn", config=hyperparameter_defaults, reinit=True)
+
     for i, fold in enumerate(folds):
         gnn_train_evaluate.set_training_masks(graph, *fold)
         graph_transform.graph_feature_transform(graph)
@@ -204,12 +207,12 @@ def gcn_train_with_cross_validation(graph, device, n_folds=10, n_conv_layers=0, 
     cv_r2 = [r2_score(actual.detach().numpy(), predicted.detach().numpy()) for predicted, actual in results]
     cv_r = [pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
             for predicted, actual in results]
-    wandb.run.summary["CV validation MSEs"] = cv_mse
-    wandb.run.summary["CV validation r2s"] = cv_r2
-    wandb.run.summary["CV validation rs"] = cv_r
-    wandb.run.summary["CV validation average MSE"] = np.mean(cv_mse, axis=0)
-    wandb.run.summary["CV validation average r2"] = np.mean(cv_r2, axis=0)
-    wandb.run.summary["CV validation average r"] = np.mean(cv_r, axis=0)
+    wandb.run.summary["cv_validation_mses"] = cv_mse
+    wandb.run.summary["cv_validation_r2"] = cv_r2
+    wandb.run.summary["cv_validation_rs"] = cv_r
+    wandb.run.summary["cv_validation_average_mse"] = np.mean(cv_mse, axis=0)
+    wandb.run.summary["cv_validation_average_r2"] = np.mean(cv_r2, axis=0)
+    wandb.run.summary["cv_validation_average_r"] = np.mean(cv_r, axis=0)
 
     return results
 
