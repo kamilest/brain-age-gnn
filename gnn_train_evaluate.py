@@ -101,7 +101,7 @@ def get_cv_subject_split(population_graph, n_folds=10, random_state=0):
     features = concatenate_graph_features(population_graph)
     labels = population_graph.y.numpy()
 
-    train_test_split = StratifiedKFold(n_splits=n_folds, random_state=random_state)
+    train_test_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
     folds = []
     for train_validate_index, test_index in train_test_split.split(features, labels):
         train_validate_index = np.sort(train_validate_index)
@@ -109,7 +109,7 @@ def get_cv_subject_split(population_graph, n_folds=10, random_state=0):
         features_train = features[train_validate_index]
         labels_train = labels[train_validate_index]
 
-        train_validate_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
+        train_validate_split = StratifiedKFold(n_splits=n_folds)
         for train_index, validate_index in train_validate_split.split(features_train, labels_train):
             train_index = np.sort(train_index)
             validate_index = np.sort(validate_index)
