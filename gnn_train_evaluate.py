@@ -16,8 +16,8 @@ from ukb_preprocess import SIMILARITY_LOOKUP, ICD10_LOOKUP
 
 def get_confounding_labels(population_graph):
     similarity_lookup = pd.read_pickle(SIMILARITY_LOOKUP).loc[
-        population_graph.subject_index, ['AGE', 'FTE', 'FI', 'MEM', 'SEX']]
-    icd10_lookup = pd.read_pickle(ICD10_LOOKUP).loc[population_graph.subject_index]
+        population_graph.subject_index, ['AGE', 'FTE', 'FI', 'MEM', 'SEX']].fillna(-1)
+    icd10_lookup = pd.read_pickle(ICD10_LOOKUP).loc[population_graph.subject_index].fillna(-1)
 
     labels = np.hstack(
         [a.reshape(population_graph.num_nodes, -1) for a in [similarity_lookup.to_numpy(), icd10_lookup.to_numpy()]])
