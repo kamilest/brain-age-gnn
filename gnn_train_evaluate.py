@@ -6,10 +6,23 @@ Provides functions for altering the graph by adding node noise or edge noise.
 """
 
 import numpy as np
+import pandas as pd
 import torch
 from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 
 from graph_transform import concatenate_graph_features
+from ukb_preprocess import SIMILARITY_LOOKUP, ICD10_LOOKUP
+
+
+def get_confounding_labels(population_graph):
+    similarity_lookup = pd.read_pickle(SIMILARITY_LOOKUP).loc[
+        population_graph.subject_index, ['AGE', 'FTE', 'FI', 'MEM', 'SEX']]
+    icd10_lookup = pd.read_pickle(ICD10_LOOKUP).loc[population_graph.subject_index]
+
+    labels = np.hstack(
+        [a.reshape(population_graph.num_nodes, -1) for a in [similarity_lookup.to_numpy(), icd10_lookup.to_numpy()]])
+
+    return labels
 
 
 def test_subject_split(train_idx, validate_idx, test_idx):
@@ -99,7 +112,7 @@ def get_cv_subject_split(population_graph, n_folds=10, random_state=0):
     """
 
     features = concatenate_graph_features(population_graph)
-    labels = population_graph.y.numpy()
+    labels = get_confounding_labels(population_graph)
 
     train_test_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
     folds = []
@@ -109,7 +122,7 @@ def get_cv_subject_split(population_graph, n_folds=10, random_state=0):
         features_train = features[train_validate_index]
         labels_train = labels[train_validate_index]
 
-        train_validate_split = StratifiedKFold(n_splits=n_folds)
+        train_validate_split = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=random_state)
         for train_index, validate_index in train_validate_split.split(features_train, labels_train):
             train_index = np.sort(train_index)
             validate_index = np.sort(validate_index)
