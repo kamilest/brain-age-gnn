@@ -35,8 +35,6 @@ parser.add_argument('--layer_sizes', default='[364, 364, 512, 256, 256, 1]', typ
 parser.add_argument('--functional', default=0, type=bool)
 parser.add_argument('--structural', default=1, type=bool)
 parser.add_argument('--euler', default=1, type=bool)
-# parser.add_argument('--similarity_feature_set', default="['SEX', 'ICD10', 'FTE', 'NEU']", type=str)
-# parser.add_argument('--similarity_threshold', default=0.8, type=float)
 parser.add_argument('--similarity', default="(['SEX', 'ICD10', 'FTE', 'NEU'], 0.8)", type=str)
 
 args = parser.parse_args()
@@ -74,7 +72,7 @@ fold = gnn_train_evaluate.get_stratified_subject_split(population_graph)
 gnn_train_evaluate.set_training_masks(population_graph, *fold)
 graph_transform.graph_feature_transform(population_graph)
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
 
 brain_gcn.gcn_train_with_cross_validation(population_graph, device,
                                           n_conv_layers=n_conv_layers,

@@ -12,21 +12,10 @@ parameters:
     distribution: uniform
     min: 0
     max: 0.5
-#  similarity_feature_set:
-#    distribution: categorical
-#    values:
-#      - "['SEX', 'ICD10', 'FI', 'FTE', 'MEM', 'NEU']"
-#      - "['SEX', 'FTE', 'FI', 'NEU']"
-#      - "['SEX', 'ICD10', 'MEM', 'FTE']"
-#      - "['SEX', 'ICD10', 'FI']"
-#      - "['SEX', 'ICD10', 'NEU']"
-#      - "['SEX', 'ICD10', 'FTE', 'NEU']"
-#  similarity_threshold:
-#    values: [0.6, 0.7, 0.8, 0.9]
   similarity:
     distribution: categorical
     values:
-      - "(['SEX', 'ICD10', 'FI', 'FTE', 'MEM'], 0.6)"
+#      - "(['SEX', 'ICD10', 'FI', 'FTE', 'MEM'], 0.6)"
       - "(['SEX', 'ICD10', 'FI', 'FTE', 'MEM'], 0.8)"
       - "(['SEX', 'ICD10', 'FI', 'FTE', 'MEM'], 0.9)"
       - "(['SEX', 'FTE', 'FI', 'MEM'], 0.7)"
