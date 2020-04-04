@@ -14,9 +14,9 @@ from graph_transform import concatenate_graph_features
 from ukb_preprocess import SIMILARITY_LOOKUP, ICD10_LOOKUP
 
 
-def get_confounding_labels(population_graph):
+def get_confounding_features(population_graph):
     similarity_lookup = pd.read_pickle(SIMILARITY_LOOKUP).loc[
-        population_graph.subject_index, ['AGE', 'FTE', 'FI', 'MEM', 'SEX']].fillna(-1)
+        population_graph.subject_index, ['FTE', 'FI', 'MEM', 'SEX']].fillna(-1)
     icd10_lookup = pd.read_pickle(ICD10_LOOKUP).loc[population_graph.subject_index].fillna(-1)
 
     labels = np.hstack(
@@ -112,18 +112,22 @@ def get_cv_subject_split(population_graph, n_folds=10, random_state=0):
     """
 
     features = concatenate_graph_features(population_graph)
-    labels = get_confounding_labels(population_graph)
+    confounding_features = get_confounding_features(population_graph)
+
+    all_features = np.hstack([a.reshape(population_graph.num_nodes, -1) for a in [features, confounding_features]])
+    labels = population_graph.y.numpy()
+
 
     train_test_split = StratifiedShuffleSplit(n_splits=1, test_size=0.1, random_state=random_state)
     folds = []
-    for train_validate_index, test_index in train_test_split.split(features, labels):
+    for train_validate_index, test_index in train_test_split.split(all_features, labels):
         train_validate_index = np.sort(train_validate_index)
         test_index = np.sort(test_index)
-        features_train = features[train_validate_index]
+        all_features_train = all_features[train_validate_index]
         labels_train = labels[train_validate_index]
 
         train_validate_split = StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=random_state)
-        for train_index, validate_index in train_validate_split.split(features_train, labels_train):
+        for train_index, validate_index in train_validate_split.split(all_features_train, labels_train):
             train_index = np.sort(train_index)
             validate_index = np.sort(validate_index)
 
