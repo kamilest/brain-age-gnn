@@ -6,8 +6,8 @@ metric:
 parameters:
   learning_rate:
     distribution: log_uniform
-    min: 5e-5
-    max: 5e-2
+    min: -9.904
+    max: -2.995
   dropout:
     distribution: uniform
     min: 0
