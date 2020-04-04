@@ -5,7 +5,7 @@ metric:
   goal: minimize
 parameters:
   learning_rate:
-    distribution: uniform
+    distribution: log_uniform
     min: 5e-5
     max: 5e-2
   dropout:
