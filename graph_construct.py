@@ -424,7 +424,7 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     population_graph.structural_data = {'cortical_thickness': graph_data['cortical_thickness'],
                                         'surface_area': graph_data['surface_area'],
                                         'volume': graph_data['volume']}
-    population_graph.euler_data = graph_data['euler']
+    population_graph.quality_control_data = graph_data['euler']
     population_graph.name = name
 
     if save:
