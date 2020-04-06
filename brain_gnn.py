@@ -11,7 +11,7 @@ from torch_geometric.nn import GCNConv, GATConv
 
 class BrainGNN(torch.nn.Module):
     # noinspection PyUnresolvedReferences
-    def __init__(self, type, num_node_features, n_conv_layers, layer_sizes, dropout_p):
+    def __init__(self, conv_type, num_node_features, n_conv_layers, layer_sizes, dropout_p):
         super(BrainGNN, self).__init__()
         self.conv = torch.nn.ModuleList()
         self.fc = torch.nn.ModuleList()
@@ -19,9 +19,9 @@ class BrainGNN(torch.nn.Module):
         size = num_node_features
         self.params = torch.nn.ParameterList([size].extend(layer_sizes))
         for i in range(n_conv_layers):
-            if type == 'gcn':
+            if conv_type == 'gcn':
                 self.conv.append(GCNConv(size, layer_sizes[i]))
-            elif type == 'gat':
+            elif conv_type == 'gat':
                 self.conv.append(GATConv(size, layer_sizes[i]))
             else:
                 self.conv.append(Linear(size, layer_sizes[i]))
