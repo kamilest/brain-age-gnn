@@ -11,8 +11,8 @@ from torch_geometric.nn import GCNConv, GATConv
 
 class BrainGNN(torch.nn.Module):
     class IdentityModule(torch.nn.Module):
-        def forward(self, inputs):
-            return inputs
+        def forward(self, data):
+            return data
 
     # noinspection PyUnresolvedReferences
     def __init__(self, type, num_node_features, n_conv_layers, layer_sizes, dropout_p):
