@@ -24,7 +24,7 @@ class BrainGNN(torch.nn.Module):
             elif type == 'gat':
                 self.conv.append(GATConv(size, layer_sizes[i]))
             else:
-                self.conv.append(torch.nn.Identity())
+                self.conv.append(Linear(size, layer_sizes[i]))
             size = layer_sizes[i]
         for i in range(len(layer_sizes) - n_conv_layers):
             self.fc.append(Linear(size, layer_sizes[n_conv_layers+i]))
