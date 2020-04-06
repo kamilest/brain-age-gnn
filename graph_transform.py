@@ -49,17 +49,17 @@ def graph_feature_transform(population_graph, pca=True):
     structural_data = np.concatenate(transformed_structural_features, axis=1)
 
     # Scaling Euler index data based on training index.
-    if not population_graph.euler_data.empty:
+    if not population_graph.quality_control_data.empty:
         euler_scaler = sklearn.preprocessing.StandardScaler()
-        euler_scaler.fit(population_graph.euler_data[train_mask])
-        euler_data = euler_scaler.transform(population_graph.euler_data)
+        euler_scaler.fit(population_graph.quality_control_data[train_mask])
+        quality_control_data = euler_scaler.transform(population_graph.quality_control_data)
     else:
-        euler_data = population_graph.euler_data
+        quality_control_data = population_graph.quality_control_data
 
     # Unify feature sets into one feature vector.
     features = np.concatenate([functional_data,
                                structural_data,
-                               euler_data], axis=1)
+                               quality_control_data], axis=1)
 
     population_graph.x = torch.tensor(features, dtype=torch.float32)
 
@@ -79,6 +79,6 @@ def concatenate_graph_features(population_graph):
 
     return np.concatenate([population_graph.functional_data,
                            structural_data,
-                           population_graph.euler_data], axis=1)
+                           population_graph.quality_control_data], axis=1)
 
 
