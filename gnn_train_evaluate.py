@@ -159,13 +159,13 @@ def set_training_masks(population_graph, train_index, validate_index, test_index
     if ignore_nonhealthy:
         population_graph.full_train_mask = torch.tensor(train_mask, dtype=torch.bool)
         population_graph.train_mask = torch.tensor(
-            np.logical_and(train_mask, population_graph.healthy_brain_subject_mask), dtype=torch.bool)
+            np.logical_and(train_mask, population_graph.brain_health_mask), dtype=torch.bool)
         population_graph.full_validate_mask = torch.tensor(validate_mask, dtype=torch.bool)
         population_graph.validate_mask = torch.tensor(
-            np.logical_and(validate_mask, population_graph.healthy_brain_subject_mask), dtype=torch.bool)
+            np.logical_and(validate_mask, population_graph.brain_health_mask), dtype=torch.bool)
         population_graph.full_test_mask = torch.tensor(test_mask, dtype=torch.bool)
         population_graph.test_mask = torch.tensor(
-            np.logical_and(test_mask, population_graph.healthy_brain_subject_mask), dtype=torch.bool)
+            np.logical_and(test_mask, population_graph.brain_health_mask), dtype=torch.bool)
 
     else:
         population_graph.train_mask = torch.tensor(train_mask, dtype=torch.bool)

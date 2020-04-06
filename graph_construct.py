@@ -415,7 +415,7 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     population_graph = Data()
     population_graph.num_nodes = len(subject_ids)
     population_graph.subject_index = subject_ids
-    population_graph.healthy_brain_subject_mask = get_healthy_brain_subject_mask(subject_ids)
+    population_graph.brain_health_mask = get_healthy_brain_subject_mask(subject_ids)
 
     population_graph.edge_index = edge_index_tensor
     population_graph.y = label_tensor
