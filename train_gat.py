@@ -7,7 +7,7 @@ from pathlib import Path
 import numpy as np
 import torch
 
-import brain_gcn
+import brain_gnn_train
 import gnn_train_evaluate
 import graph_construct
 import graph_transform
@@ -23,7 +23,7 @@ Path(logdir).mkdir(parents=True, exist_ok=True)
 parser = argparse.ArgumentParser(description='Brain age graph neural network.')
 
 # Neural network parameters
-parser.add_argument('--model', default='gcn', type=str, help='Type of model (options: gcn, fc)')
+parser.add_argument('--model', default='gcn', type=str, help='Type of model (options: gcn, gat)')
 parser.add_argument('--epochs', default=5000, type=int, help='Number of epochs (default 5000)')
 parser.add_argument('--learning_rate', default=5e-4, type=float, help='Learning rate (default 5e-4)')
 parser.add_argument('--dropout', default=0, type=float, help='Dropout (default 0)')
@@ -74,12 +74,12 @@ graph_transform.graph_feature_transform(population_graph)
 
 device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
-brain_gcn.gcn_train_with_cross_validation(population_graph, device,
+brain_gnn_train.gnn_train_with_cross_validation(args.model, population_graph, device,
                                           n_conv_layers=n_conv_layers,
                                           layer_sizes=ast.literal_eval(args.layer_sizes),
                                           lr=args.learning_rate,
                                           weight_decay=args.weight_decay,
                                           dropout_p=args.dropout,
-                                          epochs=10000,
+                                          epochs=args.epochs,
                                           n_folds=5,
                                           patience=100)

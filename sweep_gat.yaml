@@ -1,0 +1,44 @@
+program: train_gat.py
+method: bayes
+metric:
+  name: 'cv_validation_average_mse'
+  goal: minimize
+parameters:
+  model:
+    value: 'gat'
+  learning_rate:
+    distribution: log_uniform
+    min: -9.904
+    max: -2.995
+  weight_decay:
+    distribution: log_uniform
+    min: -9.904
+    max: -2.995
+  dropout:
+    distribution: uniform
+    min: 0
+    max: 0.5
+  similarity:
+    distribution: categorical
+    values:
+#      - "(['SEX', 'ICD10', 'FI', 'FTE', 'MEM'], 0.6)"
+      - "(['SEX', 'ICD10', 'FI', 'FTE', 'MEM'], 0.8)"
+      - "(['SEX', 'ICD10', 'FI', 'FTE', 'MEM'], 0.9)"
+      - "(['SEX', 'FTE', 'FI', 'MEM'], 0.7)"
+      - "(['SEX', 'FTE', 'FI', 'MEM'], 0.8)"
+      - "(['SEX', 'ICD10', 'MEM', 'FTE'], 0.7)"
+      - "(['SEX', 'ICD10', 'MEM', 'FTE'], 0.8)"
+      - "(['SEX', 'ICD10', 'MEM', 'FI'], 0.7)"
+      - "(['SEX', 'ICD10', 'MEM', 'FI'], 0.8)"
+      - "(['SEX', 'ICD10', 'FTE'], 0.7)"
+      - "(['SEX', 'ICD10', 'MEM'], 0.7)"
+      - "(['SEX', 'ICD10', 'FI'], 0.7)"
+  n_conv_layers:
+    distribution: int_uniform
+    min: 1
+    max: 3
+  epochs:
+    value: 7500
+early_terminate:
+  type: hyperband
+  min_iter: 2500
