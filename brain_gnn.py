@@ -4,9 +4,16 @@
 
 """
 
+import enum
+
 import torch
 from torch.nn import Linear
 from torch_geometric.nn import GCNConv, GATConv
+
+
+class ConvTypes(enum.Enum):
+    GCN = 'GCN'
+    GAT = 'GAT'
 
 
 class BrainGNN(torch.nn.Module):
@@ -19,9 +26,9 @@ class BrainGNN(torch.nn.Module):
         size = num_node_features
         self.params = torch.nn.ParameterList([size].extend(layer_sizes))
         for i in range(n_conv_layers):
-            if conv_type == 'gcn':
+            if conv_type == ConvTypes.GCN:
                 self.conv.append(GCNConv(size, layer_sizes[i]))
-            elif conv_type == 'gat':
+            elif conv_type == ConvTypes.GAT:
                 self.conv.append(GATConv(size, layer_sizes[i]))
             else:
                 self.conv.append(Linear(size, layer_sizes[i]))
@@ -49,9 +56,9 @@ class BrainGNN(torch.nn.Module):
 
 class BrainGCN(BrainGNN):
     def __init__(self, num_node_features, n_conv_layers, layer_sizes, dropout_p):
-        super(BrainGCN, self).__init__('gcn', num_node_features, n_conv_layers, layer_sizes, dropout_p)
+        super(BrainGCN, self).__init__(ConvTypes.GCN, num_node_features, n_conv_layers, layer_sizes, dropout_p)
 
 
 class BrainGAT(BrainGNN):
     def __init__(self, num_node_features, n_conv_layers, layer_sizes, dropout_p):
-        super(BrainGAT, self).__init__('gat', num_node_features, n_conv_layers, layer_sizes, dropout_p)
+        super(BrainGAT, self).__init__(ConvTypes.GAT, num_node_features, n_conv_layers, layer_sizes, dropout_p)

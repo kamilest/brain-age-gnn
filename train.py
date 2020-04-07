@@ -80,6 +80,6 @@ brain_gcn.gcn_train_with_cross_validation(population_graph, device,
                                           lr=args.learning_rate,
                                           weight_decay=args.weight_decay,
                                           dropout_p=args.dropout,
-                                          epochs=args.epochs,
+                                          epochs=10000,
                                           n_folds=5,
                                           patience=100)

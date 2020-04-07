@@ -61,7 +61,7 @@ def gcn_train(graph, device, n_conv_layers=0, layer_sizes=None, epochs=3500, lr=
             "graph_name": graph.name,
             "epochs": epochs,
             "learning_rate": lr,
-            "weight_decay": weight_decay})
+            "weight_decay": weight_decay}, allow_val_change=True)
 
         if not cv or run_name is None:
             run_name = wandb.run.name
