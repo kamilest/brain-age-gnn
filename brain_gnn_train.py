@@ -35,7 +35,7 @@ hyperparameter_defaults = dict(
 )
 
 
-def gnn_train(type, graph, device, n_conv_layers=0, layer_sizes=None, epochs=3500, lr=0.005, dropout_p=0, weight_decay=1e-5,
+def gnn_train(conv_type, graph, device, n_conv_layers=0, layer_sizes=None, epochs=3500, lr=0.005, dropout_p=0, weight_decay=1e-5,
               log=True, early_stopping=True, patience=10, delta=0.005, cv=False, fold=0, run_name=None,
               min_epochs=1000):
     data = graph.to(device)
@@ -44,7 +44,7 @@ def gnn_train(type, graph, device, n_conv_layers=0, layer_sizes=None, epochs=350
     if layer_sizes is None:
         layer_sizes = []
 
-    if type == GCN:
+    if conv_type == GCN:
         model = BrainGCN(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p).to(device)
     else:
         model = BrainGAT(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p).to(device)
@@ -155,7 +155,7 @@ def gnn_train(type, graph, device, n_conv_layers=0, layer_sizes=None, epochs=350
     return run_name, predicted, actual
 
 
-def gnn_train_with_cross_validation(type, graph, device, n_folds=10, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005,
+def gnn_train_with_cross_validation(conv_type, graph, device, n_folds=10, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005,
                                     dropout_p=0, weight_decay=1e-5, log=True, early_stopping=True, patience=10,
                                     delta=0.005):
 
@@ -170,7 +170,7 @@ def gnn_train_with_cross_validation(type, graph, device, n_folds=10, n_conv_laye
         gnn_train_evaluate.set_training_masks(graph, *fold)
         graph_transform.graph_feature_transform(graph)
 
-        fold_result = gnn_train(type, graph, device, n_conv_layers=n_conv_layers, layer_sizes=layer_sizes, epochs=epochs,
+        fold_result = gnn_train(conv_type, graph, device, n_conv_layers=n_conv_layers, layer_sizes=layer_sizes, epochs=epochs,
                                 lr=lr, dropout_p=dropout_p, weight_decay=weight_decay, log=log,
                                 early_stopping=early_stopping, patience=patience, delta=delta, cv=True, fold=i,
                                 run_name=run_name)
