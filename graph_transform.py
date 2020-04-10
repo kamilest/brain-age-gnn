@@ -3,19 +3,21 @@ import sklearn
 import torch
 
 
-def functional_connectivities_pca(connectivities, train_idx, random_state=0):
+def functional_connectivities_pca(connectivities, train_idx, remaining_components=1, random_state=0):
     """Runs principal component analysis (PCA) on a set of flattened connectivity matrices.
     Fits to the training set and applies to the rest.
 
     :param connectivities: flattened functional connectivity matrices.
     :param train_idx: the boolean mask of the functional connectivity matrices belonging to the trainng set.
+    :param remaining_components: fraction of reimaining components (for dimensionality reduction).
     :param random_state: random state of the PCA transform.
     :return the principal components of the functional connectivity matrices.
     """
 
     connectivity_pca = sklearn.decomposition.PCA(random_state=random_state)
     connectivity_pca.fit(connectivities[train_idx])
-    return connectivity_pca.transform(connectivities)
+    components = connectivity_pca.transform(connectivities)
+    return components[:, :int(remaining_components * components.shape[1])]
 
 
 def graph_feature_transform(population_graph, pca=True):
