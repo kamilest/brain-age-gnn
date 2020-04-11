@@ -63,7 +63,6 @@ if args.model == 'gcn' or args.model == 'gat':
 else:
     n_conv_layers = 0
 
-
 torch.manual_seed(99)
 np.random.seed(0)
 
@@ -72,14 +71,14 @@ fold = gnn_train_evaluate.get_stratified_subject_split(population_graph)
 gnn_train_evaluate.set_training_masks(population_graph, *fold)
 graph_transform.graph_feature_transform(population_graph)
 
-device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
 
 brain_gnn_train.gnn_train_with_cross_validation(args.model, population_graph, device,
-                                          n_conv_layers=n_conv_layers,
-                                          layer_sizes=ast.literal_eval(args.layer_sizes),
-                                          lr=args.learning_rate,
-                                          weight_decay=args.weight_decay,
-                                          dropout_p=args.dropout,
-                                          epochs=args.epochs,
-                                          n_folds=5,
-                                          patience=100)
+                                                n_conv_layers=n_conv_layers,
+                                                layer_sizes=ast.literal_eval(args.layer_sizes),
+                                                lr=args.learning_rate,
+                                                weight_decay=args.weight_decay,
+                                                dropout_p=args.dropout,
+                                                epochs=args.epochs,
+                                                n_folds=5,
+                                                patience=100)

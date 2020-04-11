@@ -1,10 +1,16 @@
-program: train.py
+program: train_gnn.py
 method: bayes
 metric:
   name: 'cv_validation_average_mse'
   goal: minimize
 parameters:
+  model:
+    value: 'gcn'
   learning_rate:
+    distribution: log_uniform
+    min: -9.904
+    max: -2.995
+  weight_decay:
     distribution: log_uniform
     min: -9.904
     max: -2.995
@@ -42,7 +48,7 @@ parameters:
       - "[128, 128, 128, 128, 128, 1]"
       - "[256, 256, 256, 128, 128, 128, 64, 1]"
   epochs:
-    value: 3500
+    value: 10000
 early_terminate:
   type: hyperband
   min_iter: 2500
