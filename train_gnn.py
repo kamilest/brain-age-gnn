@@ -71,7 +71,7 @@ fold = gnn_train_evaluate.get_stratified_subject_split(population_graph)
 gnn_train_evaluate.set_training_masks(population_graph, *fold)
 graph_transform.graph_feature_transform(population_graph)
 
-device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
 brain_gnn_train.gnn_train_with_cross_validation(args.model, population_graph, device,
                                                 n_conv_layers=n_conv_layers,
