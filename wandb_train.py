@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
+import brain_gnn_evaluate
 import brain_gnn_train
-import gnn_train_evaluate
 import graph_construct
 import graph_transform
 from phenotype import Phenotype
@@ -67,8 +67,8 @@ torch.manual_seed(99)
 np.random.seed(0)
 
 population_graph = graph_construct.load_population_graph(graph_root, graph_name)
-fold = gnn_train_evaluate.get_stratified_subject_split(population_graph)
-gnn_train_evaluate.set_training_masks(population_graph, *fold)
+fold = brain_gnn_evaluate.get_stratified_subject_split(population_graph)
+brain_gnn_evaluate.set_training_masks(population_graph, *fold)
 graph_transform.graph_feature_transform(population_graph)
 
 device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
