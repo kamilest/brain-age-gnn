@@ -28,9 +28,9 @@ hyperparameter_defaults = dict(
 )
 
 
-def gnn_train(conv_type, graph, device, n_conv_layers=0, layer_sizes=None, epochs=3500, lr=0.005, dropout_p=0, weight_decay=1e-5,
-              log=True, early_stopping=True, patience=10, delta=0.005, cv=False, fold=0, run_name=None,
-              min_epochs=1000):
+def gnn_train(conv_type, graph, device, n_conv_layers=0, layer_sizes=None, epochs=3500, lr=0.005, dropout_p=0,
+              weight_decay=1e-5, log=True, early_stopping=True, patience=10, delta=0.005, cv=False, fold=0,
+              run_name=None, min_epochs=1000):
     data = graph.to(device)
     assert n_conv_layers >= 0
 
@@ -142,9 +142,9 @@ def gnn_train(conv_type, graph, device, n_conv_layers=0, layer_sizes=None, epoch
     return run_name, predicted, actual
 
 
-def gnn_train_with_cross_validation(conv_type, graph, device, n_folds=10, n_conv_layers=0, layer_sizes=None, epochs=350, lr=0.005,
-                                    dropout_p=0, weight_decay=1e-5, log=True, early_stopping=True, patience=10,
-                                    delta=0.005):
+def gnn_train_with_cross_validation(conv_type, graph, device, n_folds=10, n_conv_layers=0, layer_sizes=None, epochs=350,
+                                    lr=0.005, dropout_p=0, weight_decay=1e-5, log=True, early_stopping=True,
+                                    patience=10, delta=0.005):
 
     folds = brain_gnn_evaluate.get_cv_subject_split(graph, n_folds=n_folds)
     results = []
@@ -157,8 +157,8 @@ def gnn_train_with_cross_validation(conv_type, graph, device, n_folds=10, n_conv
         brain_gnn_evaluate.set_training_masks(graph, *fold)
         graph_transform.graph_feature_transform(graph)
 
-        fold_result = gnn_train(conv_type, graph, device, n_conv_layers=n_conv_layers, layer_sizes=layer_sizes, epochs=epochs,
-                                lr=lr, dropout_p=dropout_p, weight_decay=weight_decay, log=log,
+        fold_result = gnn_train(conv_type, graph, device, n_conv_layers=n_conv_layers, layer_sizes=layer_sizes,
+                                epochs=epochs, lr=lr, dropout_p=dropout_p, weight_decay=weight_decay, log=log,
                                 early_stopping=early_stopping, patience=patience, delta=delta, cv=True, fold=i,
                                 run_name=run_name)
         run_name = fold_result[0]
