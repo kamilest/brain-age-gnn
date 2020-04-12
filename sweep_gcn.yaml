@@ -1,4 +1,4 @@
-program: train_gnn.py
+program: wandb_train.py
 method: bayes
 metric:
   name: 'cv_validation_average_mse'
