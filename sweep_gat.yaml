@@ -1,4 +1,4 @@
-program: train_gnn.py
+program: wandb_train.py
 method: bayes
 metric:
   name: 'cv_validation_average_mse'
@@ -38,7 +38,7 @@ parameters:
     min: 1
     max: 3
   epochs:
-    value: 7500
+    value: 10000
 early_terminate:
   type: hyperband
   min_iter: 2500
