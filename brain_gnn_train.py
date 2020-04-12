@@ -14,15 +14,8 @@ from scipy.stats import pearsonr
 from sklearn.metrics import r2_score
 
 import brain_gnn_evaluate
-import graph_construct
 import graph_transform
-from brain_gnn import BrainGCN, BrainGAT
-
-graph_root = 'data/graph'
-graph_name = 'population_graph_all_SEX_FTE_FI_structural_euler.pt'
-
-GCN = 'gcn'
-GAT = 'gat'
+from brain_gnn import BrainGCN, BrainGAT, ConvTypes
 
 hyperparameter_defaults = dict(
     model='gcn',
@@ -44,7 +37,7 @@ def gnn_train(conv_type, graph, device, n_conv_layers=0, layer_sizes=None, epoch
     if layer_sizes is None:
         layer_sizes = []
 
-    if conv_type == GCN:
+    if ConvTypes(conv_type) == ConvTypes.GCN:
         model = BrainGCN(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p).to(device)
     else:
         model = BrainGAT(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p).to(device)
@@ -146,12 +139,6 @@ def gnn_train(conv_type, graph, device, n_conv_layers=0, layer_sizes=None, epoch
         wandb.run.summary["final_validation_r2_fold_{}".format(fold)] = final_r2
         wandb.run.summary["final_validation_r_fold_{}".format(fold)] = final_r
 
-        # Save the entire model.
-        # best_model_name = 'best_{}.pt'.format(wandb.run.name)
-        # torch.save(model, os.path.join(wandb.run.dir, best_model_name))
-        # wandb.save(best_model_name)
-        # wandb.join()
-
     return run_name, predicted, actual
 
 
@@ -183,25 +170,8 @@ def gnn_train_with_cross_validation(conv_type, graph, device, n_folds=10, n_conv
     cv_r2 = [r2_score(actual.detach().numpy(), predicted.detach().numpy()) for predicted, actual in results]
     cv_r = [pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
             for predicted, actual in results]
-    # wandb.run.summary["cv_validation_mses"] = cv_mse
-    # wandb.run.summary["cv_validation_r2s"] = cv_r2
-    # wandb.run.summary["cv_validation_rs"] = cv_r
     wandb.run.summary["cv_validation_average_mse"] = np.mean(cv_mse, axis=0)
     wandb.run.summary["cv_validation_average_r2"] = np.mean(cv_r2, axis=0)
     wandb.run.summary["cv_validation_average_r"] = np.mean(cv_r, axis=0)
 
     return results
-
-
-if __name__ == "__main__":
-    torch.manual_seed(99)
-    np.random.seed(0)
-
-    population_graph = graph_construct.load_population_graph(graph_root, graph_name)
-    fold = brain_gnn_evaluate.get_stratified_subject_split(population_graph)
-    brain_gnn_evaluate.set_training_masks(population_graph, *fold)
-    graph_transform.graph_feature_transform(population_graph)
-
-    device = torch.device('cuda:2' if torch.cuda.is_available() else 'cpu')
-    gnn_train(population_graph, device, n_conv_layers=0, layer_sizes=[360, 256, 128, 1], lr=5e-4, weight_decay=0,
-              epochs=5000)

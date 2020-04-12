@@ -12,8 +12,8 @@ from torch_geometric.nn import GCNConv, GATConv
 
 
 class ConvTypes(enum.Enum):
-    GCN = 'GCN'
-    GAT = 'GAT'
+    GCN = 'gcn'
+    GAT = 'gat'
 
 
 class BrainGNN(torch.nn.Module):
