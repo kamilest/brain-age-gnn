@@ -9,6 +9,7 @@ Combines the imaging data and the edges into the intermediate population graph r
 
 import csv
 import os
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -285,14 +286,14 @@ def get_healthy_brain_subject_mask(subject_ids):
 
 
 def construct_edge_list_from_function(subject_ids, similarity_function, similarity_threshold=0.5, save=False,
-                                      graph_name=None):
+                                      log_name=None):
     """Constructs the adjacency list of the population population_graph based on a similarity metric provided.
 
     :param subject_ids: subject IDs.
     :param similarity_function: function which is returns similarity between two subjects according to some metric.
     :param similarity_threshold: the threshold above which the edge should be added.
     :param save: inidicates whether to save the population_graph in the logs directory.
-    :param graph_name: population_graph name for saved file if population_graph edges are logged.
+    :param log_name: population_graph name for saved file if population_graph edges are logged.
     :return population_graph connectivity in coordinate format of shape [2, num_edges].
         The same edge (v, w) appears twice as (v, w) and (w, v) to represent bidirectionality.
     """
@@ -301,10 +302,10 @@ def construct_edge_list_from_function(subject_ids, similarity_function, similari
     w_list = []
 
     if save:
-        if graph_name is None:
-            graph_name = 'population_graph.csv'
+        if log_name is None:
+            log_name = '{}_edge_log.pt'.format(datetime.now().strftime("%Y-%m-%d_%H:%M:%S"))
 
-        with open(os.path.join('logs', graph_name), 'w+', newline='') as csvfile:
+        with open(os.path.join('logs', log_name), 'w+', newline='') as csvfile:
             wr = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
             for i, id_i in enumerate(subject_ids):
                 wr.writerow([i, i])  # ensure singletons appear in the population_graph adjacency list.
