@@ -7,7 +7,6 @@ Takes a set of similarity metrics (or a generalised similarity function) to gene
 Combines the imaging data and the edges into the intermediate population graph representation.
 """
 
-import csv
 import os
 
 import numpy as np
@@ -151,7 +150,7 @@ def collect_structural(subject_ids, structural_type):
     # Extract data for relevant subject IDs.
     subject_ct = ct[ct['NewID'].isin(subject_ids)].copy()
 
-    assert(len(subject_ids) - len(subject_ct) == 0)
+    assert (len(subject_ids) - len(subject_ct) == 0)
     if len(subject_ct) != len(subject_ids):
         print('{} entries had {} data missing.'.format(len(subject_ids) - len(subject_ct), structural_type))
 
@@ -284,15 +283,42 @@ def get_healthy_brain_subject_mask(subject_ids):
     return np.invert(np.any(icd10_lookup[si], axis=1))
 
 
-def construct_edge_list_from_function(subject_ids, similarity_function, similarity_threshold=0.5, save=False,
-                                      graph_name=None):
-    """Constructs the adjacency list of the population population_graph based on a similarity metric provided.
+def construct_weighted_similarity_edge_list(subject_ids, phenotype_weight_map, similarity_threshold=0.5):
+    """Constructs the adjacency list of the population population_graph based on a similarity features provided.
+
+    :param subject_ids: list of subject IDs.
+    :param phenotype_weight_map: the list of features mapped to their relative weight (flooat) that will be used to
+        compute the weighted average similarity score.
+    :param similarity_threshold: the threshold above which the edge will be added to the graph.
+    :return a dictionary containing the dataframes for every modality, indexed by subject IDs. If the modality is not
+        used, an empty dataframe is returned in the corresponding dictionary entry.
+    """
+
+    # Get the similarity matrices for subject_ids and phenotype_features provided.
+    # Add up the matrices (possibly weighting).
+    num_subjects = len(subject_ids)
+    similarities = np.zeros((num_subjects, num_subjects), dtype=np.float32)
+
+    full_subject_ids = np.load(SUBJECT_IDS, allow_pickle=True)
+    id_mask = np.isin(full_subject_ids, subject_ids)
+
+    total_weight = np.sum(list(phenotype_weight_map.values())).astype(np.float32)
+
+    for ph in phenotype_weight_map.keys():
+        ph_similarity = np.load(os.path.join(data_similarity, '{}_similarity.npy'.format(ph.value)))
+        similarities += (phenotype_weight_map[ph] / total_weight) * \
+            ph_similarity[id_mask][:, id_mask].astype(np.float32)
+
+    # Filter values above threshold
+    return np.transpose(np.argwhere(similarities >= similarity_threshold))
+
+
+def construct_edge_list_from_function(subject_ids, similarity_function, similarity_threshold=0.5):
+    """Constructs the adjacency list of the population population_graph based on an arbitrary similarity metric.
 
     :param subject_ids: subject IDs.
-    :param similarity_function: function which is returns similarity between two subjects according to some metric.
+    :param similarity_function: function which returns a similarity score between two subjects labelled with their IDs.
     :param similarity_threshold: the threshold above which the edge should be added.
-    :param save: inidicates whether to save the population_graph in the logs directory.
-    :param graph_name: population_graph name for saved file if population_graph edges are logged.
     :return population_graph connectivity in coordinate format of shape [2, num_edges].
         The same edge (v, w) appears twice as (v, w) and (w, v) to represent bidirectionality.
     """
@@ -300,29 +326,13 @@ def construct_edge_list_from_function(subject_ids, similarity_function, similari
     v_list = []
     w_list = []
 
-    if save:
-        if graph_name is None:
-            graph_name = 'population_graph.csv'
-
-        with open(os.path.join('logs', graph_name), 'w+', newline='') as csvfile:
-            wr = csv.writer(csvfile, delimiter=',', quoting=csv.QUOTE_MINIMAL)
-            for i, id_i in enumerate(subject_ids):
-                wr.writerow([i, i])  # ensure singletons appear in the population_graph adjacency list.
-                iter_j = iter(enumerate(subject_ids))
-                [next(iter_j) for _ in range(i + 1)]
-                for j, id_j in iter_j:
-                    if similarity_function(id_i, id_j) > similarity_threshold:
-                        wr.writerow([i, j])
-                        v_list.extend([i, j])
-                        w_list.extend([j, i])
-    else:
-        for i, id_i in enumerate(subject_ids):
-            iter_j = iter(enumerate(subject_ids))
-            [next(iter_j) for _ in range(i + 1)]
-            for j, id_j in iter_j:
-                if similarity_function(id_i, id_j) > similarity_threshold:
-                    v_list.extend([i, j])
-                    w_list.extend([j, i])
+    for i, id_i in enumerate(subject_ids):
+        iter_j = iter(enumerate(subject_ids))
+        [next(iter_j) for _ in range(i + 1)]
+        for j, id_j in iter_j:
+            if similarity_function(id_i, id_j) > similarity_threshold:
+                v_list.extend([i, j])
+                w_list.extend([j, i])
 
     return [v_list, w_list]
 
@@ -358,6 +368,7 @@ def construct_edge_list(subject_ids, phenotypes, similarity_threshold=0.5):
 
 def construct_population_graph(similarity_feature_set, similarity_threshold=0.5, size=None, functional=False,
                                structural=True, euler=True, save=True, subject_ids=None, age_filtering=True,
+                               use_weighted_similarity=False, similarity_feature_set_to_weight_map=None,
                                save_dir=graph_root, name=None):
     """Constructs the population graph given its modality and similarity parameterisation.
 
@@ -374,6 +385,8 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
         size parameter if both are indicated.
     :param age_filtering: indicates whether to remove patients with low label occurrence (for correct stratification in
         training process).
+    :param use_weighted_similarity: boolean indicating whether to use linear combination of similarity features.
+    :param similarity_feature_set_to_weight_map: map of features to weights if weighted similarity function is used.
     :param save_dir: directory in which the graph should be saved.
     :param name: the name of the graph. Creates a default name if None is given.
     :return an intermediate population graph representation.
@@ -403,14 +416,15 @@ def construct_population_graph(similarity_feature_set, similarity_threshold=0.5,
     label_tensor = torch.tensor([labels], dtype=torch.float32).transpose_(0, 1)
 
     # Construct the edge index.
-    edge_index_tensor = torch.tensor(
-        construct_edge_list(subject_ids=subject_ids, phenotypes=similarity_feature_set,
-                            similarity_threshold=similarity_threshold),
-        dtype=torch.long)
-    # similarity_function = similarity.custom_similarity_function(similarity_feature_set)
-    # construct_edge_list_from_function(subject_ids=subject_ids, similarity_function=similarity_function,
-    # similarity_threshold=similarity_threshold, save=logs, graph_name=name.replace('.pt', datetime.now(
-    # ).strftime("_%H_%M_%S") + '.csv')), dtype=torch.long)
+    if use_weighted_similarity:
+        edge_list = construct_weighted_similarity_edge_list(subject_ids=subject_ids,
+                                                            phenotype_weight_map=similarity_feature_set_to_weight_map,
+                                                            similarity_threshold=similarity_threshold)
+    else:
+        edge_list = construct_edge_list(subject_ids=subject_ids, phenotypes=similarity_feature_set,
+                                        similarity_threshold=similarity_threshold)
+
+    edge_index_tensor = torch.tensor(edge_list, dtype=torch.long)
 
     population_graph = Data()
     population_graph.num_nodes = len(subject_ids)
