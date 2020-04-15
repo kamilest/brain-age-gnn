@@ -73,12 +73,12 @@ graph_transform.graph_feature_transform(population_graph)
 
 device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
-brain_gnn_train.gnn_train_with_cross_validation(args.model, population_graph, device,
-                                                n_conv_layers=n_conv_layers,
-                                                layer_sizes=ast.literal_eval(args.layer_sizes),
-                                                lr=args.learning_rate,
-                                                weight_decay=args.weight_decay,
-                                                dropout_p=args.dropout,
-                                                epochs=args.epochs,
-                                                n_folds=5,
-                                                patience=100)
+brain_gnn_train.train_with_cross_validation(args.model, population_graph, device,
+                                            n_conv_layers=n_conv_layers,
+                                            layer_sizes=ast.literal_eval(args.layer_sizes),
+                                            lr=args.learning_rate,
+                                            weight_decay=args.weight_decay,
+                                            dropout_p=args.dropout,
+                                            epochs=args.epochs,
+                                            n_folds=5,
+                                            patience=100)
