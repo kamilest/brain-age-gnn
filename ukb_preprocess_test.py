@@ -7,7 +7,7 @@ from phenotype import Phenotype
 
 SUBJECT_IDS = 'data/subject_ids.npy'
 SIMILARITY_LOOKUP = 'data/similarity_lookup.pkl'
-SIMILARITY_MEN = 'data/similarity/MEN_multiprocess_similarity_GPU.npy'
+SIMILARITY_MEN = 'data/similarity/similarity_MEN.npy'
 
 subject_ids = sorted([1192336, 1629877, 1677375, 1894259, 2875424, 2898110, 3766119, 4553519, 4581316, 4872190])
 subject_ids_ukb = ['UKB{}'.format(i) for i in subject_ids]
