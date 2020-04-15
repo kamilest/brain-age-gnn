@@ -164,6 +164,8 @@ def gnn_train_with_cross_validation(conv_type, graph, device, n_folds=10, n_conv
         run_name = fold_result[0]
         fold_scores = fold_result[1:]
         results.append(fold_scores)
+        if np.mean([F.mse_loss(predicted, actual).item() for predicted, actual in results], axis=0) > 30:
+            break
 
     # Add cross-validation summaries to the last fold
     cv_mse = [F.mse_loss(predicted, actual).item() for predicted, actual in results]
