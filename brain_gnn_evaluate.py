@@ -5,14 +5,28 @@ Provides functions for splitting the subjects into train, validation and test se
 Provides functions for altering the graph by adding node noise or edge noise.
 """
 
+import ast
+import os
+
 import numpy as np
 import pandas as pd
 import torch
+import yaml
+from scipy.stats import pearsonr
+from sklearn.metrics import r2_score
 from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
 
-from graph_transform import concatenate_graph_features
+import graph_construct
+import graph_transform
+from brain_gnn import ConvTypes, BrainGCN, BrainGAT
+from phenotype import Phenotype
 from ukb_preprocess import SIMILARITY_LOOKUP, ICD10_LOOKUP
+
+graph_root = 'data/graph'
+model_root = 'data/model'
+
+GRAPH_NAMES = sorted(os.listdir(graph_root))
 
 
 def get_confounding_features(population_graph):
@@ -84,7 +98,7 @@ def get_stratified_subject_split(population_graph, test_size=0.1, random_state=0
         subject order in the population graph.
     """
 
-    features = concatenate_graph_features(population_graph)
+    features = graph_transform.concatenate_graph_features(population_graph)
     labels = population_graph.y.numpy()
 
     train_test_split = StratifiedShuffleSplit(n_splits=1, test_size=test_size, random_state=random_state)
@@ -243,3 +257,62 @@ def measure_predictive_power_drop():
     """
     pass
 
+
+def evaluate_test_set_performance(model_dir):
+    """Measures the test set performance of the model under the specified model directory.
+
+    :param model_dir: directory containing the model state dictionaries for each fold and the model
+        configuration (including the population graph parameterisation)
+    :return: the test set performance for each fold.
+    """
+
+    with open(os.path.join(model_dir, 'config.yaml')) as file:
+        cfg = yaml.full_load(file)
+
+        graph_name = cfg['graph_name']['value']
+        conv_type = cfg['model']['value']
+
+        n_conv_layers = cfg['n_conv_layers']['value']
+        layer_sizes = ast.literal_eval(cfg['layer_sizes']['value'])
+        dropout_p = cfg['dropout']['value']
+
+        similarity_feature_set = [Phenotype(i) for i in ast.literal_eval(cfg['similarity']['value'])[0]]
+        similarity_threshold = ast.literal_eval(cfg['similarity']['value'])[1]
+
+    if graph_name not in GRAPH_NAMES:
+        graph_construct.construct_population_graph(similarity_feature_set=similarity_feature_set,
+                                                   similarity_threshold=similarity_threshold,
+                                                   functional=False,
+                                                   structural=True,
+                                                   euler=True)
+
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    graph = graph_construct.load_population_graph(graph_root, graph_name).to(device)
+
+    if ConvTypes(conv_type) == ConvTypes.GCN:
+        model = BrainGCN(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p).to(device)
+    else:
+        model = BrainGAT(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p).to(device)
+
+    folds = get_cv_subject_split(graph, n_folds=5)
+    results = []
+
+    for i, fold in enumerate(folds):
+        set_training_masks(graph, *fold)
+        graph_transform.graph_feature_transform(graph)
+
+        model.load_state_dict(torch.load(os.path.join(model_dir, 'fold-{}_state_dict.pt'.format(i))))
+        model.eval()
+        model = model(graph)
+
+        predicted = model[graph.test_mask].cpu()
+        actual = graph.y[graph.test_mask].cpu()
+
+        r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
+        r = pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
+        results.append([r, r2])
+
+    return results
+
+
+results_gcn = evaluate_test_set_performance(os.path.join(model_root, 'gcn'))
