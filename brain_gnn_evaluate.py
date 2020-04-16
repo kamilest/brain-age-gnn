@@ -319,4 +319,6 @@ def evaluate_test_set_performance(model_dir):
     return results
 
 
-results_gcn = evaluate_test_set_performance(os.path.join(model_root, 'gcn'))
+results_gcn = evaluate_test_set_performance(os.path.join(model_root, 'gat'))
+with open(os.path.join(model_root, 'gat', 'results.yaml'), 'w+') as file:
+    yaml.dump(results_gcn, file)
