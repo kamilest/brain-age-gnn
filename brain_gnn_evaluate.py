@@ -287,30 +287,34 @@ def evaluate_test_set_performance(model_dir):
                                                    euler=True)
 
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    graph = graph_construct.load_population_graph(graph_root, graph_name).to(device)
 
-    if ConvTypes(conv_type) == ConvTypes.GCN:
-        model = BrainGCN(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p).to(device)
-    else:
-        model = BrainGAT(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p).to(device)
+    graph = graph_construct.load_population_graph(graph_root, graph_name)
 
     folds = get_cv_subject_split(graph, n_folds=5)
-    results = []
+    results = {}
 
     for i, fold in enumerate(folds):
         set_training_masks(graph, *fold)
         graph_transform.graph_feature_transform(graph)
 
-        model.load_state_dict(torch.load(os.path.join(model_dir, 'fold-{}_state_dict.pt'.format(i))))
-        model.eval()
-        model = model(graph)
+        if ConvTypes(conv_type) == ConvTypes.GCN:
+            model = BrainGCN(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p)
+        else:
+            model = BrainGAT(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p)
 
-        predicted = model[graph.test_mask].cpu()
-        actual = graph.y[graph.test_mask].cpu()
+        model.load_state_dict(torch.load(os.path.join(model_dir, 'fold-{}_state_dict.pt'.format(i))))
+        model = model.to(device)
+        model.eval()
+
+        data = graph.to(device)
+        model = model(data)
+
+        predicted = model[data.test_mask].cpu()
+        actual = graph.y[data.test_mask].cpu()
 
         r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
         r = pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
-        results.append([r, r2])
+        results['fold_{}'.format(i)] = {'r': [x.item() for x in r], 'r2': r2.item()}
 
     return results
 
