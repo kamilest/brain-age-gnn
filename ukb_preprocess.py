@@ -252,10 +252,10 @@ def precompute_similarities():
 
 
 if __name__ == '__main__':
-    # precompute_flattened_fcm()
+    precompute_flattened_fcm()
     precompute_subject_ids()
-    # device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-    # precompute_similarities()
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+    precompute_similarities()
     sids = np.load(os.path.join(data_root, 'subject_ids.npy'), allow_pickle=True)
 
     # 17550 = count of functional connectivity files
