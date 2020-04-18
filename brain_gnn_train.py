@@ -13,9 +13,9 @@ import wandb
 from scipy.stats import pearsonr
 from sklearn.metrics import r2_score
 
-import brain_gnn_evaluate
 import graph_transform
 from brain_gnn import BrainGCN, BrainGAT, ConvTypes
+from brain_gnn_evaluate import get_cv_subject_split, set_training_masks
 
 hyperparameter_defaults = dict(
     model='gcn',
@@ -64,7 +64,8 @@ def train(conv_type, graph, device, n_conv_layers=0, layer_sizes=None, epochs=35
 
         if not cv or run_name is None:
             run_name = wandb.run.name
-        wandb.run.name = run_name + '-fold-{}'.format(fold)
+        else:
+            wandb.run.name = run_name + '-fold-{}'.format(fold)
         wandb.run.save()
         early_stopping_checkpoint = '{}_{}_state_dict.pt'.format(
             datetime.now().strftime("%Y-%m-%d_%H:%M:%S"),
@@ -139,14 +140,13 @@ def train(conv_type, graph, device, n_conv_layers=0, layer_sizes=None, epochs=35
         wandb.run.summary["final_validation_r2_fold_{}".format(fold)] = final_r2
         wandb.run.summary["final_validation_r_fold_{}".format(fold)] = final_r
 
-    return run_name, predicted, actual
+    return model, (run_name, predicted, actual)
 
 
 def train_with_cross_validation(conv_type, graph, device, n_folds=10, n_conv_layers=0, layer_sizes=None, epochs=350,
                                 lr=0.005, dropout_p=0, weight_decay=1e-5, log=True, early_stopping=True,
                                 patience=10, delta=0.005):
-
-    folds = brain_gnn_evaluate.get_cv_subject_split(graph, n_folds=n_folds)
+    folds = get_cv_subject_split(graph, n_folds=n_folds)
     results = []
     run_name = None
 
@@ -154,13 +154,13 @@ def train_with_cross_validation(conv_type, graph, device, n_folds=10, n_conv_lay
     wandb.save("*.pt")
 
     for i, fold in enumerate(folds):
-        brain_gnn_evaluate.set_training_masks(graph, *fold)
+        set_training_masks(graph, *fold)
         graph_transform.graph_feature_transform(graph)
 
-        fold_result = train(conv_type, graph, device, n_conv_layers=n_conv_layers, layer_sizes=layer_sizes,
-                            epochs=epochs, lr=lr, dropout_p=dropout_p, weight_decay=weight_decay, log=log,
-                            early_stopping=early_stopping, patience=patience, delta=delta, cv=True, fold=i,
-                            run_name=run_name)
+        _, fold_result = train(conv_type, graph, device, n_conv_layers=n_conv_layers, layer_sizes=layer_sizes,
+                               epochs=epochs, lr=lr, dropout_p=dropout_p, weight_decay=weight_decay, log=log,
+                               early_stopping=early_stopping, patience=patience, delta=delta, cv=True, fold=i,
+                               run_name=run_name)
         run_name = fold_result[0]
         fold_scores = fold_result[1:]
         results.append(fold_scores)

@@ -11,12 +11,14 @@ import os
 import numpy as np
 import pandas as pd
 import torch
+import wandb
 import yaml
 from scipy.stats import pearsonr
 from sklearn.metrics import r2_score
 from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
 from sklearn.preprocessing import LabelEncoder
 
+import brain_gnn_train
 import graph_construct
 import graph_transform
 from brain_gnn import ConvTypes, BrainGCN, BrainGAT
@@ -210,7 +212,7 @@ def get_subject_split_masks(train_index, validate_index, test_index):
     return train_mask, validate_mask, test_mask
 
 
-def add_population_graph_noise(population_graph, p, noise_amplitude=0.05):
+def add_population_graph_noise(population_graph, p, noise_amplitude=0.5, random_state=0):
     """Adds white Gaussian noise to the nodes of the population graph, modifying the feature vector.
 
     :param population_graph: population graph.
@@ -220,6 +222,8 @@ def add_population_graph_noise(population_graph, p, noise_amplitude=0.05):
 
     nodes = population_graph.x.numpy().copy()
     train_idx = np.where(population_graph.train_mask.numpy())[0]
+
+    np.random.seed(random_state)
     noisy_train_idx = np.random.choice(train_idx, round(len(train_idx) * p), replace=False)
 
     for i in noisy_train_idx:
@@ -228,7 +232,7 @@ def add_population_graph_noise(population_graph, p, noise_amplitude=0.05):
     population_graph.x = torch.tensor(nodes)
 
 
-def remove_population_graph_edges(population_graph, p):
+def remove_population_graph_edges(population_graph, p, random_state=0):
     """Removes graph edges with probability p.
 
     :param population_graph: path to the population graph file.
@@ -237,6 +241,7 @@ def remove_population_graph_edges(population_graph, p):
     edges = np.transpose(population_graph.edge_index.numpy().copy())
     unique_edges = np.unique([list(x) for x in (frozenset(y) for y in edges)], axis=0)
 
+    np.random.seed(random_state)
     idx = np.random.choice(range(len(unique_edges)), replace=False, size=round(len(unique_edges) * p))
     unique_edges = np.delete(unique_edges, idx, axis=0)
 
@@ -248,14 +253,6 @@ def remove_population_graph_edges(population_graph, p):
     if not hasattr(population_graph, 'original_edge_index'):
         population_graph.original_edge_index = population_graph.edge_index.clone()
     population_graph.edge_index = torch.tensor([v_list, w_list], dtype=torch.long)
-
-
-def measure_predictive_power_drop():
-    """Measures the drop in performance metrics with increased noise or more missing data.
-
-    :return: the range of values at different modification levels.
-    """
-    pass
 
 
 def evaluate_test_set_performance(model_dir):
@@ -319,6 +316,78 @@ def evaluate_test_set_performance(model_dir):
     return results
 
 
-results_gcn = evaluate_test_set_performance(os.path.join(model_root, 'gat'))
-with open(os.path.join(model_root, 'gat', 'results.yaml'), 'w+') as file:
+def evaluate_noise_performance(model_dir, noise_type='node'):
+    """Measures the test set performance of the model under the specified model directory when noise is added.
+
+    :param model_dir: directory containing the model state dictionaries for each fold and the model
+        configuration (including the population graph parameterisation)
+    :param noise_type: 'node' or 'edge'.
+    :return: the dictionary of results under five different random seeds and increasing probabilities of added noise.
+    """
+
+    with open(os.path.join(model_dir, 'config.yaml')) as file:
+        cfg = yaml.full_load(file)
+
+        graph_name = cfg['graph_name']['value']
+        conv_type = cfg['model']['value']
+
+        n_conv_layers = cfg['n_conv_layers']['value']
+        layer_sizes = ast.literal_eval(cfg['layer_sizes']['value'])
+        dropout_p = cfg['dropout']['value']
+
+        lr = cfg['learning_rate']['value']
+        weight_decay = cfg['weight_decay']['value']
+
+        similarity_feature_set = [Phenotype(i) for i in ast.literal_eval(cfg['similarity']['value'])[0]]
+        similarity_threshold = ast.literal_eval(cfg['similarity']['value'])[1]
+
+    if graph_name not in GRAPH_NAMES:
+        graph_construct.construct_population_graph(similarity_feature_set=similarity_feature_set,
+                                                   similarity_threshold=similarity_threshold,
+                                                   functional=False,
+                                                   structural=True,
+                                                   euler=True)
+
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
+    graph = graph_construct.load_population_graph(graph_root, graph_name)
+
+    folds = get_cv_subject_split(graph, n_folds=5)
+    fold = folds[0]
+    results = {}
+
+    for i in range(5):
+        set_training_masks(graph, *fold)
+        results_fold = {}
+
+        for p in [0.01, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5]:
+            graph.to('cpu')
+            graph_transform.graph_feature_transform(graph)
+            if noise_type == 'node':
+                add_population_graph_noise(graph, p, random_state=i)
+            if noise_type == 'edge':
+                remove_population_graph_edges(graph, p, random_state=i)
+
+            data = graph.to(device)
+            epochs = 10000
+            model, _ = brain_gnn_train.train(conv_type, graph, device, n_conv_layers, layer_sizes, epochs, lr,
+                                             dropout_p, weight_decay, patience=100)
+            model.eval()
+            model = model(data)
+
+            predicted = model[data.test_mask].cpu()
+            actual = data.y[data.test_mask].cpu()
+            r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
+            r = pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
+            results_fold['p={}'.format(p)] = {'r': [x.item() for x in r], 'r2': r2.item()}
+        results['random_state_{}'.format(i)] = results_fold
+        wandb.run.summary["random_state_{}".format(i)] = results_fold
+
+    return results
+
+
+wandb.init(project="brain-age-gnn", reinit=True)
+wandb.save("*.pt")
+results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gcn'))
+with open(os.path.join(model_root, 'gcn', 'results_node_noise.yaml'), 'w+') as file:
     yaml.dump(results_gcn, file)
