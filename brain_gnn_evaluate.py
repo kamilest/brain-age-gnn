@@ -16,7 +16,7 @@ import yaml
 from scipy.stats import pearsonr
 from sklearn.metrics import r2_score
 from sklearn.model_selection import StratifiedShuffleSplit, StratifiedKFold
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 
 import brain_gnn_train
 import graph_construct
@@ -218,6 +218,7 @@ def add_population_graph_noise(population_graph, p, noise_amplitude=0.5, random_
     :param population_graph: population graph.
     :param p: proportion of training nodes with added noise.
     :param noise_amplitude: the variance of white noise.
+    :param random_state: random state determining which nodes will get added noise.
     """
 
     nodes = population_graph.x.numpy().copy()
@@ -229,6 +230,10 @@ def add_population_graph_noise(population_graph, p, noise_amplitude=0.5, random_
     for i in noisy_train_idx:
         nodes[i] += np.random.normal(0, noise_amplitude, len(nodes[i]))
 
+    scaler = StandardScaler()
+    scaler.fit(nodes[population_graph.train_mask])
+    nodes = scaler.transform(nodes)
+
     population_graph.x = torch.tensor(nodes)
 
 
@@ -237,8 +242,12 @@ def remove_population_graph_edges(population_graph, p, random_state=0):
 
     :param population_graph: path to the population graph file.
     :param p: proportion of the edges removed.
+    :param random_state: the seed determining which edges are removed.
     """
-    edges = np.transpose(population_graph.edge_index.numpy().copy())
+    if hasattr(population_graph, 'original_edge_index'):
+        edges = np.transpose(population_graph.original_edge_index.numpy().copy())
+    else:
+        edges = np.transpose(population_graph.edge_index.numpy().copy())
     unique_edges = np.unique([list(x) for x in (frozenset(y) for y in edges)], axis=0)
 
     np.random.seed(random_state)
@@ -360,7 +369,7 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
         set_training_masks(graph, *fold)
         results_fold = {}
 
-        for p in [0.01, 0.05, 0.1, 0.15, 0.2, 0.3, 0.5]:
+        for p in [0.01, 0.05, 0.1, 0.2, 0.3, 0.5]:
             graph.to('cpu')
             graph_transform.graph_feature_transform(graph)
             if noise_type == 'node':

@@ -15,7 +15,8 @@ from sklearn.metrics import r2_score
 
 import graph_transform
 from brain_gnn import BrainGCN, BrainGAT, ConvTypes
-from brain_gnn_evaluate import get_cv_subject_split, set_training_masks
+
+# from brain_gnn_evaluate import get_cv_subject_split, set_training_masks
 
 hyperparameter_defaults = dict(
     model='gcn',
