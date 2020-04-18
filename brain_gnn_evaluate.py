@@ -181,7 +181,7 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
     fold = folds[0]
     results = {}
 
-    for i in range(1, 5):
+    for i in range(0, 5):
         brain_gnn_train.set_training_masks(graph, *fold)
         results_fold = {}
 
@@ -204,7 +204,7 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
             actual = data.y[data.test_mask].cpu()
             r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
             r = pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
-            results_fold['p={}'.format(p)] = {'r': [x.item() for x in r], 'r2': r2.item()}
+            results_fold['p={}'.format(p)] = [[x.item() for x in r][0], r2.item()]
         results['random_state_{}'.format(i)] = results_fold
         wandb.run.summary["random_state_{}".format(i)] = results_fold
 
@@ -213,6 +213,6 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
 
 wandb.init(project="brain-age-gnn", reinit=True)
 wandb.save("*.pt")
-results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gcn'))
-with open(os.path.join(model_root, 'gcn', 'results_node_noise.yaml'), 'w+') as file:
+results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gcn'), 'edge')
+with open(os.path.join(model_root, 'gcn', 'results_edge_noise.yaml'), 'w+') as file:
     yaml.dump(results_gcn, file)
