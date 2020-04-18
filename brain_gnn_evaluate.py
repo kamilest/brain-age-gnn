@@ -213,6 +213,6 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
 
 wandb.init(project="brain-age-gnn", reinit=True)
 wandb.save("*.pt")
-results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gcn'), 'edge')
-with open(os.path.join(model_root, 'gcn', 'results_edge_noise.yaml'), 'w+') as file:
+results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gat'), 'node')
+with open(os.path.join(model_root, 'gat', 'results_edge_noise.yaml'), 'w+') as file:
     yaml.dump(results_gcn, file)
