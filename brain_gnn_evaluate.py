@@ -181,7 +181,7 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
     fold = folds[0]
     results = {}
 
-    for i in range(0, 5):
+    for i in range(2, 5):
         brain_gnn_train.set_training_masks(graph, *fold)
         results_fold = {}
 
@@ -204,9 +204,11 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
             actual = data.y[data.test_mask].cpu()
             r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
             r = pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
-            results_fold['p={}'.format(p)] = [[x.item() for x in r][0], r2.item()]
-        results['random_state_{}'.format(i)] = results_fold
-        wandb.run.summary["random_state_{}".format(i)] = results_fold
+            results_fold['p={}_metric=r'.format(p)] = [x.item() for x in r][0]
+            wandb.run.summary['{}_{}_{}_p={}_metric=r'.format(conv_type, noise_type, i, p)] = [x.item() for x in r][0]
+            results_fold['p={}_metric=r2'.format(p)] = r2.item()
+            wandb.run.summary['{}_{}_{}_p={}_metric=r2'.format(conv_type, noise_type, i, p)] = r2.item()
+        results['{}_{}_{}'.format(conv_type, noise_type, i)] = results_fold
 
     return results
 
