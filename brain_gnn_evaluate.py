@@ -229,7 +229,7 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
                 add_population_graph_noise(graph, p, random_state=i)
             if noise_type == 'edge':
                 remove_population_graph_edges(graph, p, random_state=i)
-            if noise_type == 'node_feature_permutation':
+            if noise_type == 'node-feature-permutation':
                 permute_population_graph_features(graph, p, random_state=i)
 
 
