@@ -10,6 +10,7 @@ import os
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 import wandb
 import yaml
 from scipy.stats import pearsonr
@@ -27,7 +28,7 @@ model_root = 'data/model'
 
 GRAPH_NAMES = sorted(os.listdir(graph_root))
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
 
 def add_population_graph_noise(population_graph, p, noise_amplitude=0.5, random_state=0):
@@ -55,12 +56,13 @@ def add_population_graph_noise(population_graph, p, noise_amplitude=0.5, random_
     population_graph.x = torch.tensor(nodes)
 
 
-def permute_population_graph_features(population_graph, p, random_state=0):
+def permute_population_graph_features(population_graph, p, random_state=0, train_set_only=True):
     """Adds white Gaussian noise to the nodes of the population graph, modifying the feature vector.
 
     :param population_graph: population graph.
     :param p: proportion of training nodes with permuted features.
     :param random_state: random state determining which nodes will get added noise.
+    :param train_set_only: whether to permute features only in nodes belonging to the training set.
     """
 
     nodes = population_graph.x.numpy().copy()
@@ -218,7 +220,7 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
     fold = folds[0]
     results = {}
 
-    for i in range(0, 5):
+    for i in range(3, 5):
         brain_gnn_train.set_training_masks(graph, *fold)
         results_fold = {}
 
@@ -290,6 +292,7 @@ def label_permutation_test(model_dir):
 
     rs = []
     r2s = []
+    mses = []
 
     for i in range(1000):
         graph.to('cpu')
@@ -312,13 +315,16 @@ def label_permutation_test(model_dir):
 
         r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
         r = pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
+        mse = F.mse_loss(predicted, actual)
 
         rs.append(r[0])
         r2s.append(r2)
-        print(r[0], r2)
+        mses.append(mse)
+        print(r[0], r2, mse)
 
     np.save(os.path.join('notebooks', 'permutations_{}_{}'.format(conv_type, 'r')), rs)
     np.save(os.path.join('notebooks', 'permutations_{}_{}'.format(conv_type, 'r2')), r2s)
+    np.save(os.path.join('notebooks', 'permutations_{}_{}'.format(conv_type, 'mse')), mses)
 
     return [rs, r2s]
 
