@@ -185,7 +185,7 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
         brain_gnn_train.set_training_masks(graph, *fold)
         results_fold = {}
 
-        for p in [0.01, 0.05, 0.1, 0.2, 0.3, 0.5]:
+        for p in [0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.8, 0.95]:
             graph.to('cpu')
             graph_transform.graph_feature_transform(graph)
             if noise_type == 'node':
@@ -213,6 +213,6 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
 
 wandb.init(project="brain-age-gnn", reinit=True)
 wandb.save("*.pt")
-results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gat'), 'node')
-with open(os.path.join(model_root, 'gat', 'results_edge_noise.yaml'), 'w+') as file:
+results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gat'), 'edge')
+with open(os.path.join(model_root, 'gat', 'results_edge_noise_extra.yaml'), 'w+') as file:
     yaml.dump(results_gcn, file)
