@@ -218,7 +218,7 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
     fold = folds[0]
     results = {}
 
-    for i in range(2, 5):
+    for i in range(0, 5):
         brain_gnn_train.set_training_masks(graph, *fold)
         results_fold = {}
 
@@ -288,22 +288,23 @@ def label_permutation_test(model_dir):
     brain_gnn_train.set_training_masks(graph, *fold)
     graph_transform.graph_feature_transform(graph)
 
-    if ConvTypes(conv_type) == ConvTypes.GCN:
-        model = BrainGCN(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p)
-    else:
-        model = BrainGAT(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p)
-
-    model.load_state_dict(torch.load(os.path.join(model_dir, 'fold-{}_state_dict.pt'.format(0))))
-    model = model.to(device)
-
     rs = []
     r2s = []
 
     for i in range(1000):
+        graph.to('cpu')
         permute_population_graph_labels(graph, i)
-        model.eval()
+
+        if ConvTypes(conv_type) == ConvTypes.GCN:
+            model = BrainGCN(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p)
+        else:
+            model = BrainGAT(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p)
+
+        model.load_state_dict(torch.load(os.path.join(model_dir, 'fold-{}_state_dict.pt'.format(0))))
+        model = model.to(device)
 
         data = graph.to(device)
+        model.eval()
         model = model(data)
 
         predicted = model[data.test_mask].cpu()
@@ -312,21 +313,22 @@ def label_permutation_test(model_dir):
         r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
         r = pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
 
-        rs.append(r)
+        rs.append(r[0])
         r2s.append(r2)
+        print(r[0], r2)
 
-    np.save('permutations_{}_{}'.format(conv_type, 'r'), rs)
-    np.save('permutations_{}_{}'.format(conv_type, 'r2'), r2s)
+    np.save(os.path.join('notebooks', 'permutations_{}_{}'.format(conv_type, 'r')), rs)
+    np.save(os.path.join('notebooks', 'permutations_{}_{}'.format(conv_type, 'r2')), r2s)
 
     return [rs, r2s]
 
 
 wandb.init(project="brain-age-gnn", reinit=True)
 wandb.save("*.pt")
-# results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gat'), 'edge')
-# with open(os.path.join(model_root, 'gat', 'results_edge_noise_extra.yaml'), 'w+') as file:
-#     yaml.dump(results_gcn, file)
-
-results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gat'), 'edge')
-with open(os.path.join(model_root, 'gat', 'results_edge_noise_extra.yaml'), 'w+') as file:
+results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gcn'), 'node-feature-permutation')
+with open(os.path.join(model_root, 'gcn', 'results_node-feature-permutation.yaml'), 'w+') as file:
     yaml.dump(results_gcn, file)
+
+# results = label_permutation_test(os.path.join(model_root, 'gcn'))
+# with open(os.path.join(model_root, 'gcn', 'results_label_permutation.yaml'), 'w+') as file:
+#     yaml.dump(results, file)
