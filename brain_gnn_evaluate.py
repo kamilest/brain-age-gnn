@@ -27,6 +27,8 @@ model_root = 'data/model'
 
 GRAPH_NAMES = sorted(os.listdir(graph_root))
 
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+
 
 def add_population_graph_noise(population_graph, p, noise_amplitude=0.5, random_state=0):
     """Adds white Gaussian noise to the nodes of the population graph, modifying the feature vector.
@@ -49,6 +51,26 @@ def add_population_graph_noise(population_graph, p, noise_amplitude=0.5, random_
     scaler = StandardScaler()
     scaler.fit(nodes[population_graph.train_mask])
     nodes = scaler.transform(nodes)
+
+    population_graph.x = torch.tensor(nodes)
+
+
+def permute_population_graph_features(population_graph, p, random_state=0):
+    """Adds white Gaussian noise to the nodes of the population graph, modifying the feature vector.
+
+    :param population_graph: population graph.
+    :param p: proportion of training nodes with permuted features.
+    :param random_state: random state determining which nodes will get added noise.
+    """
+
+    nodes = population_graph.x.numpy().copy()
+    train_idx = np.where(population_graph.train_mask.numpy())[0]
+
+    np.random.seed(random_state)
+    noisy_train_idx = np.random.choice(train_idx, round(len(train_idx) * p), replace=False)
+
+    for i in noisy_train_idx:
+        nodes[i] = np.random.permutation(nodes[i])
 
     population_graph.x = torch.tensor(nodes)
 
@@ -80,6 +102,25 @@ def remove_population_graph_edges(population_graph, p, random_state=0):
     population_graph.edge_index = torch.tensor([v_list, w_list], dtype=torch.long)
 
 
+def permute_population_graph_labels(population_graph, random_state=0):
+    """Shuffles the labels of the population graph.
+
+    :param population_graph: path to the population graph file.
+    :param random_state: the seed determining how labels are shuffled.
+    """
+    if hasattr(population_graph, 'original_y'):
+        y = population_graph.original_y.numpy().copy()
+    else:
+        y = population_graph.y.numpy().copy()
+
+    np.random.seed(random_state)
+    permuted_y = np.random.permutation(y)
+
+    if not hasattr(population_graph, 'original_y'):
+        population_graph.original_y = population_graph.y.clone()
+    population_graph.y = torch.tensor(permuted_y, dtype=torch.long)
+
+
 def evaluate_test_set_performance(model_dir):
     """Measures the test set performance of the model under the specified model directory.
 
@@ -107,8 +148,6 @@ def evaluate_test_set_performance(model_dir):
                                                    functional=False,
                                                    structural=True,
                                                    euler=True)
-
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
     graph = graph_construct.load_population_graph(graph_root, graph_name)
 
@@ -146,7 +185,7 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
 
     :param model_dir: directory containing the model state dictionaries for each fold and the model
         configuration (including the population graph parameterisation)
-    :param noise_type: 'node' or 'edge'.
+    :param noise_type: 'node', 'node_feature_permutation' or 'edge'.
     :return: the dictionary of results under five different random seeds and increasing probabilities of added noise.
     """
 
@@ -173,8 +212,6 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
                                                    structural=True,
                                                    euler=True)
 
-    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
-
     graph = graph_construct.load_population_graph(graph_root, graph_name)
 
     folds = brain_gnn_train.get_cv_subject_split(graph, n_folds=5)
@@ -192,6 +229,9 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
                 add_population_graph_noise(graph, p, random_state=i)
             if noise_type == 'edge':
                 remove_population_graph_edges(graph, p, random_state=i)
+            if noise_type == 'node_feature_permutation':
+                permute_population_graph_features(graph, p, random_state=i)
+
 
             data = graph.to(device)
             epochs = 10000
@@ -213,8 +253,80 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
     return results
 
 
+def label_permutation_test(model_dir):
+    """Permutation test measuring the performance of the model when the labels are shuffled.
+
+    :param model_dir: directory containing the model state dictionaries for each fold and the model
+        configuration (including the population graph parameterisation)
+    :return: the test set performance for each permutation.
+    """
+
+    with open(os.path.join(model_dir, 'config.yaml')) as file:
+        cfg = yaml.full_load(file)
+
+        graph_name = cfg['graph_name']['value']
+        conv_type = cfg['model']['value']
+
+        n_conv_layers = cfg['n_conv_layers']['value']
+        layer_sizes = ast.literal_eval(cfg['layer_sizes']['value'])
+        dropout_p = cfg['dropout']['value']
+
+        similarity_feature_set = [Phenotype(i) for i in ast.literal_eval(cfg['similarity']['value'])[0]]
+        similarity_threshold = ast.literal_eval(cfg['similarity']['value'])[1]
+
+    if graph_name not in GRAPH_NAMES:
+        graph_construct.construct_population_graph(similarity_feature_set=similarity_feature_set,
+                                                   similarity_threshold=similarity_threshold,
+                                                   functional=False,
+                                                   structural=True,
+                                                   euler=True)
+
+    graph = graph_construct.load_population_graph(graph_root, graph_name)
+
+    folds = brain_gnn_train.get_cv_subject_split(graph, n_folds=5)
+    fold = folds[0]
+    brain_gnn_train.set_training_masks(graph, *fold)
+    graph_transform.graph_feature_transform(graph)
+
+    if ConvTypes(conv_type) == ConvTypes.GCN:
+        model = BrainGCN(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p)
+    else:
+        model = BrainGAT(graph.num_node_features, n_conv_layers, layer_sizes, dropout_p)
+
+    model.load_state_dict(torch.load(os.path.join(model_dir, 'fold-{}_state_dict.pt'.format(0))))
+    model = model.to(device)
+
+    rs = []
+    r2s = []
+
+    for i in range(1000):
+        permute_population_graph_labels(graph, i)
+        model.eval()
+
+        data = graph.to(device)
+        model = model(data)
+
+        predicted = model[data.test_mask].cpu()
+        actual = graph.y[data.test_mask].cpu()
+
+        r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
+        r = pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
+
+        rs.append(r)
+        r2s.append(r2)
+
+    np.save('permutations_{}_{}'.format(conv_type, 'r'), rs)
+    np.save('permutations_{}_{}'.format(conv_type, 'r2'), r2s)
+
+    return [rs, r2s]
+
+
 wandb.init(project="brain-age-gnn", reinit=True)
 wandb.save("*.pt")
+# results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gat'), 'edge')
+# with open(os.path.join(model_root, 'gat', 'results_edge_noise_extra.yaml'), 'w+') as file:
+#     yaml.dump(results_gcn, file)
+
 results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gat'), 'edge')
 with open(os.path.join(model_root, 'gat', 'results_edge_noise_extra.yaml'), 'w+') as file:
     yaml.dump(results_gcn, file)
