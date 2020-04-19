@@ -10,11 +10,10 @@ import os
 
 import numpy as np
 import torch
-import torch.nn.functional as F
 import wandb
 import yaml
 from scipy.stats import pearsonr
-from sklearn.metrics import r2_score
+from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.preprocessing import StandardScaler
 
 import brain_gnn_train
@@ -28,7 +27,7 @@ model_root = 'data/model'
 
 GRAPH_NAMES = sorted(os.listdir(graph_root))
 
-device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 
 
 def add_population_graph_noise(population_graph, p, noise_amplitude=0.5, random_state=0):
@@ -220,11 +219,11 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
     fold = folds[0]
     results = {}
 
-    for i in range(3, 5):
+    for i in range(0, 1):
         brain_gnn_train.set_training_masks(graph, *fold)
         results_fold = {}
 
-        for p in [0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.8, 0.95]:
+        for p in [0.05, 0.1, 0.2, 0.3, 0.5, 0.8, 0.95]:
             graph.to('cpu')
             graph_transform.graph_feature_transform(graph)
             if noise_type == 'node':
@@ -315,7 +314,7 @@ def label_permutation_test(model_dir):
 
         r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
         r = pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
-        mse = F.mse_loss(predicted, actual)
+        mse = mean_squared_error(actual.detach().numpy(), predicted.detach().numpy())
 
         rs.append(r[0])
         r2s.append(r2)
@@ -331,10 +330,10 @@ def label_permutation_test(model_dir):
 
 wandb.init(project="brain-age-gnn", reinit=True)
 wandb.save("*.pt")
-results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gcn'), 'node-feature-permutation')
-with open(os.path.join(model_root, 'gcn', 'results_node-feature-permutation.yaml'), 'w+') as file:
+results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gat'), 'node-feature-permutation')
+with open(os.path.join(model_root, 'gat', 'results_node-feature-permutation.yaml'), 'w+') as file:
     yaml.dump(results_gcn, file)
 
-# results = label_permutation_test(os.path.join(model_root, 'gcn'))
-# with open(os.path.join(model_root, 'gcn', 'results_label_permutation.yaml'), 'w+') as file:
+# results = label_permutation_test(os.path.join(model_root, 'gat'))
+# with open(os.path.join(model_root, 'gat', 'results_label_permutation.yaml'), 'w+') as file:
 #     yaml.dump(results, file)
