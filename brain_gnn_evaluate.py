@@ -6,6 +6,7 @@ Provides functions for altering the graph by adding node noise or edge noise.
 """
 
 import ast
+import gc
 import os
 
 import numpy as np
@@ -27,7 +28,7 @@ model_root = 'data/model'
 
 GRAPH_NAMES = sorted(os.listdir(graph_root))
 
-device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:1' if torch.cuda.is_available() else 'cpu')
 
 
 def add_population_graph_noise(population_graph, p, noise_amplitude=0.5, random_state=0):
@@ -177,6 +178,9 @@ def evaluate_test_set_performance(model_dir):
         r2 = r2_score(actual.detach().numpy(), predicted.detach().numpy())
         r = pearsonr(actual.detach().numpy().flatten(), predicted.detach().numpy().flatten())
         results['fold_{}'.format(i)] = {'r': [x.item() for x in r], 'r2': r2.item()}
+        mse = mean_squared_error(actual.detach().numpy(), predicted.detach().numpy())
+        results=mse
+        break
 
     return results
 
@@ -219,11 +223,11 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
     fold = folds[0]
     results = {}
 
-    for i in range(0, 1):
+    for i in range(1, 5):
         brain_gnn_train.set_training_masks(graph, *fold)
         results_fold = {}
 
-        for p in [0.05, 0.1, 0.2, 0.3, 0.5, 0.8, 0.95]:
+        for p in [0.01, 0.05, 0.1, 0.2, 0.3, 0.5, 0.8, 0.95]:
             graph.to('cpu')
             graph_transform.graph_feature_transform(graph)
             if noise_type == 'node':
@@ -249,6 +253,9 @@ def evaluate_noise_performance(model_dir, noise_type='node'):
             wandb.run.summary['{}_{}_{}_p={}_metric=r'.format(conv_type, noise_type, i, p)] = [x.item() for x in r][0]
             results_fold['p={}_metric=r2'.format(p)] = r2.item()
             wandb.run.summary['{}_{}_{}_p={}_metric=r2'.format(conv_type, noise_type, i, p)] = r2.item()
+
+            gc.collect()
+
         results['{}_{}_{}'.format(conv_type, noise_type, i)] = results_fold
 
     return results
