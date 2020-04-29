@@ -1,8 +1,8 @@
-"""Graph neural network training and evaluation component.
+"""
+Graph neural network evaluation component.
 
-Provides functions for splitting the subjects into train, validation and test sets, including stratification and cross
-    validation functionality.
-Provides functions for altering the graph by adding node noise or edge noise.
+Provides functions for altering the graph by addning Gaussian noise to nodes, permuting the node features, removing
+    edges at random as part of permutation and robustness tests.
 """
 
 import ast
