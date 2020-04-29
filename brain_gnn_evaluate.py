@@ -1,8 +1,8 @@
-"""Graph neural network training and evaluation component.
+"""
+Graph neural network evaluation component.
 
-Provides functions for splitting the subjects into train, validation and test sets, including stratification and cross
-    validation functionality.
-Provides functions for altering the graph by adding node noise or edge noise.
+Provides functions for altering the graph by addning Gaussian noise to nodes, permuting the node features, removing
+    edges at random as part of permutation and robustness tests.
 """
 
 import ast
@@ -333,14 +333,3 @@ def label_permutation_test(model_dir):
     np.save(os.path.join('notebooks', 'permutations_{}_{}'.format(conv_type, 'mse')), mses)
 
     return [rs, r2s]
-
-
-wandb.init(project="brain-age-gnn", reinit=True)
-wandb.save("*.pt")
-results_gcn = evaluate_noise_performance(os.path.join(model_root, 'gat'), 'node-feature-permutation')
-with open(os.path.join(model_root, 'gat', 'results_node-feature-permutation.yaml'), 'w+') as file:
-    yaml.dump(results_gcn, file)
-
-# results = label_permutation_test(os.path.join(model_root, 'gat'))
-# with open(os.path.join(model_root, 'gat', 'results_label_permutation.yaml'), 'w+') as file:
-#     yaml.dump(results, file)

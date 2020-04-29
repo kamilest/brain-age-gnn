@@ -1,3 +1,7 @@
+"""
+Tests the UKB preprocessing component.
+"""
+
 import unittest
 
 import numpy as np

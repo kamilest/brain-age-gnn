@@ -456,9 +456,3 @@ def load_population_graph(root, name):
     """
 
     return torch.load(os.path.join(root, name))
-
-
-if __name__ == '__main__':
-    feature_set = [Phenotype.SEX, Phenotype.MENTAL_HEALTH, Phenotype.PROSPECTIVE_MEMORY_RESULT,
-                   Phenotype.BIPOLAR_DISORDER_STATUS, Phenotype.NEUROTICISM_SCORE]
-    graph = construct_population_graph(feature_set, similarity_threshold=0.8)

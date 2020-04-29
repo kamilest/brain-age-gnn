@@ -1,3 +1,5 @@
+"""Tests for graph construction component."""
+
 import unittest
 
 import numpy as np
