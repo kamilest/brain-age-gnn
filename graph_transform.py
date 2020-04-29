@@ -1,3 +1,9 @@
+"""
+Provides graph transformation component functionality.
+
+Does the dimensionality reduction and feature normalisation and concatenation.
+"""
+
 import numpy as np
 import sklearn
 import torch
