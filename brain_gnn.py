@@ -1,8 +1,4 @@
-"""
-    Graph convolutional network implementation.
-    https://pytorch-geometric.readthedocs.io/en/latest/notes/introduction.html
-
-"""
+"""Implements parent BrainGNN and child BrainGCN, BrainGAT classes."""
 
 import enum
 
@@ -19,6 +15,16 @@ class ConvTypes(enum.Enum):
 class BrainGNN(torch.nn.Module):
     # noinspection PyUnresolvedReferences
     def __init__(self, conv_type, num_node_features, n_conv_layers, layer_sizes, dropout_p):
+        """
+        Initialises BrainGNN class.
+
+        :param conv_type: convolution type, either ConvType.GCN or ConvType.GAT; defaults to fully connected layers.
+        :param num_node_features: number of input features.
+        :param n_conv_layers: number of convolutional layers.
+        :param layer_sizes: array of layer sizes, first of which convolutional, the rest fully connected.
+        :param dropout_p: probability of dropping out a unit.
+        """
+
         super(BrainGNN, self).__init__()
         self.conv = torch.nn.ModuleList()
         self.fc = torch.nn.ModuleList()
@@ -56,9 +62,27 @@ class BrainGNN(torch.nn.Module):
 
 class BrainGCN(BrainGNN):
     def __init__(self, num_node_features, n_conv_layers, layer_sizes, dropout_p):
+        """
+        Initialises GCN class.
+
+        :param num_node_features: number of input features.
+        :param n_conv_layers: number of convolutional layers.
+        :param layer_sizes: array of layer sizes, first of which convolutional, the rest fully connected.
+        :param dropout_p: probability of dropping out a unit.
+        """
+
         super(BrainGCN, self).__init__(ConvTypes.GCN, num_node_features, n_conv_layers, layer_sizes, dropout_p)
 
 
 class BrainGAT(BrainGNN):
     def __init__(self, num_node_features, n_conv_layers, layer_sizes, dropout_p):
+        """
+        Initialises BrainGNN class.
+
+        :param num_node_features: number of input features.
+        :param n_conv_layers: number of convolutional (attentional) layers.
+        :param layer_sizes: array of layer sizes, first of which convolutional, the rest fully connected.
+        :param dropout_p: probability of dropping out a unit.
+        """
+
         super(BrainGAT, self).__init__(ConvTypes.GAT, num_node_features, n_conv_layers, layer_sizes, dropout_p)
