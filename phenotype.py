@@ -1,3 +1,5 @@
+"""Encodings of non-imaging features."""
+
 import enum
 
 import numpy as np
