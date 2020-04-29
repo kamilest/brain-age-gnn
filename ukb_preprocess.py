@@ -1,3 +1,9 @@
+"""
+UKB preprocessing component.
+
+Does functional connectivity matrix and similarity matrix precomputation.
+"""
+
 import os
 from functools import reduce
 
