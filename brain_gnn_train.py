@@ -1,8 +1,12 @@
 """
-    Graph convolutional network implementation.
-    https://pytorch-geometric.readthedocs.io/en/latest/notes/introduction.html
+Graph neural network training component.
 
+Splits subjects in the population graph into training, validation, and test sets, stratifying by sex and age.
+Sets training masks in the population graph.
+Provides methods for training the graph neural network (potentially with cross-validation).
 """
+
+
 import os
 from datetime import datetime
 
@@ -25,7 +29,7 @@ model_root = 'data/model'
 
 GRAPH_NAMES = sorted(os.listdir(graph_root))
 
-
+# Used by wandb framework.
 hyperparameter_defaults = dict(
     model='gcn',
     epochs=5000,
@@ -38,6 +42,12 @@ hyperparameter_defaults = dict(
 
 
 def get_confounding_features(population_graph):
+    """
+    Returns the dataframe of confounding non-imaging features used for further stratification.
+
+    :param population_graph: population graph.
+    :return: the dataframe with confounding features against which to stratify (in this case age and sex).
+    """
     similarity_lookup = pd.read_pickle(SIMILARITY_LOOKUP).loc[
         population_graph.subject_index, ['AGE', 'SEX']].fillna(-1)
     icd10_lookup = pd.read_pickle(ICD10_LOOKUP).loc[population_graph.subject_index].fillna(-1)
@@ -49,6 +59,13 @@ def get_confounding_features(population_graph):
 
 
 def get_encoded_confounding_features(population_graph):
+    """
+    Encodes the confounding features as labels.
+
+    :param population_graph: population graph.
+    :return: new labels of population graph subjects containing all the confounding variables.
+    """
+
     confounding_features = get_confounding_features(population_graph)
     return LabelEncoder().fit_transform(["".join(a) for a in confounding_features.astype(str)])
 
@@ -220,6 +237,29 @@ def get_subject_split_masks(train_index, validate_index, test_index):
 def train(conv_type, graph, device, n_conv_layers=0, layer_sizes=None, epochs=3500, lr=0.005, dropout_p=0,
           weight_decay=1e-5, log=True, early_stopping=True, patience=10, delta=0.005, cv=False, fold=0,
           run_name=None, min_epochs=1000):
+    """
+    Trains the graph neural network on a population graph.
+
+    :param conv_type: convolution type, ConvType.GCN or ConvType.GAT
+    :param graph: the population graph
+    :param device: device on which the neural network will be trained. 'cpu' or 'cuda:x'
+    :param n_conv_layers: number of convolutional layers in GNN
+    :param layer_sizes: array of layer sizes, first n_conv_layers of which convolutional, the rest fully connected
+    :param epochs: number of epochs for which to train
+    :param lr: learning rate
+    :param dropout_p: dropout probability (probability of killing the unit)
+    :param weight_decay: weight decay
+    :param log: indicates whether to log results to wandb.
+    :param early_stopping: indicates whether to use early stopping.
+    :param patience: indicates how long to tolerate no improvement in MSE before early stopping.
+    :param delta: defines the threshold of how much the model has to improve in `patience` epochs.
+    :param cv: whether this is part of cross-validation training (used for logging).
+    :param fold: in case this is cross-validation training, which fold is this (used for logging).
+    :param run_name: wandb run name (used for smoother logging when cross-validation is used).
+    :param min_epochs: minimum number of epochs that have to pass before early stopping is enabled.
+    :return: the model and (run name, validation set predictions vs actual labels).
+    """
+
     data = graph.to(device)
     assert n_conv_layers >= 0
 
@@ -335,6 +375,25 @@ def train(conv_type, graph, device, n_conv_layers=0, layer_sizes=None, epochs=35
 def train_with_cross_validation(conv_type, graph, device, n_folds=10, n_conv_layers=0, layer_sizes=None, epochs=350,
                                 lr=0.005, dropout_p=0, weight_decay=1e-5, log=True, early_stopping=True,
                                 patience=10, delta=0.005):
+    """
+    Trains the graph neural network on a population graph.
+
+    :param conv_type: convolution type, ConvType.GCN or ConvType.GAT
+    :param graph: the population graph
+    :param device: device on which the neural network will be trained. 'cpu' or 'cuda:x'
+    :param n_conv_layers: number of convolutional layers in GNN
+    :param layer_sizes: array of layer sizes, first n_conv_layers of which convolutional, the rest fully connected
+    :param epochs: number of epochs for which to train
+    :param lr: learning rate
+    :param dropout_p: dropout probability (probability of killing the unit)
+    :param weight_decay: weight decay
+    :param log: indicates whether to log results to wandb.
+    :param early_stopping: indicates whether to use early stopping.
+    :param patience: indicates how long to tolerate no improvement in MSE before early stopping.
+    :param delta: defines the threshold of how much the model has to improve in `patience` epochs.
+    :return: array of results as in train method, repeated for all folds.
+    """
+
     folds = get_cv_subject_split(graph, n_folds=n_folds)
     results = []
     run_name = None
